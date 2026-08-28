@@ -1,0 +1,22 @@
+﻿{
+  "latest_version": "1.0.0",
+  "build_number": 1,
+  "min_supported_version": "1.0.0",
+  "release_date": "2026-08-28",
+  "release_title": "ClassTrack v1.0.0: Initial Official Stable Release",
+  "changelog": [
+    "✨ 100% Offline & Private: Zero telemetry, cloud tracking, or mandatory logins",
+    "✨ Live Today Dashboard: Real-time lecture countdowns & 1-tap attendance marking",
+    "✨ Weekly Timetable Engine: Multi-day batch repeat (🔁) & custom component colors",
+    "✨ Calendar Overrides: Date-specific exceptions, reschedule single sessions, or add makeup labs",
+    "✨ Margin Analytics & What-If Simulator: Safe miss margins (+N) and leave forecast calculator",
+    "✨ Multi-Date Export Suite: Official multi-sheet Excel & printable PDF registers",
+    "✨ High-Res QR Timetable Share: Instant schedule sync with sharable QR card images",
+    "✨ Encrypted Local Backups: Scheduled auto-backups and 1-tap .ctbackup restoration",
+    "✨ System Notifications: Background alerts for exports, backups, and timetable imports (zero em-dashes)"
+  ],
+  "download_url": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0/ClassTrack-v1.0.0.apk",
+  "release_page_url": "https://github.com/a3ryk/classtrack/releases/tag/v1.0.0",
+  "is_mandatory": false,
+  "warning_message": null
+}
