@@ -1,10 +1,11 @@
 ﻿{
-  "latest_version": "1.0.0",
+  "latest_version": "1.0.0-alpha.1",
   "build_number": 1,
-  "min_supported_version": "1.0.0",
+  "min_supported_version": "1.0.0-alpha.1",
   "release_date": "2026-08-28",
-  "release_title": "ClassTrack v1.0.0: Initial Official Stable Release",
+  "release_title": "ClassTrack v1.0.0 (Alpha 1 Preview)",
   "changelog": [
+    "🚀 Initial Alpha Release for testing and feedback",
     "✨ 100% Offline & Private: Zero telemetry, cloud tracking, or mandatory logins",
     "✨ Live Today Dashboard: Real-time lecture countdowns & 1-tap attendance marking",
     "✨ Weekly Timetable Engine: Multi-day batch repeat (🔁) & custom component colors",
@@ -15,8 +16,8 @@
     "✨ Encrypted Local Backups: Scheduled auto-backups and 1-tap .ctbackup restoration",
     "✨ System Notifications: Background alerts for exports, backups, and timetable imports (zero em-dashes)"
   ],
-  "download_url": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0/ClassTrack-v1.0.0.apk",
-  "release_page_url": "https://github.com/a3ryk/classtrack/releases/tag/v1.0.0",
+  "download_url": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.1/ClassTrack-v1.0.0-alpha.1.apk",
+  "release_page_url": "https://github.com/a3ryk/classtrack/releases/tag/v1.0.0-alpha.1",
   "is_mandatory": false,
-  "warning_message": null
+  "warning_message": "⚠️ This is an Alpha testing build. Please report any issues on GitHub."
 }
