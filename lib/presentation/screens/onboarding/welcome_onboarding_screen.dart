@@ -214,10 +214,12 @@ class WelcomeOnboardingScreen extends ConsumerWidget {
 
               // Option 3: Restore Backup
               InkWell(
-                onTap: () {
-                  ref.read(hasCompletedOnboardingProvider.notifier).setCompleted(true);
-                  Navigator.of(context).pop();
-                  ref.read(backupProvider.notifier).restoreBackupFromFile(context);
+                onTap: () async {
+                  final restored = await ref.read(backupProvider.notifier).restoreBackupFromFile(context);
+                  if (restored && context.mounted) {
+                    ref.read(hasCompletedOnboardingProvider.notifier).setCompleted(true);
+                    Navigator.of(context).pop();
+                  }
                 },
                 borderRadius: BorderRadius.circular(14),
                 child: Container(

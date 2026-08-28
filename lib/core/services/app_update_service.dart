@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:permission_handler/permission_handler.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../constants/update_constants.dart';
 
 /// Release Information Model
@@ -339,7 +339,10 @@ class AppUpdateService {
     }
   }
 
-  /// Triggers package installer on Android for downloaded APK file
+  static const MethodChannel _installerChannel =
+      MethodChannel('com.classtrack.app/package_installer');
+
+  /// Triggers package installer on Android for downloaded APK file using native FileProvider
   static Future<bool> installApk(File apkFile) async {
     if (!Platform.isAndroid) return false;
     try {
@@ -355,11 +358,13 @@ class AppUpdateService {
         }
       }
 
-      final uri = Uri.parse('file://${apkFile.path}');
-      if (await canLaunchUrl(uri)) {
-        return await launchUrl(uri);
-      }
-      return false;
+      // Invoke native PackageInstaller with FileProvider content URI
+      final bool? success = await _installerChannel.invokeMethod<bool>(
+        'installApk',
+        {'filePath': apkFile.path},
+      );
+
+      return success ?? false;
     } catch (e) {
       debugPrint('[AppUpdateService] APK install trigger failed: $e');
       return false;

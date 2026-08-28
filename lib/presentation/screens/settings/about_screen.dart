@@ -70,6 +70,18 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
     }
   }
 
+  static const List<String> _bundledLaunchChangelog = [
+    '✨ 100% Offline & Private: Zero telemetry, cloud tracking, or mandatory logins',
+    '✨ Live Today Dashboard: Real-time lecture countdowns & 1-tap attendance marking',
+    '✨ Weekly Timetable Engine: Multi-day batch repeat (🔁) & custom component colors',
+    '✨ Calendar Overrides: Date-specific exceptions, reschedule single sessions, or add makeup labs',
+    '✨ Margin Analytics & What-If Simulator: Safe miss margins (+N) and leave forecast calculator',
+    '✨ Multi-Date Export Suite: Official multi-sheet Excel & printable PDF registers',
+    '✨ High-Res QR Timetable Share: Instant schedule sync with sharable QR card images',
+    '✨ Encrypted Local Backups: Scheduled auto-backups and 1-tap .ctbackup restoration',
+    '✨ System Notifications: Background alerts for exports, backups, and timetable imports (zero em-dashes)',
+  ];
+
   Future<void> _showWhatsNewDialog(BuildContext context, bool isDark) async {
     final updateState = ref.read(appUpdateProvider);
 
@@ -78,46 +90,52 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (ctx) => UpdateScreen(releaseInfo: updateState.releaseInfo!),
+          builder: (ctx) => UpdateScreen(
+            releaseInfo: updateState.releaseInfo!,
+            isWhatsNewMode: true,
+          ),
         ),
       );
       return;
     }
 
-    // 2. Fetch live release notes dynamically from GitHub Releases API
+    // 2. Fetch live release notes dynamically from GitHub Releases / version manifest
     try {
       final latestRelease = await AppUpdateService.fetchLatestRelease();
       if (latestRelease != null && context.mounted) {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (ctx) => UpdateScreen(releaseInfo: latestRelease),
-          ),
-        );
-      } else if (context.mounted) {
-        // If repo not yet published or no changelog returned, show clean version overview with GitHub releases link
-        Navigator.push(
-          context,
-          MaterialPageRoute(
             builder: (ctx) => UpdateScreen(
-              releaseInfo: AppReleaseInfo(
-                latestVersion: updateState.currentVersion,
-                buildNumber: int.tryParse(updateState.currentBuildNumber) ?? 1,
-                minSupportedVersion: updateState.currentVersion,
-                releaseDate: '',
-                releaseTitle: 'ClassTrack v${updateState.currentVersion}',
-                changelog: const [],
-                releasePageUrl: UpdateConstants.defaultWebsiteUrl,
-                isMandatory: false,
-              ),
+              releaseInfo: latestRelease,
+              isWhatsNewMode: true,
             ),
           ),
         );
+        return;
       }
-    } catch (e) {
-      if (context.mounted) {
-        AppToast.error(context, 'Could not load release notes. Check your internet connection.');
-      }
+    } catch (_) {}
+
+    // 3. Fallback: Display bundled version changelog immediately
+    if (context.mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (ctx) => UpdateScreen(
+            releaseInfo: AppReleaseInfo(
+              latestVersion: updateState.currentVersion,
+              buildNumber: int.tryParse(updateState.currentBuildNumber) ?? 1,
+              minSupportedVersion: updateState.currentVersion,
+              releaseDate: 'August 2026',
+              releaseTitle: 'ClassTrack v${updateState.currentVersion}',
+              changelog: _bundledLaunchChangelog,
+              releasePageUrl: UpdateConstants.defaultWebsiteUrl,
+              isMandatory: false,
+            ),
+            isWhatsNewMode: true,
+          ),
+        ),
+      );
     }
   }
 

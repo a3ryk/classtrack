@@ -8,10 +8,12 @@ import '../../../core/ui/app_toast.dart';
 
 class UpdateScreen extends StatefulWidget {
   final AppReleaseInfo releaseInfo;
+  final bool isWhatsNewMode;
 
   const UpdateScreen({
     super.key,
     required this.releaseInfo,
+    this.isWhatsNewMode = false,
   });
 
   @override
@@ -151,7 +153,9 @@ class _UpdateScreenState extends State<UpdateScreen> {
                   onPressed: () => Navigator.pop(context),
                 ),
           title: Text(
-            isMandatory ? 'Update Required' : 'Update Available',
+            widget.isWhatsNewMode
+                ? 'What\'s New'
+                : (isMandatory ? 'Update Required' : 'Update Available'),
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -177,31 +181,43 @@ class _UpdateScreenState extends State<UpdateScreen> {
                           height: 52,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(14),
-                            color: isMandatory
-                                ? (isDark ? AppColors.absentContainerDark : AppColors.absentContainerLight)
-                                : (isDark ? brandBlue.withValues(alpha: 0.18) : const Color(0xFFEFF6FF)),
+                            color: widget.isWhatsNewMode
+                                ? (isDark ? AppColors.accentIndigoLight.withValues(alpha: 0.18) : const Color(0xFFEEF2FF))
+                                : (isMandatory
+                                    ? (isDark ? AppColors.absentContainerDark : AppColors.absentContainerLight)
+                                    : (isDark ? brandBlue.withValues(alpha: 0.18) : const Color(0xFFEFF6FF))),
                             border: Border.all(
-                              color: isMandatory
-                                  ? (isDark ? AppColors.absentRedDark.withValues(alpha: 0.4) : const Color(0xFFFECACA))
-                                  : (isDark ? brandBlue.withValues(alpha: 0.4) : const Color(0xFFBFDBFE)),
+                              color: widget.isWhatsNewMode
+                                  ? (isDark ? AppColors.accentIndigoLight.withValues(alpha: 0.4) : const Color(0xFFC7D2FE))
+                                  : (isMandatory
+                                      ? (isDark ? AppColors.absentRedDark.withValues(alpha: 0.4) : const Color(0xFFFECACA))
+                                      : (isDark ? brandBlue.withValues(alpha: 0.4) : const Color(0xFFBFDBFE))),
                               width: 0.8,
                             ),
                           ),
                           child: Center(
                             child: Icon(
-                              isMandatory ? Icons.warning_amber_rounded : Icons.system_update_alt_rounded,
+                              widget.isWhatsNewMode
+                                  ? Icons.auto_awesome_rounded
+                                  : (isMandatory ? Icons.warning_amber_rounded : Icons.system_update_alt_rounded),
                               size: 26,
-                              color: isMandatory
-                                  ? (isDark ? AppColors.absentRedDark : AppColors.absentRedText)
-                                  : brandBlue,
+                              color: widget.isWhatsNewMode
+                                  ? AppColors.accentIndigoLight
+                                  : (isMandatory
+                                      ? (isDark ? AppColors.absentRedDark : AppColors.absentRedText)
+                                      : brandBlue),
                             ),
                           ),
                         ),
                         const SizedBox(height: 18),
                         Text(
-                          isMandatory ? 'Critical Update Required' : 'New version available!',
+                          widget.isWhatsNewMode
+                              ? (widget.releaseInfo.releaseTitle.isNotEmpty
+                                  ? widget.releaseInfo.releaseTitle
+                                  : 'What\'s New in v${widget.releaseInfo.latestVersion}')
+                              : (isMandatory ? 'Critical Update Required' : 'New version available!'),
                           style: TextStyle(
-                            fontSize: 24,
+                            fontSize: 22,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.5,
                             color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
@@ -209,7 +225,9 @@ class _UpdateScreenState extends State<UpdateScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'v${widget.releaseInfo.latestVersion}${widget.releaseInfo.releaseDate.isNotEmpty ? " • Released ${widget.releaseInfo.releaseDate}" : ""}',
+                          widget.isWhatsNewMode
+                              ? 'v${widget.releaseInfo.latestVersion}${widget.releaseInfo.releaseDate.isNotEmpty ? " • Released ${widget.releaseInfo.releaseDate}" : " • Current Version"}'
+                              : 'v${widget.releaseInfo.latestVersion}${widget.releaseInfo.releaseDate.isNotEmpty ? " • Released ${widget.releaseInfo.releaseDate}" : ""}',
                           style: TextStyle(
                             fontSize: 13.5,
                             fontWeight: FontWeight.w500,
@@ -393,63 +411,88 @@ class _UpdateScreenState extends State<UpdateScreen> {
                     ),
                   ),
                 ],
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: _isDownloading
-                            ? null
-                            : () => _handleUpdateAction(downloadUrl),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _downloadedApkFile != null
-                              ? AppColors.presentGreen
-                              : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
-                          foregroundColor: isDark ? AppColors.bgDark : Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                if (widget.isWhatsNewMode) ...[
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                        foregroundColor: isDark ? AppColors.bgDark : Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Text(
-                          _downloadedApkFile != null
-                              ? 'Install Update'
-                              : (_isDownloading ? 'Downloading...' : 'Update Now'),
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                          ),
+                      ),
+                      child: const Text(
+                        'Done',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
-                    if (!isMandatory && !_isDownloading) ...[
-                      const SizedBox(height: 10),
+                  ),
+                ] else ...[
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                       SizedBox(
                         width: double.infinity,
                         height: 48,
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                            side: BorderSide(color: borderColor, width: 1.0),
+                        child: ElevatedButton(
+                          onPressed: _isDownloading
+                              ? null
+                              : () => _handleUpdateAction(downloadUrl),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _downloadedApkFile != null
+                                ? AppColors.presentGreen
+                                : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
+                            foregroundColor: isDark ? AppColors.bgDark : Colors.white,
+                            elevation: 0,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          child: const Text(
-                            'Not now',
-                            style: TextStyle(
+                          child: Text(
+                            _downloadedApkFile != null
+                                ? 'Install Update'
+                                : (_isDownloading ? 'Downloading...' : 'Update Now'),
+                            style: const TextStyle(
                               fontSize: 15,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                         ),
                       ),
+                      if (!isMandatory && !_isDownloading) ...[
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                              side: BorderSide(color: borderColor, width: 1.0),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Not now',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
-                ),
+                  ),
+                ],
               ],
             ),
           ),

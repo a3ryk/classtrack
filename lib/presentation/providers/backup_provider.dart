@@ -299,42 +299,52 @@ class BackupNotifier extends StateNotifier<BackupState> {
   }
 
   /// Restore strictly from user-picked .ctbackup file
-  Future<void> restoreBackupFromFile(BuildContext context) async {
+  Future<bool> restoreBackupFromFile(BuildContext context) async {
     try {
-      final result = await FilePicker.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['ctbackup'],
-      );
+      FilePickerResult? result;
+      try {
+        result = await FilePicker.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ['ctbackup', 'json'],
+        );
+      } catch (_) {
+        // Fallback to FileType.any if Android SAF fails on custom extensions
+        result = await FilePicker.pickFiles(type: FileType.any);
+      }
 
-      if (result == null || result.files.single.path == null) return;
+      if (result == null || result.files.isEmpty || result.files.single.path == null) {
+        return false;
+      }
 
       final filePath = result.files.single.path!;
-      if (!filePath.toLowerCase().endsWith('.ctbackup') && !filePath.toLowerCase().endsWith('.json')) {
+      final file = File(filePath);
+      if (!await file.exists()) {
         if (context.mounted) {
-          AppToast.error(context, 'Invalid file: Please select a valid ClassTrack backup file (.ctbackup).');
+          AppToast.error(context, 'Selected backup file does not exist.');
         }
-        return;
+        return false;
       }
 
-      final file = File(filePath);
       if (context.mounted) {
-        await restoreSpecificBackupFile(file, context);
+        return await restoreSpecificBackupFile(file, context);
       }
+      return false;
     } catch (e) {
       if (context.mounted) {
         AppToast.error(context, 'Failed to open backup file: $e');
       }
+      return false;
     }
   }
 
   /// Restores a specific File with confirmation preview dialog
-  Future<void> restoreSpecificBackupFile(File file, BuildContext context) async {
+  Future<bool> restoreSpecificBackupFile(File file, BuildContext context) async {
     try {
       if (!await file.exists()) {
         if (context.mounted) {
           AppToast.error(context, 'Selected backup file does not exist.');
         }
-        return;
+        return false;
       }
 
       final content = await file.readAsString();
@@ -344,10 +354,12 @@ class BackupNotifier extends StateNotifier<BackupState> {
         if (context.mounted) {
           AppToast.error(context, validation.errorMessage ?? 'Invalid backup file.');
         }
-        return;
+        return false;
       }
 
-      if (!context.mounted) return;
+      if (!context.mounted) return false;
+
+      bool didRestore = false;
 
       // Show preview dialog
       await showDialog(
@@ -355,14 +367,18 @@ class BackupNotifier extends StateNotifier<BackupState> {
         builder: (ctx) => RestorePreviewDialog(
           validationResult: validation,
           onConfirm: () async {
+            didRestore = true;
             await _executeRestore(content, context);
           },
         ),
       );
+
+      return didRestore;
     } catch (e) {
       if (context.mounted) {
         AppToast.error(context, 'Error reading backup file: $e');
       }
+      return false;
     }
   }
 
