@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:permission_handler/permission_handler.dart';
+import '../constants/app_release_notes.dart';
 import '../constants/update_constants.dart';
 
 /// Release Information Model
@@ -336,6 +337,51 @@ class AppUpdateService {
 
     // 2. Secondary fallback: Raw version manifest
     return fetchReleaseInfo(customUrl: customUrl, client: client);
+  }
+
+  /// Hybrid Release Notes Fetcher:
+  /// 1. Checks offline bundled notes in AppReleaseNotes.
+  /// 2. If not found in the local registry (e.g. newly installed build without hardcoded notes),
+  ///    dynamically queries GitHub Releases tag endpoint:
+  ///    https://api.github.com/repos/a3ryk/classtrack/releases/tags/v$cleanVersion
+  /// 3. Safely falls back to local default if network is unavailable.
+  static Future<AppReleaseInfo> fetchReleaseNotesForVersion({
+    required String versionStr,
+    String owner = UpdateConstants.defaultGithubOwner,
+    String repo = UpdateConstants.defaultGithubRepo,
+    http.Client? client,
+  }) async {
+    final clean = versionStr.trim().replaceAll(RegExp(r'^[vV]'), '').split('+').first;
+
+    if (AppReleaseNotes.hasVersion(clean)) {
+      return AppReleaseNotes.getForVersion(clean);
+    }
+
+    final httpClient = client ?? http.Client();
+    try {
+      final uri = Uri.parse('https://api.github.com/repos/$owner/$repo/releases/tags/v$clean');
+      final response = await httpClient.get(
+        uri,
+        headers: {
+          'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'ClassTrack-App',
+        },
+      ).timeout(const Duration(seconds: 4));
+
+      if (response.statusCode == 200) {
+        final decoded = json.decode(utf8.decode(response.bodyBytes));
+        if (decoded is Map<String, dynamic>) {
+          return AppReleaseInfo.fromGithubReleaseJson(decoded);
+        }
+      }
+    } catch (_) {
+    } finally {
+      if (client == null) {
+        httpClient.close();
+      }
+    }
+
+    return AppReleaseNotes.getForVersion(clean);
   }
 
   /// Downloads an APK from [downloadUrl] to app cache with chunked streaming and progress reporting.

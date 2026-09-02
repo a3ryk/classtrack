@@ -1340,6 +1340,12 @@ void main() {
       );
       expect(movedClearedRoom.first.room, isNull);
     });
+
+    test('AppUpdateService Hybrid Fetcher: Returns local bundled notes immediately', () async {
+      final info = await AppUpdateService.fetchReleaseNotesForVersion(versionStr: '1.0.0-alpha.4');
+      expect(info.latestVersion, equals('1.0.0-alpha.4'));
+      expect(info.changelog.isNotEmpty, isTrue);
+    });
   });
 }
 

@@ -74,6 +74,12 @@ class AppReleaseNotes {
     ),
   };
 
+  /// Checks if a version exists in the local registry
+  static bool hasVersion(String versionStr) {
+    final clean = versionStr.trim().replaceAll(RegExp(r'^[vV]'), '').split('+').first;
+    return _releases.containsKey(clean);
+  }
+
   /// Returns the release info for the specified version, falling back to current or latest available
   static AppReleaseInfo getForVersion(String versionStr) {
     final clean = versionStr.trim().replaceAll(RegExp(r'^[vV]'), '').split('+').first;

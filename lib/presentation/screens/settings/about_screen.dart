@@ -3,12 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_release_notes.dart';
 import '../../../core/ui/app_toast.dart';
 import '../../../core/ui/brand_social_icons.dart';
 import '../../../core/ui/tactile_button.dart';
 import '../../providers/app_state_provider.dart';
 import '../../providers/app_update_provider.dart';
+import '../../../core/services/app_update_service.dart';
 import '../../widgets/developer_passcode_dialog.dart';
 import 'update_screen.dart';
 import 'privacy_policy_screen.dart';
@@ -72,15 +72,17 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
   Future<void> _showWhatsNewDialog(BuildContext context, bool isDark) async {
     final updateState = ref.read(appUpdateProvider);
     final installedVersion = updateState.currentVersion;
-    final releaseInfo = AppReleaseNotes.getForVersion(installedVersion);
+    final releaseInfo = await AppUpdateService.fetchReleaseNotesForVersion(versionStr: installedVersion);
 
-    Navigator.push(
-      context,
-      UpdateScreen.route(
-        releaseInfo,
-        isWhatsNewMode: true,
-      ),
-    );
+    if (context.mounted) {
+      Navigator.push(
+        context,
+        UpdateScreen.route(
+          releaseInfo,
+          isWhatsNewMode: true,
+        ),
+      );
+    }
   }
 
   @override
