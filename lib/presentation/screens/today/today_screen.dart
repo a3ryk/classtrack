@@ -12,7 +12,7 @@ import '../../providers/app_state_provider.dart';
 import '../../widgets/attendance_ring_widget.dart';
 import '../../widgets/today_class_card.dart';
 import '../../widgets/edit_semester_dialog.dart';
-import '../../widgets/subject_slots_manager_dialog.dart';
+import '../schedule/manage_subject_slots_screen.dart';
 import '../settings/settings_screen.dart';
 
 class TodayScreen extends ConsumerStatefulWidget {
@@ -223,8 +223,12 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                             ),
                             const SizedBox(width: 6),
                             Flexible(
-                              child: AnimatedDefaultTextStyle(
-                                duration: const Duration(milliseconds: 350),
+                              child: Text(
+                                overallStats.totalHeld == 0
+                                    ? 'No classes recorded'
+                                    : (isSafe
+                                        ? 'Safe · ${overallStats.marginClassesToMiss} class${overallStats.marginClassesToMiss == 1 ? "" : "es"} to spare'
+                                        : 'Must attend next ${overallStats.requiredClassesToAttend} class${overallStats.requiredClassesToAttend == 1 ? "" : "es"}'),
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
@@ -235,14 +239,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                                           : (isDark ? const Color(0xFFFB7185) : const Color(0xFFE11D48))),
                                   letterSpacing: -0.1,
                                 ),
-                                child: Text(
-                                  overallStats.totalHeld == 0
-                                      ? 'No classes recorded'
-                                      : (isSafe
-                                          ? 'Safe · ${overallStats.marginClassesToMiss} class${overallStats.marginClassesToMiss == 1 ? "" : "es"} to spare'
-                                          : 'Must attend next ${overallStats.requiredClassesToAttend} class${overallStats.requiredClassesToAttend == 1 ? "" : "es"}'),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
@@ -596,9 +593,11 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                         components: [],
                       ),
                     );
-                    showDialog(
-                      context: context,
-                      builder: (ctx) => SubjectSlotsManagerDialog(subject: sub),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ManageSubjectSlotsScreen(subject: sub),
+                      ),
                     );
                   },
                 ),
@@ -630,7 +629,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
           return AlertDialog(
             backgroundColor: isDark ? AppColors.cardDark : Colors.white,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: Text('Reschedule for Today'),
+            title: const Text('Reschedule for Today'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -706,8 +705,23 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
               ],
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(
+                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
               ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                  foregroundColor: isDark ? AppColors.bgDark : Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
                 onPressed: () async {
                   final startStr = '${newStart.hour.toString().padLeft(2, "0")}:${newStart.minute.toString().padLeft(2, "0")}';
                   final endStr = '${newEnd.hour.toString().padLeft(2, "0")}:${newEnd.minute.toString().padLeft(2, "0")}';
@@ -726,7 +740,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                     AppToast.success(context, 'Rescheduled for today');
                   }
                 },
-                child: const Text('Save Change'),
+                child: const Text('Save Change', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
             ],
           );

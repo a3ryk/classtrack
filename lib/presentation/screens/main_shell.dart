@@ -47,7 +47,7 @@ class _MainShellState extends ConsumerState<MainShell> {
 
   void _checkStartupUpdates() {
     _updateTimer?.cancel();
-    _updateTimer = Timer(const Duration(seconds: 2), () {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         ref.read(appUpdateProvider.notifier).checkForUpdates(
               context: context,
@@ -101,7 +101,7 @@ class _MainShellState extends ConsumerState<MainShell> {
     return Scaffold(
       body: Stack(
         children: [
-          IndexedStack(
+          FadeIndexedStack(
             index: _currentIndex,
             children: _screens,
           ),
@@ -197,4 +197,68 @@ class _NavItemData {
     required this.icon,
     required this.activeIcon,
   });
+}
+
+/// State-preserving smooth cross-fade indexed stack for fluid tab switching
+class FadeIndexedStack extends StatefulWidget {
+  final int index;
+  final List<Widget> children;
+  final Duration duration;
+
+  const FadeIndexedStack({
+    super.key,
+    required this.index,
+    required this.children,
+    this.duration = const Duration(milliseconds: 200),
+  });
+
+  @override
+  State<FadeIndexedStack> createState() => _FadeIndexedStackState();
+}
+
+class _FadeIndexedStackState extends State<FadeIndexedStack> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+  late int _index;
+
+  @override
+  void initState() {
+    super.initState();
+    _index = widget.index;
+    _controller = AnimationController(
+      vsync: this,
+      duration: widget.duration,
+    );
+    _animation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOutCubic,
+    );
+    _controller.forward();
+  }
+
+  @override
+  void didUpdateWidget(FadeIndexedStack oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.index != _index) {
+      _index = widget.index;
+      _controller.forward(from: 0.0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _animation,
+      child: IndexedStack(
+        index: _index,
+        children: widget.children,
+      ),
+    );
+  }
 }

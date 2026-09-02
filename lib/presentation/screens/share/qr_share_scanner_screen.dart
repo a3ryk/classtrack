@@ -506,17 +506,17 @@ class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> wit
                     _buildPill('${slots.length} Weekly Slots', isDark),
                   ],
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 12),
 
                 // QR Card Container (Capturable Image Container)
                 RepaintBoundary(
                   key: _qrRepaintKey,
                   child: Container(
-                    width: 290,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                    width: 240,
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
                         width: 1.2,
@@ -524,8 +524,8 @@ class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> wit
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 14,
-                          offset: const Offset(0, 5),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
                         ),
                       ],
                     ),
@@ -535,10 +535,10 @@ class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> wit
                       children: [
                         // Semester Header Pill
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 3.5),
                           decoration: BoxDecoration(
                             color: const Color(0xFFEEF2FF),
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(16),
                             border: Border.all(
                               color: const Color(0xFFC7D2FE),
                               width: 0.8,
@@ -547,7 +547,7 @@ class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> wit
                           child: Text(
                             activeSem.name,
                             style: const TextStyle(
-                              fontSize: 12,
+                              fontSize: 11,
                               fontWeight: FontWeight.w700,
                               color: AppColors.accentIndigoLight,
                             ),
@@ -557,12 +557,12 @@ class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> wit
 
                         // High-Density QR Image
                         SizedBox(
-                          width: 250,
-                          height: 250,
+                          width: 180,
+                          height: 180,
                           child: QrImageView(
                             data: payloadCode,
                             version: QrVersions.auto,
-                            size: 250.0,
+                            size: 180.0,
                             padding: EdgeInsets.zero,
                             eyeStyle: const QrEyeStyle(
                               eyeShape: QrEyeShape.square,
@@ -582,21 +582,21 @@ class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> wit
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Container(
-                              width: 20,
-                              height: 20,
+                              width: 18,
+                              height: 18,
                               decoration: BoxDecoration(
                                 color: AppColors.accentIndigoLight,
-                                borderRadius: BorderRadius.circular(5),
+                                borderRadius: BorderRadius.circular(4),
                               ),
                               child: const Center(
-                                child: Icon(Icons.school_rounded, size: 12, color: Colors.white),
+                                child: Icon(Icons.school_rounded, size: 11, color: Colors.white),
                               ),
                             ),
-                            const SizedBox(width: 6),
+                            const SizedBox(width: 5),
                             const Text(
                               'ClassTrack',
                               style: TextStyle(
-                                fontSize: 16,
+                                fontSize: 14,
                                 fontWeight: FontWeight.w800,
                                 color: Color(0xFF0F172A),
                                 letterSpacing: -0.3,
@@ -608,7 +608,7 @@ class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> wit
                         const Text(
                           '100% Offline Timetable & Attendance',
                           style: TextStyle(
-                            fontSize: 10.5,
+                            fontSize: 9.5,
                             fontWeight: FontWeight.w500,
                             color: Color(0xFF64748B),
                           ),
@@ -617,15 +617,15 @@ class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> wit
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 Text(
                   'Scan with any ClassTrack camera or photo scanner',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 11.5,
                     color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 14),
 
                 // Quick Action Buttons
                 Row(
@@ -633,36 +633,36 @@ class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> wit
                     Expanded(
                       child: OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
-                        icon: const Icon(Icons.copy_rounded, size: 16),
-                        label: const Text('Copy Code', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold)),
+                        icon: const Icon(Icons.copy_rounded, size: 15),
+                        label: const Text('Copy Code', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                         onPressed: () {
                           Clipboard.setData(ClipboardData(text: payloadCode));
                           AppToast.success(context, 'Timetable share code copied to clipboard!');
                         },
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                           foregroundColor: isDark ? AppColors.bgDark : Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                         icon: _isSharingQrImage
                             ? const SizedBox(
-                                width: 16,
-                                height: 16,
+                                width: 15,
+                                height: 15,
                                 child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                               )
-                            : const Icon(Icons.share_rounded, size: 16),
+                            : const Icon(Icons.share_rounded, size: 15),
                         label: Text(
                           _isSharingQrImage ? 'Generating...' : 'Share QR Image',
-                          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                         ),
                         onPressed: _isSharingQrImage
                             ? null
@@ -671,7 +671,7 @@ class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> wit
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 14),
 
                 // Privacy Guarantee Badge
                 Container(

@@ -89,11 +89,9 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
     if (updateState.releaseInfo != null && updateState.releaseInfo!.changelog.isNotEmpty) {
       Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (ctx) => UpdateScreen(
-            releaseInfo: updateState.releaseInfo!,
-            isWhatsNewMode: true,
-          ),
+        UpdateScreen.route(
+          updateState.releaseInfo!,
+          isWhatsNewMode: true,
         ),
       );
       return;
@@ -105,11 +103,9 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
       if (latestRelease != null && context.mounted) {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (ctx) => UpdateScreen(
-              releaseInfo: latestRelease,
-              isWhatsNewMode: true,
-            ),
+          UpdateScreen.route(
+            latestRelease,
+            isWhatsNewMode: true,
           ),
         );
         return;
@@ -120,20 +116,18 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
     if (context.mounted) {
       Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (ctx) => UpdateScreen(
-            releaseInfo: AppReleaseInfo(
-              latestVersion: updateState.currentVersion,
-              buildNumber: int.tryParse(updateState.currentBuildNumber) ?? 1,
-              minSupportedVersion: updateState.currentVersion,
-              releaseDate: 'August 2026',
-              releaseTitle: 'ClassTrack v${updateState.currentVersion}',
-              changelog: _bundledLaunchChangelog,
-              releasePageUrl: UpdateConstants.defaultWebsiteUrl,
-              isMandatory: false,
-            ),
-            isWhatsNewMode: true,
+        UpdateScreen.route(
+          AppReleaseInfo(
+            latestVersion: updateState.currentVersion,
+            buildNumber: int.tryParse(updateState.currentBuildNumber) ?? 1,
+            minSupportedVersion: updateState.currentVersion,
+            releaseDate: 'August 2026',
+            releaseTitle: 'ClassTrack v${updateState.currentVersion}',
+            changelog: _bundledLaunchChangelog,
+            releasePageUrl: UpdateConstants.defaultWebsiteUrl,
+            isMandatory: false,
           ),
+          isWhatsNewMode: true,
         ),
       );
     }

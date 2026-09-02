@@ -40,6 +40,7 @@ app.*.symbols
 app.*.map.json
 
 # Android Studio & Build Artifacts
+/android/build/
 /android/app/debug
 /android/app/profile
 /android/app/release
@@ -61,3 +62,4 @@ app.*.map.json
 # App local temporary and backup exports
 *.ctbackup
 *.tmp
+*.apk

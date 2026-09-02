@@ -16,6 +16,36 @@ class UpdateScreen extends StatefulWidget {
     this.isWhatsNewMode = false,
   });
 
+  static Route<void> route(AppReleaseInfo releaseInfo, {bool isWhatsNewMode = false}) {
+    return PageRouteBuilder<void>(
+      transitionDuration: const Duration(milliseconds: 300),
+      reverseTransitionDuration: const Duration(milliseconds: 240),
+      pageBuilder: (context, animation, secondaryAnimation) => RepaintBoundary(
+        child: UpdateScreen(
+          releaseInfo: releaseInfo,
+          isWhatsNewMode: isWhatsNewMode,
+        ),
+      ),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.fastOutSlowIn,
+          reverseCurve: Curves.easeInCubic,
+        );
+        return FadeTransition(
+          opacity: curved,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0.0, -0.04),
+              end: Offset.zero,
+            ).animate(curved),
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+
   @override
   State<UpdateScreen> createState() => _UpdateScreenState();
 }
@@ -26,6 +56,29 @@ class _UpdateScreenState extends State<UpdateScreen> {
   int _receivedBytes = 0;
   int _totalBytes = 0;
   File? _downloadedApkFile;
+
+  late final List<String> _features;
+  late final List<String> _fixes;
+  late final List<String> _general;
+
+  @override
+  void initState() {
+    super.initState();
+    _features = [];
+    _fixes = [];
+    _general = [];
+
+    for (final item in widget.releaseInfo.changelog) {
+      final lower = item.toLowerCase();
+      if (lower.contains('fix') || lower.contains('bug') || item.startsWith('🧩')) {
+        _fixes.add(item.replaceAll(RegExp(r'^(🧩|\-|\*|•)\s*'), ''));
+      } else if (lower.contains('feat') || lower.contains('add') || item.startsWith('✨')) {
+        _features.add(item.replaceAll(RegExp(r'^(✨|\-|\*|•)\s*'), ''));
+      } else {
+        _general.add(item.replaceAll(RegExp(r'^(\-|\*|•)\s*'), ''));
+      }
+    }
+  }
 
   Future<void> _launchUrl(String url) async {
     final uri = Uri.tryParse(url);
@@ -121,20 +174,9 @@ class _UpdateScreenState extends State<UpdateScreen> {
         ? widget.releaseInfo.releasePageUrl!
         : 'https://github.com/${UpdateConstants.defaultGithubOwner}/${UpdateConstants.defaultGithubRepo}/releases/latest';
 
-    final features = <String>[];
-    final fixes = <String>[];
-    final general = <String>[];
-
-    for (final item in widget.releaseInfo.changelog) {
-      final lower = item.toLowerCase();
-      if (lower.contains('fix') || lower.contains('bug') || item.startsWith('🧩')) {
-        fixes.add(item.replaceAll(RegExp(r'^(🧩|\-|\*|•)\s*'), ''));
-      } else if (lower.contains('feat') || lower.contains('add') || item.startsWith('✨')) {
-        features.add(item.replaceAll(RegExp(r'^(✨|\-|\*|•)\s*'), ''));
-      } else {
-        general.add(item.replaceAll(RegExp(r'^(\-|\*|•)\s*'), ''));
-      }
-    }
+    final features = _features;
+    final fixes = _fixes;
+    final general = _general;
 
     return PopScope(
       canPop: !isMandatory,
@@ -176,40 +218,18 @@ class _UpdateScreenState extends State<UpdateScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 8),
-                        Container(
-                          width: 52,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(14),
-                            color: widget.isWhatsNewMode
-                                ? (isDark ? AppColors.accentIndigoLight.withValues(alpha: 0.18) : const Color(0xFFEEF2FF))
-                                : (isMandatory
-                                    ? (isDark ? AppColors.absentContainerDark : AppColors.absentContainerLight)
-                                    : (isDark ? brandBlue.withValues(alpha: 0.18) : const Color(0xFFEFF6FF))),
-                            border: Border.all(
-                              color: widget.isWhatsNewMode
-                                  ? (isDark ? AppColors.accentIndigoLight.withValues(alpha: 0.4) : const Color(0xFFC7D2FE))
-                                  : (isMandatory
-                                      ? (isDark ? AppColors.absentRedDark.withValues(alpha: 0.4) : const Color(0xFFFECACA))
-                                      : (isDark ? brandBlue.withValues(alpha: 0.4) : const Color(0xFFBFDBFE))),
-                              width: 0.8,
-                            ),
-                          ),
-                          child: Center(
-                            child: Icon(
-                              widget.isWhatsNewMode
-                                  ? Icons.auto_awesome_rounded
-                                  : (isMandatory ? Icons.warning_amber_rounded : Icons.system_update_alt_rounded),
-                              size: 26,
-                              color: widget.isWhatsNewMode
-                                  ? AppColors.accentIndigoLight
-                                  : (isMandatory
-                                      ? (isDark ? AppColors.absentRedDark : AppColors.absentRedText)
-                                      : brandBlue),
-                            ),
-                          ),
+                        Icon(
+                          widget.isWhatsNewMode
+                              ? Icons.auto_awesome_rounded
+                              : (isMandatory ? Icons.warning_amber_rounded : Icons.system_update_alt_rounded),
+                          size: 44,
+                          color: widget.isWhatsNewMode
+                              ? AppColors.accentIndigoLight
+                              : (isMandatory
+                                  ? (isDark ? AppColors.absentRedDark : AppColors.absentRedText)
+                                  : brandBlue),
                         ),
-                        const SizedBox(height: 18),
+                        const SizedBox(height: 16),
                         Text(
                           widget.isWhatsNewMode
                               ? (widget.releaseInfo.releaseTitle.isNotEmpty

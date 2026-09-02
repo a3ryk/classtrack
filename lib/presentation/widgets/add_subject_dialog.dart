@@ -125,13 +125,15 @@ class _AddSubjectDialogState extends ConsumerState<AddSubjectDialog> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        isEditing ? 'Edit Subject' : 'Add New Subject',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                          letterSpacing: -0.5,
+                      Expanded(
+                        child: Text(
+                          isEditing ? 'Edit Subject' : 'Add New Subject',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                            letterSpacing: -0.5,
+                          ),
                         ),
                       ),
                       Row(

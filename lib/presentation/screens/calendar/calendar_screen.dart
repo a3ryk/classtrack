@@ -8,7 +8,8 @@ import '../../../core/utils/date_formatter.dart';
 import '../../../domain/entities/class_session_entity.dart';
 import '../../../domain/entities/subject_entity.dart';
 import '../../providers/app_state_provider.dart';
-import '../../widgets/subject_slots_manager_dialog.dart';
+import '../../widgets/edit_semester_dialog.dart';
+import '../schedule/manage_subject_slots_screen.dart';
 
 enum CalendarViewMode {
   week,
@@ -519,11 +520,61 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                     ? KeyedSubtree(
                         key: const ValueKey('empty_unset_sem'),
                         child: Center(
-                          child: Text(
-                            'No active semester. Set up a semester to view calendar classes.',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 28),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  width: 56,
+                                  height: 56,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: isDark ? AppColors.surfaceDark : const Color(0xFFEFF6FF),
+                                  ),
+                                  child: Icon(
+                                    Icons.school_rounded,
+                                    size: 28,
+                                    color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'No Active Semester',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Set up your semester to start tracking your daily classes and attendance.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    height: 1.4,
+                                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                  ),
+                                ),
+                                const SizedBox(height: 18),
+                                ElevatedButton.icon(
+                                  onPressed: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) => const EditSemesterDialog(),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.add_rounded, size: 18),
+                                  label: const Text('Set Up Semester', style: TextStyle(fontWeight: FontWeight.w700)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                    foregroundColor: isDark ? AppColors.bgDark : Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -1137,9 +1188,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                         components: [],
                       ),
                     );
-                    showDialog(
-                      context: context,
-                      builder: (ctx) => SubjectSlotsManagerDialog(subject: sub),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ManageSubjectSlotsScreen(subject: sub),
+                      ),
                     );
                   },
                 ),
@@ -1247,8 +1300,23 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
               ],
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(
+                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
               ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                  foregroundColor: isDark ? AppColors.bgDark : Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
                 onPressed: () async {
                   final startStr = '${newStart.hour.toString().padLeft(2, "0")}:${newStart.minute.toString().padLeft(2, "0")}';
                   final endStr = '${newEnd.hour.toString().padLeft(2, "0")}:${newEnd.minute.toString().padLeft(2, "0")}';
@@ -1267,7 +1335,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                     AppToast.success(context, 'Rescheduled for $dateIso');
                   }
                 },
-                child: const Text('Save Change'),
+                child: const Text('Save Change', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
             ],
           );

@@ -425,24 +425,22 @@ class _DeveloperToolsScreenState extends ConsumerState<DeveloperToolsScreen> {
                         onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(
-                              builder: (ctx) => const UpdateScreen(
-                                releaseInfo: AppReleaseInfo(
-                                  latestVersion: '0.20.4',
-                                  buildNumber: 24,
-                                  minSupportedVersion: '0.19.0',
-                                  releaseDate: '25/08/2026',
-                                  releaseTitle: 'ClassTrack v0.20.4',
-                                  changelog: [
-                                    '✨ Added 1-tap batch timetable setup for recurring days',
-                                    '✨ Real-time dynamic attendance impact forecast on Today tab',
-                                    '🧩 Fixed some dates being wrongly shown as Today or closer in time',
-                                    '🧩 Improved SQLite WAL compression on app resume',
-                                  ],
-                                  downloadUrl: 'https://github.com/classtrack/classtrack/releases',
-                                  releasePageUrl: 'https://github.com/classtrack/classtrack/releases/tag/v0.20.4',
-                                  isMandatory: false,
-                                ),
+                            UpdateScreen.route(
+                              const AppReleaseInfo(
+                                latestVersion: '0.20.4',
+                                buildNumber: 24,
+                                minSupportedVersion: '0.19.0',
+                                releaseDate: '25/08/2026',
+                                releaseTitle: 'ClassTrack v0.20.4',
+                                changelog: [
+                                  '✨ Added 1-tap batch timetable setup for recurring days',
+                                  '✨ Real-time dynamic attendance impact forecast on Today tab',
+                                  '🧩 Fixed some dates being wrongly shown as Today or closer in time',
+                                  '🧩 Improved SQLite WAL compression on app resume',
+                                ],
+                                downloadUrl: 'https://github.com/classtrack/classtrack/releases',
+                                releasePageUrl: 'https://github.com/classtrack/classtrack/releases/tag/v0.20.4',
+                                isMandatory: false,
                               ),
                             ),
                           );
@@ -458,22 +456,20 @@ class _DeveloperToolsScreenState extends ConsumerState<DeveloperToolsScreen> {
                         onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(
-                              builder: (ctx) => const UpdateScreen(
-                                releaseInfo: AppReleaseInfo(
-                                  latestVersion: '1.0.0',
-                                  buildNumber: 30,
-                                  minSupportedVersion: '1.0.0',
-                                  releaseDate: '25/08/2026',
-                                  releaseTitle: 'ClassTrack v1.0.0 Major Release',
-                                  changelog: [
-                                    '⚠️ Critical database schema migration required to prevent data loss',
-                                    '🧩 Complete security and encryption overhaul for offline storage',
-                                  ],
-                                  downloadUrl: 'https://github.com/classtrack/classtrack/releases',
-                                  releasePageUrl: 'https://github.com/classtrack/classtrack/releases/tag/v1.0.0',
-                                  isMandatory: true,
-                                ),
+                            UpdateScreen.route(
+                              const AppReleaseInfo(
+                                latestVersion: '1.0.0',
+                                buildNumber: 30,
+                                minSupportedVersion: '1.0.0',
+                                releaseDate: '25/08/2026',
+                                releaseTitle: 'ClassTrack v1.0.0 Major Release',
+                                changelog: [
+                                  '⚠️ Critical database schema migration required to prevent data loss',
+                                  '🧩 Complete security and encryption overhaul for offline storage',
+                                ],
+                                downloadUrl: 'https://github.com/classtrack/classtrack/releases',
+                                releasePageUrl: 'https://github.com/classtrack/classtrack/releases/tag/v1.0.0',
+                                isMandatory: true,
                               ),
                             ),
                           );

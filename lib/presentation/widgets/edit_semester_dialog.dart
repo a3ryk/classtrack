@@ -209,13 +209,15 @@ class _EditSemesterDialogState extends ConsumerState<EditSemesterDialog> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        isEditing ? 'Edit Academic Term' : 'Add New Academic Term',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                          letterSpacing: -0.4,
+                      Expanded(
+                        child: Text(
+                          isEditing ? 'Edit Academic Term' : 'Add New Academic Term',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                            letterSpacing: -0.4,
+                          ),
                         ),
                       ),
                       IconButton(

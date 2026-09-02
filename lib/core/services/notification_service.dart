@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class NotificationService {
   NotificationService._();
@@ -51,6 +52,14 @@ class NotificationService {
       await _notificationsPlugin.initialize(settings: initSettings);
 
       if (Platform.isAndroid) {
+        // Request notification and storage permissions on launch
+        try {
+          await [
+            Permission.notification,
+            Permission.storage,
+          ].request();
+        } catch (_) {}
+
         final androidImpl = _notificationsPlugin
             .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
         await androidImpl?.requestNotificationsPermission();

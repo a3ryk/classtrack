@@ -27,6 +27,15 @@ class AppTheme {
       useMaterial3: true,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: AppColors.bgLight,
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.windows: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.linux: CupertinoPageTransitionsBuilder(),
+        },
+      ),
       textTheme: _buildTextTheme(AppColors.textPrimaryLight, AppColors.textSecondaryLight),
       appBarTheme: AppBarTheme(
         backgroundColor: AppColors.bgLight,
@@ -57,9 +66,71 @@ class AppTheme {
       dialogTheme: DialogThemeData(
         backgroundColor: AppColors.cardLight,
         surfaceTintColor: Colors.transparent,
+        titleTextStyle: GoogleFonts.inter(
+          fontSize: 18,
+          fontWeight: FontWeight.w800,
+          color: AppColors.textPrimaryLight,
+        ),
+        contentTextStyle: GoogleFonts.inter(
+          fontSize: 13,
+          color: AppColors.textSecondaryLight,
+        ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
           side: const BorderSide(color: AppColors.borderLight, width: 1),
+        ),
+      ),
+      datePickerTheme: DatePickerThemeData(
+        backgroundColor: AppColors.cardLight,
+        surfaceTintColor: Colors.transparent,
+        headerBackgroundColor: AppColors.cardLight,
+        headerForegroundColor: AppColors.textPrimaryLight,
+        dayForegroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return Colors.white;
+          if (states.contains(WidgetState.disabled)) return AppColors.textMutedLight;
+          return AppColors.textPrimaryLight;
+        }),
+        dayBackgroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return AppColors.textPrimaryLight;
+          return Colors.transparent;
+        }),
+        todayForegroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return Colors.white;
+          return AppColors.accentIndigoLight;
+        }),
+        todayBorder: const BorderSide(color: AppColors.accentIndigoLight),
+        cancelButtonStyle: TextButton.styleFrom(
+          foregroundColor: AppColors.textSecondaryLight,
+          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+        ),
+        confirmButtonStyle: TextButton.styleFrom(
+          foregroundColor: AppColors.accentIndigoLight,
+          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+        ),
+      ),
+      timePickerTheme: TimePickerThemeData(
+        backgroundColor: AppColors.cardLight,
+        hourMinuteTextColor: AppColors.textPrimaryLight,
+        hourMinuteColor: const Color(0xFFF1F5F9),
+        dayPeriodTextColor: AppColors.textPrimaryLight,
+        dayPeriodColor: const Color(0xFFF1F5F9),
+        dialHandColor: AppColors.textPrimaryLight,
+        dialBackgroundColor: const Color(0xFFF1F5F9),
+        dialTextColor: AppColors.textPrimaryLight,
+        entryModeIconColor: AppColors.textPrimaryLight,
+        cancelButtonStyle: TextButton.styleFrom(
+          foregroundColor: AppColors.textSecondaryLight,
+          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+        ),
+        confirmButtonStyle: TextButton.styleFrom(
+          foregroundColor: AppColors.accentIndigoLight,
+          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.textPrimaryLight,
+          textStyle: const TextStyle(fontWeight: FontWeight.w600),
         ),
       ),
       bottomSheetTheme: const BottomSheetThemeData(
@@ -73,6 +144,8 @@ class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           elevation: 0,
+          backgroundColor: AppColors.textPrimaryLight,
+          foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           textStyle: const TextStyle(fontWeight: FontWeight.bold),
         ),
@@ -120,12 +193,12 @@ class AppTheme {
   /// Neutral Dark Theme Configuration
   static ThemeData get darkTheme {
     final colorScheme = ColorScheme.dark(
-      primary: AppColors.primaryDark,
-      onPrimary: Colors.black,
+      primary: AppColors.textPrimaryDark,
+      onPrimary: AppColors.bgDark,
       primaryContainer: AppColors.surfaceVariantDark,
       onPrimaryContainer: AppColors.textPrimaryDark,
       secondary: AppColors.accentIndigoDark,
-      onSecondary: Colors.black,
+      onSecondary: AppColors.bgDark,
       surface: AppColors.cardDark,
       onSurface: AppColors.textPrimaryDark,
       surfaceContainerHighest: AppColors.surfaceVariantDark,
@@ -138,6 +211,15 @@ class AppTheme {
       useMaterial3: true,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: AppColors.bgDark,
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.windows: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.linux: CupertinoPageTransitionsBuilder(),
+        },
+      ),
       textTheme: _buildTextTheme(AppColors.textPrimaryDark, AppColors.textSecondaryDark),
       appBarTheme: AppBarTheme(
         backgroundColor: AppColors.bgDark,
@@ -168,9 +250,71 @@ class AppTheme {
       dialogTheme: DialogThemeData(
         backgroundColor: AppColors.cardDark,
         surfaceTintColor: Colors.transparent,
+        titleTextStyle: GoogleFonts.inter(
+          fontSize: 18,
+          fontWeight: FontWeight.w800,
+          color: AppColors.textPrimaryDark,
+        ),
+        contentTextStyle: GoogleFonts.inter(
+          fontSize: 13,
+          color: AppColors.textSecondaryDark,
+        ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
           side: const BorderSide(color: AppColors.borderDark, width: 1),
+        ),
+      ),
+      datePickerTheme: DatePickerThemeData(
+        backgroundColor: AppColors.cardDark,
+        surfaceTintColor: Colors.transparent,
+        headerBackgroundColor: AppColors.cardDark,
+        headerForegroundColor: AppColors.textPrimaryDark,
+        dayForegroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return AppColors.bgDark;
+          if (states.contains(WidgetState.disabled)) return AppColors.textMutedDark;
+          return AppColors.textPrimaryDark;
+        }),
+        dayBackgroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return AppColors.textPrimaryDark;
+          return Colors.transparent;
+        }),
+        todayForegroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return AppColors.bgDark;
+          return AppColors.accentIndigoDark;
+        }),
+        todayBorder: const BorderSide(color: AppColors.accentIndigoDark),
+        cancelButtonStyle: TextButton.styleFrom(
+          foregroundColor: AppColors.textSecondaryDark,
+          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+        ),
+        confirmButtonStyle: TextButton.styleFrom(
+          foregroundColor: AppColors.accentIndigoDark,
+          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+        ),
+      ),
+      timePickerTheme: TimePickerThemeData(
+        backgroundColor: AppColors.cardDark,
+        hourMinuteTextColor: AppColors.textPrimaryDark,
+        hourMinuteColor: AppColors.surfaceDark,
+        dayPeriodTextColor: AppColors.textPrimaryDark,
+        dayPeriodColor: AppColors.surfaceDark,
+        dialHandColor: AppColors.textPrimaryDark,
+        dialBackgroundColor: AppColors.surfaceDark,
+        dialTextColor: AppColors.textPrimaryDark,
+        entryModeIconColor: AppColors.textPrimaryDark,
+        cancelButtonStyle: TextButton.styleFrom(
+          foregroundColor: AppColors.textSecondaryDark,
+          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+        ),
+        confirmButtonStyle: TextButton.styleFrom(
+          foregroundColor: AppColors.accentIndigoDark,
+          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.textPrimaryDark,
+          textStyle: const TextStyle(fontWeight: FontWeight.w600),
         ),
       ),
       bottomSheetTheme: const BottomSheetThemeData(
@@ -184,6 +328,8 @@ class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           elevation: 0,
+          backgroundColor: AppColors.textPrimaryDark,
+          foregroundColor: AppColors.bgDark,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           textStyle: const TextStyle(fontWeight: FontWeight.bold),
         ),

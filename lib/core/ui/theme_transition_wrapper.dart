@@ -1,4 +1,4 @@
-﻿import 'dart:math' as math;
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -60,11 +60,11 @@ class ThemeTransitionWrapperState extends ConsumerState<ThemeTransitionWrapper>
     ThemeTransition._register(this);
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 650),
+      duration: const Duration(milliseconds: 520),
     );
     _animation = CurvedAnimation(
       parent: _animController,
-      curve: Curves.easeInOutCubic,
+      curve: const Cubic(0.2, 0.0, 0.0, 1.0),
     )..addStatusListener((status) {
         if (status == AnimationStatus.completed) {
           final old = _capturedImage;
@@ -91,6 +91,28 @@ class ThemeTransitionWrapperState extends ConsumerState<ThemeTransitionWrapper>
     Offset? origin,
   }) async {
     try {
+      final currentMode = ref.read(themeModeProvider);
+      final platformBrightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
+
+      final currentIsDark = currentMode == ThemeMode.dark ||
+          (currentMode == ThemeMode.system && platformBrightness == Brightness.dark);
+
+      final newIsDark = newMode == ThemeMode.dark ||
+          (newMode == ThemeMode.system && platformBrightness == Brightness.dark);
+
+      // If the effective visual appearance does not change, update state without animation
+      if (currentIsDark == newIsDark) {
+        await ref.read(themeModeProvider.notifier).setThemeMode(newMode);
+        return;
+      }
+
+      if (_animController.isAnimating || _capturedImage != null) {
+        _animController.stop();
+        final prev = _capturedImage;
+        _capturedImage = null;
+        prev?.dispose();
+      }
+
       final boundary = _boundaryKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
       if (boundary == null) {
         await ref.read(themeModeProvider.notifier).setThemeMode(newMode);
@@ -101,6 +123,7 @@ class ThemeTransitionWrapperState extends ConsumerState<ThemeTransitionWrapper>
       final pixelRatio = MediaQuery.maybeOf(context)?.devicePixelRatio ?? 1.0;
       final defaultOrigin = Offset(size.width / 2, size.height / 2);
 
+      // Capture clean snapshot of current theme
       final image = await boundary.toImage(pixelRatio: pixelRatio);
       if (!mounted) {
         image.dispose();
@@ -112,47 +135,44 @@ class ThemeTransitionWrapperState extends ConsumerState<ThemeTransitionWrapper>
         _origin = origin ?? defaultOrigin;
       });
 
-      // Update actual theme in state
-      await ref.read(themeModeProvider.notifier).setThemeMode(newMode);
-
-      // Start circular reveal wave
+      // Start animation immediately on next frame concurrent with theme state
       _animController.forward(from: 0.0);
+      ref.read(themeModeProvider.notifier).setThemeMode(newMode);
     } catch (_) {
-      // Fallback if headless test or capture failure
       await ref.read(themeModeProvider.notifier).setThemeMode(newMode);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return RepaintBoundary(
-      key: _boundaryKey,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Live widget tree (new theme rendered underneath)
-          widget.child,
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // Live widget tree (new theme rendered underneath, isolated for clean snapshot capture)
+        RepaintBoundary(
+          key: _boundaryKey,
+          child: widget.child,
+        ),
 
-          // Animated radial cutout of previous theme snapshot
-          if (_capturedImage != null)
-            Positioned.fill(
-              child: IgnorePointer(
-                child: AnimatedBuilder(
-                  animation: _animation,
-                  builder: (context, _) {
-                    return CustomPaint(
-                      painter: _RadialRevealPainter(
-                        image: _capturedImage!,
-                        progress: _animation.value,
-                        origin: _origin,
-                      ),
-                    );
-                  },
-                ),
+        // Animated luxury radial cutout of previous theme snapshot
+        if (_capturedImage != null)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: AnimatedBuilder(
+                animation: _animation,
+                builder: (context, _) {
+                  return CustomPaint(
+                    painter: _RadialRevealPainter(
+                      image: _capturedImage!,
+                      progress: _animation.value,
+                      origin: _origin,
+                    ),
+                  );
+                },
               ),
             ),
-        ],
-      ),
+          ),
+      ],
     );
   }
 }
@@ -175,8 +195,13 @@ class _RadialRevealPainter extends CustomPainter {
     // Calculate maximum radius to cover the furthest screen corner from origin
     final maxDx = math.max(origin.dx, size.width - origin.dx);
     final maxDy = math.max(origin.dy, size.height - origin.dy);
-    final maxRadius = math.sqrt(maxDx * maxDx + maxDy * maxDy);
+    final maxRadius = math.sqrt(maxDx * maxDx + maxDy * maxDy) * 1.05;
     final currentRadius = maxRadius * progress;
+
+    // Soft opacity falloff towards the final 15% of the transition
+    final double masterOpacity = progress > 0.85
+        ? (1.0 - (progress - 0.85) / 0.15).clamp(0.0, 1.0)
+        : 1.0;
 
     canvas.save();
 
@@ -188,22 +213,40 @@ class _RadialRevealPainter extends CustomPainter {
 
     canvas.clipPath(path);
 
-    // Draw the captured old theme image over the non-revealed area
+    // Draw the captured old theme image over the non-revealed area with smooth opacity
     final srcRect = Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble());
     final dstRect = Rect.fromLTWH(0, 0, size.width, size.height);
-    final paint = Paint()..filterQuality = FilterQuality.medium;
+    final paint = Paint()
+      ..filterQuality = FilterQuality.low
+      ..color = Colors.white.withValues(alpha: masterOpacity);
 
     canvas.drawImageRect(image, srcRect, dstRect, paint);
     canvas.restore();
 
-    // Draw a soft soothing wave rim along the expanding perimeter
-    if (currentRadius > 6 && currentRadius < maxRadius) {
-      final glowPaint = Paint()
+    // Luxurious multi-layer ambient aura along the expanding wave perimeter
+    if (currentRadius > 4 && currentRadius < maxRadius) {
+      // 1. Broad soft ambient luminance glow
+      final ambientGlow = Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 6
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6)
-        ..color = Colors.white.withValues(alpha: 0.15);
-      canvas.drawCircle(origin, currentRadius, glowPaint);
+        ..strokeWidth = 20
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14)
+        ..color = const Color(0xFF6366F1).withValues(alpha: 0.18 * masterOpacity);
+      canvas.drawCircle(origin, currentRadius, ambientGlow);
+
+      // 2. Focused light wave shimmer
+      final shimmerGlow = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 4
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4)
+        ..color = Colors.white.withValues(alpha: 0.35 * masterOpacity);
+      canvas.drawCircle(origin, currentRadius, shimmerGlow);
+
+      // 3. Crisp luminous wave crest
+      final crestPaint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2
+        ..color = Colors.white.withValues(alpha: 0.5 * masterOpacity);
+      canvas.drawCircle(origin, currentRadius, crestPaint);
     }
   }
 

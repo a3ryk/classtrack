@@ -140,9 +140,7 @@ class AppUpdateNotifier extends StateNotifier<AppUpdateState> {
         if (context != null && context.mounted) {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (ctx) => UpdateScreen(releaseInfo: finalizedRelease),
-            ),
+            UpdateScreen.route(finalizedRelease),
           );
         }
       } else {
