@@ -260,10 +260,14 @@ class _UpdateScreenState extends State<UpdateScreen> {
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                             decoration: BoxDecoration(
-                              color: isDark ? AppColors.absentContainerDark : AppColors.absentContainerLight,
+                              color: isMandatory
+                                  ? (isDark ? AppColors.absentContainerDark : AppColors.absentContainerLight)
+                                  : (isDark ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF)),
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                color: isDark ? AppColors.absentRedDark.withValues(alpha: 0.35) : AppColors.absentRed.withValues(alpha: 0.35),
+                                color: isMandatory
+                                    ? (isDark ? AppColors.absentRedDark.withValues(alpha: 0.35) : AppColors.absentRed.withValues(alpha: 0.35))
+                                    : (isDark ? const Color(0xFF3B82F6).withValues(alpha: 0.35) : const Color(0xFF93C5FD)),
                                 width: 0.8,
                               ),
                             ),
@@ -271,19 +275,23 @@ class _UpdateScreenState extends State<UpdateScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Icon(
-                                  Icons.warning_amber_rounded,
+                                  isMandatory ? Icons.warning_amber_rounded : Icons.info_outline_rounded,
                                   size: 18,
-                                  color: isDark ? AppColors.absentRedDark : AppColors.absentRedText,
+                                  color: isMandatory
+                                      ? (isDark ? AppColors.absentRedDark : AppColors.absentRedText)
+                                      : (isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB)),
                                 ),
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Text(
-                                    widget.releaseInfo.warningMessage ?? 'Required update to ensure database compatibility.',
+                                    widget.releaseInfo.warningMessage ?? (isMandatory ? 'Required update to ensure database compatibility.' : 'Important notice for this release.'),
                                     style: TextStyle(
                                       fontSize: 12.5,
                                       height: 1.4,
                                       fontWeight: FontWeight.w600,
-                                      color: isDark ? AppColors.absentRedDark : AppColors.absentRedText,
+                                      color: isMandatory
+                                          ? (isDark ? AppColors.absentRedDark : AppColors.absentRedText)
+                                          : (isDark ? const Color(0xFF93C5FD) : const Color(0xFF1E40AF)),
                                     ),
                                   ),
                                 ),
@@ -293,7 +301,9 @@ class _UpdateScreenState extends State<UpdateScreen> {
                           const SizedBox(height: 16),
                         ],
                         Text(
-                          'Check out the release notes below or download the latest package to update in-place.',
+                          widget.isWhatsNewMode
+                              ? 'Here is what was added and improved in this version.'
+                              : 'Check out the release notes below or download the latest package to update in-place.',
                           style: TextStyle(
                             fontSize: 13,
                             height: 1.45,

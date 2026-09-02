@@ -1,25 +1,21 @@
 {
-  "latest_version": "1.0.0-alpha.3",
-  "build_number": 3,
+  "latest_version": "1.0.0-alpha.4",
+  "build_number": 4,
   "min_supported_version": "1.0.0-alpha.1",
   "release_date": "2026-09-03",
-  "release_title": "ClassTrack v1.0.0 (Alpha 3 UI & Navigation Polish)",
+  "release_title": "ClassTrack v1.0.0-alpha.4 (Schedule Engine & Room Fixes)",
   "changelog": [
-    "✨ Full-screen Subject Slot Manager with bulk timetable editing, back navigation, and high-contrast reschedule modals",
-    "✨ Android Edge-to-Edge System Navigation: Seamless transparent navigation bar and status bar matching app themes",
-    "✨ Luxury 120fps Theme Transition: Multi-layer ambient luminance wave with Apple/Linear-grade fluid easing",
-    "✨ Global Fluid Page Transitions: iOS-standard CupertinoPageTransitionsBuilder with swipe-to-go-back gesture",
-    "✨ Silky Smooth Tab Switching: State-preserving FadeIndexedStack cross-fading across Today, Analytics, Timetable, and Calendar",
-    "✨ Optimized Zero-Scroll Share Tab: Balanced QR card dimensions with generous spacing and high-contrast branding",
-    "✨ High-Performance Update & What's New Screen: Zero-jank GPU-accelerated opening with precomputed changelogs",
-    "✨ First-Boot Dual Permissions: Automatic storage and notification permission request for seamless local backups",
-    "✨ Calendar 'No Active Semester' Redesign: Rich empty state matching Timetable tab with 1-tap term creator",
-    "🧩 Fixed horizontal RenderFlex overflow in Timetable weekday pills row on narrow screens",
-    "🧩 Fixed header text overflow in Batch Add Slots dialog across all device viewports",
-    "🧩 Fixed phantom ripple when switching between modes sharing identical visual brightness"
+    "✨ Complete Room & Class Name Persistence: Fixed Drift SQLite column updates so editing, clearing, or removing rooms, teachers, and course codes persists instantly to the database",
+    "✨ Dynamic Subject Renaming Synchronization: Renaming a subject now immediately refreshes all Weekly Timetable slots, Today class cards, and Extra Classes across the entire app",
+    "✨ Reschedule Room Handling: Single-date reschedules now accurately respect updated or cleared room/lab entries without falling back to weekly defaults",
+    "✨ 120FPS Silky Smooth Settings Scrolling: Hardware-accelerated repaint boundaries and fluid momentum physics on settings screens",
+    "✨ Offline-Accurate \"What's New\": Instantly loads local build changelogs for the installed version in 0ms without network dependence",
+    "✨ Draft-Immune In-App Updater: GitHub Releases API integration that automatically ignores unpublished draft releases and unreleased git commits",
+    "✨ Flexible Notice & Warning Engine: Support for plain warning/notice messages, breaking alert cards, and minimum version constraints",
+    "🧩 Fixed SQLite upsert omitting cleared/null fields in Timetable Slots, Extra Classes, and Subjects"
   ],
-  "download_url": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.3/ClassTrack-v1.0.0-alpha.3.apk",
-  "release_page_url": "https://github.com/a3ryk/classtrack/releases/tag/v1.0.0-alpha.3",
+  "download_url": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.4/ClassTrack-v1.0.0-alpha.4.apk",
+  "release_page_url": "https://github.com/a3ryk/classtrack/releases/tag/v1.0.0-alpha.4",
   "is_mandatory": false,
   "warning_message": "This is an Alpha testing build. Please report any issues on GitHub."
 }

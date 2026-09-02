@@ -34,7 +34,7 @@ class QrShareScannerScreen extends ConsumerStatefulWidget {
 
 class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final MobileScannerController _scannerController = MobileScannerController();
+  MobileScannerController? _scannerController;
   final TextEditingController _pasteController = TextEditingController();
 
   bool _isTorchOn = false;
@@ -42,6 +42,9 @@ class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> wit
   bool _isSharingQrImage = false;
   final GlobalKey _qrRepaintKey = GlobalKey();
   final Set<String> _excludedSubjectIds = {};
+
+  String? _cachedPayload;
+  int _lastDataHash = 0;
 
   Future<void> _shareQrImage(String semName, String payloadCode) async {
     if (_isSharingQrImage) return;
@@ -113,12 +116,38 @@ class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> wit
       vsync: this,
       initialIndex: widget.initialTabIndex,
     );
+    _tabController.addListener(_handleTabChanged);
+
+    // Pre-calculate payload immediately in initState to prevent frame drops during route transition
+    final activeSem = ref.read(activeSemesterProvider);
+    final subjects = ref.read(subjectsProvider);
+    final slots = ref.read(timetableSlotsProvider);
+    _cachedPayload = _encodePayload(slots, subjects, activeSem.name);
+    _lastDataHash = Object.hash(activeSem.name, subjects.length, slots.length, _excludedSubjectIds.length);
+
+    if (widget.initialTabIndex == 1) {
+      _initScanner();
+    }
+  }
+
+  void _handleTabChanged() {
+    if (_tabController.index == 1 && _scannerController == null) {
+      _initScanner();
+    }
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  void _initScanner() {
+    _scannerController ??= MobileScannerController();
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(_handleTabChanged);
     _tabController.dispose();
-    _scannerController.dispose();
+    _scannerController?.dispose();
     _pasteController.dispose();
     super.dispose();
   }
@@ -207,7 +236,8 @@ class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> wit
     final result = await FilePicker.pickFiles(type: FileType.image);
     if (result != null && result.files.single.path != null) {
       final path = result.files.single.path!;
-      final barcodeCapture = await _scannerController.analyzeImage(path);
+      _initScanner();
+      final barcodeCapture = await _scannerController!.analyzeImage(path);
       if (barcodeCapture != null && barcodeCapture.barcodes.isNotEmpty) {
         final code = barcodeCapture.barcodes.first.rawValue;
         if (code != null) {
@@ -455,7 +485,18 @@ class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> wit
     final subjects = ref.watch(subjectsProvider);
     final slots = ref.watch(timetableSlotsProvider);
 
-    final payloadCode = _encodePayload(slots, subjects, activeSem.name);
+    final currentHash = Object.hash(
+      activeSem.name,
+      subjects.length,
+      slots.length,
+      _excludedSubjectIds.length,
+    );
+
+    if (_cachedPayload == null || _lastDataHash != currentHash) {
+      _lastDataHash = currentHash;
+      _cachedPayload = _encodePayload(slots, subjects, activeSem.name);
+    }
+    final payloadCode = _cachedPayload!;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.bgDark : const Color(0xFFF8FAFC),
@@ -491,89 +532,93 @@ class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> wit
       ),
       body: TabBarView(
         controller: _tabController,
+        physics: const BouncingScrollPhysics(),
         children: [
           // TAB 1: SHARE SCHEDULE
-          SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-            child: Column(
-              children: [
-                // Term Context Badges
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _buildPill('${subjects.length} Subjects', isDark),
-                    const SizedBox(width: 8),
-                    _buildPill('${slots.length} Weekly Slots', isDark),
-                  ],
-                ),
-                const SizedBox(height: 12),
+          RepaintBoundary(
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+              child: Column(
+                children: [
+                  // Term Context Badges
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _buildPill('${subjects.length} Subjects', isDark),
+                      const SizedBox(width: 8),
+                      _buildPill('${slots.length} Weekly Slots', isDark),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
 
-                // QR Card Container (Capturable Image Container)
-                RepaintBoundary(
-                  key: _qrRepaintKey,
-                  child: Container(
-                    width: 240,
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
-                        width: 1.2,
+                  // QR Card Container (Capturable Image Container)
+                  RepaintBoundary(
+                    key: _qrRepaintKey,
+                    child: Container(
+                      width: 240,
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
+                          width: 1.2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        // Semester Header Pill
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 3.5),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEEF2FF),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: const Color(0xFFC7D2FE),
-                              width: 0.8,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // Semester Header Pill
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 3.5),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEEF2FF),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: const Color(0xFFC7D2FE),
+                                width: 0.8,
+                              ),
+                            ),
+                            child: Text(
+                              activeSem.name,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.accentIndigoLight,
+                              ),
                             ),
                           ),
-                          child: Text(
-                            activeSem.name,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.accentIndigoLight,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
+                          const SizedBox(height: 14),
 
-                        // High-Density QR Image
-                        SizedBox(
-                          width: 180,
-                          height: 180,
-                          child: QrImageView(
-                            data: payloadCode,
-                            version: QrVersions.auto,
-                            size: 180.0,
-                            padding: EdgeInsets.zero,
-                            eyeStyle: const QrEyeStyle(
-                              eyeShape: QrEyeShape.square,
-                              color: Color(0xFF0F172A),
-                            ),
-                            dataModuleStyle: const QrDataModuleStyle(
-                              dataModuleShape: QrDataModuleShape.square,
-                              color: Color(0xFF0F172A),
+                          // High-Density QR Image
+                          SizedBox(
+                            width: 180,
+                            height: 180,
+                            child: QrImageView(
+                              data: payloadCode,
+                              version: QrVersions.auto,
+                              size: 180.0,
+                              padding: EdgeInsets.zero,
+                              gapless: true,
+                              eyeStyle: const QrEyeStyle(
+                                eyeShape: QrEyeShape.square,
+                                color: Color(0xFF0F172A),
+                              ),
+                              dataModuleStyle: const QrDataModuleStyle(
+                                dataModuleShape: QrDataModuleShape.square,
+                                color: Color(0xFF0F172A),
+                              ),
                             ),
                           ),
-                        ),
                         const SizedBox(height: 14),
 
                         // ClassTrack App Name & Branding Below QR
@@ -703,73 +748,78 @@ class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> wit
               ],
             ),
           ),
+        ),
 
-          // TAB 2: SCANNER & IMPORT CUSTOMIZER
-          Stack(
-            children: [
-              MobileScanner(
-                controller: _scannerController,
-                onDetect: _onQrDetected,
-              ),
-
-              // Scanner Viewfinder Overlay
-              Center(
-                child: Container(
-                  width: 250,
-                  height: 250,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.accentIndigoLight, width: 2.5),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                ),
-              ),
-
-              // Bottom Controls Bar
-              Positioned(
-                bottom: 24,
-                left: 20,
-                right: 20,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        // TAB 2: SCANNER & IMPORT CUSTOMIZER
+          _scannerController != null
+              ? Stack(
                   children: [
-                    FloatingActionButton.small(
-                      heroTag: 'torch',
-                      backgroundColor: Colors.black87,
-                      foregroundColor: Colors.white,
-                      onPressed: () {
-                        setState(() => _isTorchOn = !_isTorchOn);
-                        _scannerController.toggleTorch();
-                      },
-                      child: Icon(_isTorchOn ? Icons.flash_on_rounded : Icons.flash_off_rounded, size: 20),
+                    MobileScanner(
+                      controller: _scannerController!,
+                      onDetect: _onQrDetected,
                     ),
-                    FloatingActionButton.extended(
-                      heroTag: 'gallery',
-                      backgroundColor: Colors.black87,
-                      foregroundColor: Colors.white,
-                      icon: const Icon(Icons.photo_library_rounded, size: 18),
-                      label: const Text('Scan Image', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                      onPressed: _pickImageAndScan,
+
+                    // Scanner Viewfinder Overlay
+                    Center(
+                      child: Container(
+                        width: 250,
+                        height: 250,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: AppColors.accentIndigoLight, width: 2.5),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
                     ),
-                    FloatingActionButton.small(
-                      heroTag: 'paste',
-                      backgroundColor: Colors.black87,
-                      foregroundColor: Colors.white,
-                      onPressed: () async {
-                        final data = await Clipboard.getData('text/plain');
-                        if (!context.mounted) return;
-                        if (data != null && data.text != null) {
-                          _processScannedCode(data.text!);
-                        } else {
-                          AppToast.info(context, 'Clipboard is empty');
-                        }
-                      },
-                      child: const Icon(Icons.paste_rounded, size: 20),
+
+                    // Bottom Controls Bar
+                    Positioned(
+                      bottom: 24,
+                      left: 20,
+                      right: 20,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          FloatingActionButton.small(
+                            heroTag: 'torch',
+                            backgroundColor: Colors.black87,
+                            foregroundColor: Colors.white,
+                            onPressed: () {
+                              setState(() => _isTorchOn = !_isTorchOn);
+                              _scannerController?.toggleTorch();
+                            },
+                            child: Icon(_isTorchOn ? Icons.flash_on_rounded : Icons.flash_off_rounded, size: 20),
+                          ),
+                          FloatingActionButton.extended(
+                            heroTag: 'gallery',
+                            backgroundColor: Colors.black87,
+                            foregroundColor: Colors.white,
+                            icon: const Icon(Icons.photo_library_rounded, size: 18),
+                            label: const Text('Scan Image', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                            onPressed: _pickImageAndScan,
+                          ),
+                          FloatingActionButton.small(
+                            heroTag: 'paste',
+                            backgroundColor: Colors.black87,
+                            foregroundColor: Colors.white,
+                            onPressed: () async {
+                              final data = await Clipboard.getData('text/plain');
+                              if (!context.mounted) return;
+                              if (data != null && data.text != null) {
+                                _processScannedCode(data.text!);
+                              } else {
+                                AppToast.info(context, 'Clipboard is empty');
+                              }
+                            },
+                            child: const Icon(Icons.paste_rounded, size: 20),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
+                )
+              : const Center(
+                  child: CircularProgressIndicator(),
                 ),
-              ),
-            ],
-          ),
         ],
       ),
     );

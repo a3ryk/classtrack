@@ -6,7 +6,6 @@ import '../../../core/ui/app_toast.dart';
 import '../../../core/ui/theme_transition_wrapper.dart';
 import '../../../domain/entities/academic_template.dart';
 import '../../../domain/entities/attendance_stats.dart';
-import '../../../domain/entities/class_session_entity.dart';
 import '../../../domain/entities/semester_entity.dart';
 import '../../../domain/entities/subject_entity.dart';
 import '../../../domain/entities/user_profile_entity.dart';
@@ -40,8 +39,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final targetPct = ref.watch(targetPercentageProvider);
     final overallStats = ref.watch(overallStatsProvider);
     final activeTemplate = ref.watch(activeTemplateProvider);
-    final subjects = ref.watch(subjectsProvider);
-    final allSessions = ref.watch(resolvedDayScheduleProvider(DateTime.now()));
     final betaMode = ref.watch(betaFeaturesEnabledProvider);
     final developerMode = ref.watch(developerModeEnabledProvider);
     final isDeveloperUnlocked = ref.watch(isDeveloperUnlockedProvider);
@@ -92,25 +89,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         centerTitle: true,
       ),
       body: ListView(
+        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         children: [
           // 1. ACCOUNT / PROFILE
           _buildSectionHeader('Account', isDark),
-          Container(
-            decoration: BoxDecoration(
-              color: groupBg,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: groupBorder, width: 0.8),
-            ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const ProfileScreen()),
-                  );
-                },
+          RepaintBoundary(
+            child: Container(
+              decoration: BoxDecoration(
+                color: groupBg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: groupBorder, width: 0.8),
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                    );
+                  },
                 borderRadius: BorderRadius.circular(12),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -174,78 +173,81 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             ),
           ),
+        ),
 
-          const SizedBox(height: 20),
+        const SizedBox(height: 20),
 
           // 2. APPEARANCE
           _buildSectionHeader('Appearance', isDark),
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: groupBg,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: groupBorder, width: 0.8),
-            ),
-            child: SizedBox(
-              width: double.infinity,
-              child: CupertinoSlidingSegmentedControl<ThemeMode>(
-                key: _segmentedKey,
-                groupValue: currentThemeMode,
-                backgroundColor: isDark ? const Color(0xFF0B0F17) : const Color(0xFFF1F5F9),
-                thumbColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-                padding: const EdgeInsets.all(3),
-                children: {
-                  ThemeMode.system: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Text(
-                      'System',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: currentThemeMode == ThemeMode.system ? FontWeight.w600 : FontWeight.w500,
-                        color: currentThemeMode == ThemeMode.system
-                            ? (isDark ? Colors.white : const Color(0xFF0F172A))
-                            : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+          RepaintBoundary(
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: groupBg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: groupBorder, width: 0.8),
+              ),
+              child: SizedBox(
+                width: double.infinity,
+                child: CupertinoSlidingSegmentedControl<ThemeMode>(
+                  key: _segmentedKey,
+                  groupValue: currentThemeMode,
+                  backgroundColor: isDark ? const Color(0xFF0B0F17) : const Color(0xFFF1F5F9),
+                  thumbColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  padding: const EdgeInsets.all(3),
+                  children: {
+                    ThemeMode.system: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        'System',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: currentThemeMode == ThemeMode.system ? FontWeight.w600 : FontWeight.w500,
+                          color: currentThemeMode == ThemeMode.system
+                              ? (isDark ? Colors.white : const Color(0xFF0F172A))
+                              : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                        ),
                       ),
                     ),
-                  ),
-                  ThemeMode.light: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Text(
-                      'Light',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: currentThemeMode == ThemeMode.light ? FontWeight.w600 : FontWeight.w500,
-                        color: currentThemeMode == ThemeMode.light
-                            ? (isDark ? Colors.white : const Color(0xFF0F172A))
-                            : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                    ThemeMode.light: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        'Light',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: currentThemeMode == ThemeMode.light ? FontWeight.w600 : FontWeight.w500,
+                          color: currentThemeMode == ThemeMode.light
+                              ? (isDark ? Colors.white : const Color(0xFF0F172A))
+                              : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                        ),
                       ),
                     ),
-                  ),
-                  ThemeMode.dark: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Text(
-                      'Dark',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: currentThemeMode == ThemeMode.dark ? FontWeight.w600 : FontWeight.w500,
-                        color: currentThemeMode == ThemeMode.dark
-                            ? (isDark ? Colors.white : const Color(0xFF0F172A))
-                            : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                    ThemeMode.dark: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        'Dark',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: currentThemeMode == ThemeMode.dark ? FontWeight.w600 : FontWeight.w500,
+                          color: currentThemeMode == ThemeMode.dark
+                              ? (isDark ? Colors.white : const Color(0xFF0F172A))
+                              : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                        ),
                       ),
                     ),
-                  ),
-                },
-                onValueChanged: (ThemeMode? value) {
-                  if (value != null && value != currentThemeMode) {
-                    Offset? origin;
-                    final box = _segmentedKey.currentContext?.findRenderObject() as RenderBox?;
-                    if (box != null && box.hasSize) {
-                      final pos = box.localToGlobal(Offset.zero);
-                      origin = Offset(pos.dx + box.size.width / 2, pos.dy + box.size.height / 2);
+                  },
+                  onValueChanged: (ThemeMode? value) {
+                    if (value != null && value != currentThemeMode) {
+                      Offset? origin;
+                      final box = _segmentedKey.currentContext?.findRenderObject() as RenderBox?;
+                      if (box != null && box.hasSize) {
+                        final pos = box.localToGlobal(Offset.zero);
+                        origin = Offset(pos.dx + box.size.width / 2, pos.dy + box.size.height / 2);
+                      }
+                      ThemeTransition.switchTheme(context, ref, value, origin: origin);
                     }
-                    ThemeTransition.switchTheme(context, ref, value, origin: origin);
-                  }
-                },
+                  },
+                ),
               ),
             ),
           ),
@@ -254,62 +256,64 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           // 3. GENERAL PREFERENCES
           _buildSectionHeader('Preferences', isDark),
-          Container(
-            decoration: BoxDecoration(
-              color: groupBg,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: groupBorder, width: 0.8),
-            ),
-            child: Column(
-              children: [
-                _buildTile(
-                  title: 'Notifications',
-                  isDark: isDark,
-                  trailing: Switch(
-                    value: _notificationsEnabled,
-                    activeThumbColor: AppColors.presentGreen,
-                    onChanged: (val) {
-                      setState(() {
-                        _notificationsEnabled = val;
-                      });
-                      AppToast.info(context, 'Notifications ${val ? "enabled" : "disabled"}');
+          RepaintBoundary(
+            child: Container(
+              decoration: BoxDecoration(
+                color: groupBg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: groupBorder, width: 0.8),
+              ),
+              child: Column(
+                children: [
+                  _buildTile(
+                    title: 'Notifications',
+                    isDark: isDark,
+                    trailing: Switch(
+                      value: _notificationsEnabled,
+                      activeThumbColor: AppColors.presentGreen,
+                      onChanged: (val) {
+                        setState(() {
+                          _notificationsEnabled = val;
+                        });
+                        AppToast.info(context, 'Notifications ${val ? "enabled" : "disabled"}');
+                      },
+                    ),
+                  ),
+                  Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
+                  _buildTile(
+                    title: 'Attendance Target',
+                    isDark: isDark,
+                    trailing: _buildChevronValue('${targetPct.toStringAsFixed(1)}%', isDark),
+                    onTap: () => TargetPercentageSheet.show(context),
+                  ),
+                  Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
+                  _buildTile(
+                    title: 'Export Attendance Report',
+                    isDark: isDark,
+                    trailing: _buildChevronIcon(isDark),
+                    onTap: () => _showExportSheet(context, overallStats, activeSemester, userProfile, userUni, activeTemplate, isDark),
+                  ),
+                  Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
+                  _buildTile(
+                    title: 'Backup & Restore',
+                    isDark: isDark,
+                    trailing: _buildChevronIcon(isDark),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const BackupRestoreScreen()),
+                      );
                     },
                   ),
-                ),
-                Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
-                _buildTile(
-                  title: 'Attendance Target',
-                  isDark: isDark,
-                  trailing: _buildChevronValue('${targetPct.toStringAsFixed(1)}%', isDark),
-                  onTap: () => TargetPercentageSheet.show(context),
-                ),
-                Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
-                _buildTile(
-                  title: 'Export Attendance Report',
-                  isDark: isDark,
-                  trailing: _buildChevronIcon(isDark),
-                  onTap: () => _showExportSheet(context, overallStats, activeSemester, userProfile, userUni, activeTemplate, allSessions, subjects, isDark),
-                ),
-                Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
-                _buildTile(
-                  title: 'Backup & Restore',
-                  isDark: isDark,
-                  trailing: _buildChevronIcon(isDark),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const BackupRestoreScreen()),
-                    );
-                  },
-                ),
-                Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
-                _buildTile(
-                  title: 'Language',
-                  isDark: isDark,
-                  trailing: _buildChevronValue('English', isDark),
-                  onTap: () {},
-                ),
-              ],
+                  Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
+                  _buildTile(
+                    title: 'Language',
+                    isDark: isDark,
+                    trailing: _buildChevronValue('English', isDark),
+                    onTap: () {},
+                  ),
+                ],
+              ),
             ),
           ),
 
@@ -317,58 +321,60 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           // 4. EXPERIMENTAL & DEVELOPER
           _buildSectionHeader('Developer & Experimental', isDark),
-          Container(
-            decoration: BoxDecoration(
-              color: groupBg,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: groupBorder, width: 0.8),
-            ),
-            child: Column(
-              children: [
-                _buildTile(
-                  title: 'Beta Features',
-                  subtitle: 'Early access to experimental features',
-                  isDark: isDark,
-                  trailing: Switch(
-                    value: betaMode,
-                    activeThumbColor: AppColors.presentGreen,
-                    onChanged: (val) {
-                      ref.read(betaFeaturesEnabledProvider.notifier).toggle(val);
-                      AppToast.info(context, 'Beta features ${val ? "enabled" : "disabled"}');
-                    },
-                  ),
-                ),
-                if (isDeveloperUnlocked) ...[
-                  Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
+          RepaintBoundary(
+            child: Container(
+              decoration: BoxDecoration(
+                color: groupBg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: groupBorder, width: 0.8),
+              ),
+              child: Column(
+                children: [
                   _buildTile(
-                    title: 'Developer Options',
-                    subtitle: 'Advanced database & testing tools',
+                    title: 'Beta Features',
+                    subtitle: 'Early access to experimental features',
                     isDark: isDark,
                     trailing: Switch(
-                      value: developerMode,
+                      value: betaMode,
                       activeThumbColor: AppColors.presentGreen,
                       onChanged: (val) {
-                        ref.read(developerModeEnabledProvider.notifier).toggle(val);
+                        ref.read(betaFeaturesEnabledProvider.notifier).toggle(val);
+                        AppToast.info(context, 'Beta features ${val ? "enabled" : "disabled"}');
                       },
                     ),
                   ),
-                  if (developerMode) ...[
+                  if (isDeveloperUnlocked) ...[
                     Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
                     _buildTile(
-                      title: 'Developer Tools',
-                      subtitle: 'Testing utilities, scenario simulators & diagnostics',
+                      title: 'Developer Options',
+                      subtitle: 'Advanced database & testing tools',
                       isDark: isDark,
-                      trailing: _buildChevronIcon(isDark),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const DeveloperToolsScreen()),
-                        );
-                      },
+                      trailing: Switch(
+                        value: developerMode,
+                        activeThumbColor: AppColors.presentGreen,
+                        onChanged: (val) {
+                          ref.read(developerModeEnabledProvider.notifier).toggle(val);
+                        },
+                      ),
                     ),
+                    if (developerMode) ...[
+                      Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
+                      _buildTile(
+                        title: 'Developer Tools',
+                        subtitle: 'Testing utilities, scenario simulators & diagnostics',
+                        isDark: isDark,
+                        trailing: _buildChevronIcon(isDark),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const DeveloperToolsScreen()),
+                          );
+                        },
+                      ),
+                    ],
                   ],
                 ],
-              ],
+              ),
             ),
           ),
 
@@ -376,38 +382,40 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           // 5. SUPPORT & ABOUT
           _buildSectionHeader('Support & About', isDark),
-          Container(
-            decoration: BoxDecoration(
-              color: groupBg,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: groupBorder, width: 0.8),
-            ),
-            child: Column(
-              children: [
-                _buildTile(
-                  title: 'Take Guided App Tour',
-                  subtitle: 'Replay the interactive app walkthrough',
-                  isDark: isDark,
-                  trailing: _buildChevronIcon(isDark),
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    ref.read(activeTourProvider.notifier).state = true;
-                  },
-                ),
-                Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
-                _buildTile(
-                  title: 'About',
-                  subtitle: 'Version ${updateState.currentVersion}, updates, links & legal',
-                  isDark: isDark,
-                  trailing: _buildChevronIcon(isDark),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const AboutScreen()),
-                    );
-                  },
-                ),
-              ],
+          RepaintBoundary(
+            child: Container(
+              decoration: BoxDecoration(
+                color: groupBg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: groupBorder, width: 0.8),
+              ),
+              child: Column(
+                children: [
+                  _buildTile(
+                    title: 'Take Guided App Tour',
+                    subtitle: 'Replay the interactive app walkthrough',
+                    isDark: isDark,
+                    trailing: _buildChevronIcon(isDark),
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      ref.read(activeTourProvider.notifier).state = true;
+                    },
+                  ),
+                  Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
+                  _buildTile(
+                    title: 'About',
+                    subtitle: 'Version ${updateState.currentVersion}, updates, links & legal',
+                    isDark: isDark,
+                    trailing: _buildChevronIcon(isDark),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const AboutScreen()),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
 
@@ -512,8 +520,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     UserProfileEntity userProfile,
     UserUniversityInfo userUni,
     ProgrammeTemplate activeTemplate,
-    List<ClassSessionEntity> allSessions,
-    List<SubjectEntity> subjects,
     bool isDark,
   ) {
     showModalBottomSheet(
@@ -521,6 +527,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
+        final subjects = ref.read(subjectsProvider);
         return Container(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
           decoration: BoxDecoration(

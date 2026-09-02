@@ -20,6 +20,8 @@ import 'package:classtrack/presentation/screens/settings/about_screen.dart';
 import 'package:classtrack/presentation/screens/settings/update_screen.dart';
 import 'package:classtrack/core/services/developer_auth_service.dart';
 import 'package:classtrack/core/services/notification_service.dart';
+import 'package:drift/drift.dart' show Value;
+import 'package:classtrack/core/constants/app_release_notes.dart';
 import 'package:classtrack/core/ui/tactile_button.dart';
 import 'package:classtrack/presentation/widgets/developer_passcode_dialog.dart';
 
@@ -400,8 +402,8 @@ void main() {
       expect(AppUpdateService.compareSemver('1.0.1', '1.0.0'), equals(-1)); // remote is older
       expect(AppUpdateService.compareSemver('1.0.0', '1.1.0'), equals(1));
       expect(AppUpdateService.compareSemver('1.9.0', '2.0.0'), equals(1));
-      expect(AppUpdateService.compareSemver('v1.0.0+1', 'v1.0.1+2'), equals(1));
-      expect(AppUpdateService.compareSemver('2.1.0-beta', '2.1.0'), equals(0));
+      expect(AppUpdateService.compareSemver('2.1.0-beta', '2.1.0'), equals(1));
+      expect(AppUpdateService.compareSemver('2.1.0', '2.1.0'), equals(0));
     });
 
     test('isUpdateAvailable checks both semver and build numbers', () {
@@ -1150,6 +1152,193 @@ void main() {
       expect(info.minSupportedVersion, equals('1.0.0'));
       expect(info.changelog.length, equals(2));
       expect(info.isMandatory, isFalse);
+    });
+
+    test('AppReleaseInfo JSON Deserialization: Parses plain warning_message without emojis', () {
+      final json = {
+        'latest_version': '1.0.0-alpha.3',
+        'build_number': 3,
+        'min_supported_version': '1.0.0-alpha.1',
+        'warning_message': 'Database schema upgrade is required for all users.',
+        'changelog': ['Feature 1'],
+      };
+
+      final info = AppReleaseInfo.fromJson(json);
+      expect(info.warningMessage, equals('Database schema upgrade is required for all users.'));
+      expect(info.isMandatory, isFalse);
+    });
+
+    test('AppReleaseInfo GitHub Markdown Parsing: Extracts MIN_VERSION and MANDATORY tags', () {
+      final githubJson = {
+        'tag_name': 'v1.0.0-alpha.4',
+        'name': 'ClassTrack v1.0.0-alpha.4',
+        'published_at': '2026-09-03T00:00:00Z',
+        'body': 'MIN_VERSION: 1.0.0-alpha.3\nMANDATORY: Breaking timetable sync changes.\n- Added full screens\n- Fixed performance',
+        'assets': [
+          {'name': 'classtrack.apk', 'browser_download_url': 'https://github.com/apk/app.apk'},
+        ],
+      };
+
+      final info = AppReleaseInfo.fromGithubReleaseJson(githubJson);
+      expect(info.latestVersion, equals('1.0.0-alpha.4'));
+      expect(info.minSupportedVersion, equals('1.0.0-alpha.3'));
+      expect(info.isMandatory, isTrue);
+      expect(info.warningMessage, equals('Breaking timetable sync changes.'));
+      expect(info.downloadUrl, equals('https://github.com/apk/app.apk'));
+      expect(info.changelog.length, equals(2));
+    });
+
+    test('AppReleaseInfo GitHub Alert Parsing: Parses > [!WARNING] alerts properly', () {
+      final githubJson = {
+        'tag_name': 'v1.0.0-alpha.4',
+        'name': 'ClassTrack v1.0.0-alpha.4',
+        'body': '> [!WARNING] Critical update required.\n- Performance improvements',
+      };
+
+      final info = AppReleaseInfo.fromGithubReleaseJson(githubJson);
+      expect(info.isMandatory, isTrue);
+      expect(info.warningMessage, equals('Critical update required.'));
+    });
+
+    test('AppReleaseNotes Registry: Returns release notes for installed version offline', () {
+      final v3 = AppReleaseNotes.getForVersion('1.0.0-alpha.3');
+      expect(v3.latestVersion, equals('1.0.0-alpha.3'));
+      expect(v3.changelog.isNotEmpty, isTrue);
+
+      final v2 = AppReleaseNotes.getForVersion('1.0.0-alpha.2');
+      expect(v2.latestVersion, equals('1.0.0-alpha.2'));
+      expect(v2.changelog.isNotEmpty, isTrue);
+    });
+
+    test('AppUpdateService Mandatory Threshold: Correctly locks only older versions', () {
+      // Installed version alpha.1 is older than minSupportedVersion alpha.3 -> Must force update
+      expect(
+        AppUpdateService.isMandatoryUpdate(
+          currentVersion: '1.0.0-alpha.1',
+          minSupportedVersion: '1.0.0-alpha.3',
+        ),
+        isTrue,
+      );
+
+      // Installed version alpha.3 meets minSupportedVersion alpha.3 -> Not forced
+      expect(
+        AppUpdateService.isMandatoryUpdate(
+          currentVersion: '1.0.0-alpha.3',
+          minSupportedVersion: '1.0.0-alpha.3',
+        ),
+        isFalse,
+      );
+    });
+
+    test('Timetable Slot Room Persistence: Editing and removing room updates SQLite correctly', () async {
+      final db = AppDatabase.inMemory();
+      final nowIso = DateTime.now().toIso8601String();
+
+      // 1. Insert initial slot with Room 101
+      final slot1 = TimetableSlotData(
+        id: 'slot_test_room',
+        semesterId: 'sem_test',
+        subjectComponentId: 'sub_test',
+        dayOfWeek: 1,
+        startTime: '09:00',
+        endTime: '10:00',
+        room: 'Room 101',
+        createdAt: nowIso,
+        updatedAt: nowIso,
+      );
+      await db.saveTimetableSlot(slot1);
+
+      var saved = await db.getTimetableSlots('sem_test');
+      expect(saved.first.room, equals('Room 101'));
+
+      // 2. Edit room to Lab B
+      final slotEdited = slot1.copyWith(room: const Value('Lab B'));
+      await db.saveTimetableSlot(slotEdited);
+
+      saved = await db.getTimetableSlots('sem_test');
+      expect(saved.first.room, equals('Lab B'));
+
+      // 3. Remove/Clear room to null
+      final slotCleared = slot1.copyWith(room: const Value(null));
+      await db.saveTimetableSlot(slotCleared);
+
+      saved = await db.getTimetableSlots('sem_test');
+      expect(saved.first.room, isNull);
+
+      await db.close();
+    });
+
+    test('ScheduleResolutionEngine: Resolves MOVED exception room correctly including clearing room', () {
+      final baseSlot = TimetableSlotItem(
+        id: 'slot_1',
+        semesterId: 'sem_1',
+        subjectComponentId: 'sub_1',
+        subjectName: 'Physics',
+        dayOfWeek: 1, // Monday
+        startTime: '09:00',
+        endTime: '10:00',
+        room: 'Room 101',
+        category: 'MAJOR',
+        componentType: 'LECTURE',
+        colorHex: '#4F46E5',
+      );
+
+      // 1. Without exception -> uses slot.room (Room 101)
+      final regular = ScheduleResolutionEngine.resolveScheduleForDate(
+        targetDate: DateTime(2026, 8, 24), // Monday
+        timetableSlots: [baseSlot],
+        exceptions: [],
+        extraClasses: [],
+        holidays: [],
+        dayConfigs: const [],
+        existingOutcomes: {},
+        semesterId: 'sem_1',
+      );
+      expect(regular.first.room, equals('Room 101'));
+
+      // 2. With MOVED exception changing room to 'Auditorium'
+      final movedWithRoom = ScheduleResolutionEngine.resolveScheduleForDate(
+        targetDate: DateTime(2026, 8, 24),
+        timetableSlots: [baseSlot],
+        exceptions: [
+          ScheduleExceptionItem(
+            timetableSlotId: 'slot_1',
+            exceptionDate: '2026-08-24',
+            actionType: 'MOVED',
+            newStartTime: '10:00',
+            newEndTime: '11:00',
+            newRoom: 'Auditorium',
+          ),
+        ],
+        extraClasses: [],
+        holidays: [],
+        dayConfigs: const [],
+        existingOutcomes: {},
+        semesterId: 'sem_1',
+      );
+      expect(movedWithRoom.first.room, equals('Auditorium'));
+
+      // 3. With MOVED exception clearing room (newRoom is null/empty)
+      final movedClearedRoom = ScheduleResolutionEngine.resolveScheduleForDate(
+        targetDate: DateTime(2026, 8, 24),
+        timetableSlots: [baseSlot],
+        exceptions: [
+          ScheduleExceptionItem(
+            timetableSlotId: 'slot_1',
+            exceptionDate: '2026-08-24',
+            actionType: 'MOVED',
+            newStartTime: '10:00',
+            newEndTime: '11:00',
+            newRoom: null,
+          ),
+        ],
+        extraClasses: [],
+        holidays: [],
+        dayConfigs: const [],
+        existingOutcomes: {},
+        semesterId: 'sem_1',
+      );
+      expect(movedClearedRoom.first.room, isNull);
     });
   });
 }

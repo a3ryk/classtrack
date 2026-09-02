@@ -5,7 +5,7 @@ import '../../../core/ui/tactile_button.dart';
 import '../../../domain/entities/attendance_stats.dart';
 import '../../../domain/services/attendance_math.dart';
 import '../../providers/app_state_provider.dart';
-import '../../widgets/add_subject_dialog.dart';
+import '../schedule/add_edit_subject_screen.dart';
 import '../../widgets/welcome_setup_card.dart';
 
 class AttendanceScreen extends ConsumerStatefulWidget {
@@ -231,7 +231,10 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                       backgroundColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                       iconColor: isDark ? AppColors.bgDark : AppColors.surfaceLight,
                       onTap: () {
-                        showDialog(context: context, builder: (context) => const AddSubjectDialog());
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const AddEditSubjectScreen()),
+                        );
                       },
                     ),
                   ],
@@ -358,9 +361,9 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                           IconButton(
                             icon: Icon(Icons.edit_outlined, size: 16, color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight),
                             onPressed: () {
-                              showDialog(
-                                context: context,
-                                builder: (context) => AddSubjectDialog(existingSubject: matchingSub),
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => AddEditSubjectScreen(existingSubject: matchingSub)),
                               );
                             },
                             tooltip: 'Edit Subject',

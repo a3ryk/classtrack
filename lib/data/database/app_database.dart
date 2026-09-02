@@ -107,7 +107,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> saveSubject(SubjectData subject) {
-    return into(subjects).insertOnConflictUpdate(subject);
+    return into(subjects).insertOnConflictUpdate(subject.toCompanion(false));
   }
 
   Future<void> deleteSubject(String subjectId) async {
@@ -125,7 +125,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> saveSubjectComponent(SubjectComponentData component) {
-    return into(subjectComponents).insertOnConflictUpdate(component);
+    return into(subjectComponents).insertOnConflictUpdate(component.toCompanion(false));
   }
 
   // ==========================================
@@ -143,12 +143,15 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> saveTimetableSlot(TimetableSlotData slot) {
-    return into(timetableSlots).insertOnConflictUpdate(slot);
+    return into(timetableSlots).insertOnConflictUpdate(slot.toCompanion(false));
   }
 
   Future<void> saveTimetableSlotsBatch(List<TimetableSlotData> slotList) async {
     await batch((b) {
-      b.insertAllOnConflictUpdate(timetableSlots, slotList);
+      b.insertAllOnConflictUpdate(
+        timetableSlots,
+        slotList.map((s) => s.toCompanion(false)).toList(),
+      );
     });
   }
 
@@ -187,7 +190,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> saveAttendanceRecord(AttendanceRecordData record) {
-    return into(attendanceRecords).insertOnConflictUpdate(record);
+    return into(attendanceRecords).insertOnConflictUpdate(record.toCompanion(false));
   }
 
   Stream<List<AttendanceRecordData>> watchAttendanceRecords() {
@@ -203,7 +206,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> saveHoliday(HolidayData holiday) {
-    return into(holidays).insertOnConflictUpdate(holiday);
+    return into(holidays).insertOnConflictUpdate(holiday.toCompanion(false));
   }
 
   Future<void> deleteHoliday(String id) {
@@ -217,7 +220,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> saveAcademicDayConfig(AcademicDayConfigData config) {
-    return into(academicDayConfigs).insertOnConflictUpdate(config);
+    return into(academicDayConfigs).insertOnConflictUpdate(config.toCompanion(false));
   }
 
   // ==========================================
@@ -229,7 +232,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> saveExtraClass(ExtraClassData extraClass) {
-    return into(extraClasses).insertOnConflictUpdate(extraClass);
+    return into(extraClasses).insertOnConflictUpdate(extraClass.toCompanion(false));
   }
 
   Future<void> deleteExtraClass(String id) {
@@ -247,7 +250,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> saveScheduleException(ScheduleExceptionData exception) {
-    return into(scheduleExceptions).insertOnConflictUpdate(exception);
+    return into(scheduleExceptions).insertOnConflictUpdate(exception.toCompanion(false));
   }
 
   Future<void> deleteScheduleException(String id) {

@@ -4,8 +4,8 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/ui/tactile_button.dart';
 import '../../../domain/entities/class_session_entity.dart';
 import '../../providers/app_state_provider.dart';
-import '../../widgets/add_edit_slot_dialog.dart';
-import '../../widgets/batch_add_slot_dialog.dart';
+import 'add_edit_slot_screen.dart';
+import 'batch_add_slots_screen.dart';
 import '../ocr/ocr_scanner_screen.dart';
 import '../share/qr_share_scanner_screen.dart';
 import '../../widgets/edit_semester_dialog.dart';
@@ -157,9 +157,9 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                             _promptSemesterRequired(context);
                             return;
                           }
-                          showDialog(
-                            context: context,
-                            builder: (context) => const BatchAddSlotDialog(),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const BatchAddSlotsScreen()),
                           );
                         },
                       ),
@@ -199,9 +199,11 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                             _promptSemesterRequired(context);
                             return;
                           }
-                          showDialog(
-                            context: context,
-                            builder: (context) => AddEditSlotDialog(initialDayOfWeek: _dayValues[_selectedDayIndex]),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => AddEditSlotScreen(initialDayOfWeek: _dayValues[_selectedDayIndex]),
+                            ),
                           );
                         },
                       ),
@@ -328,9 +330,9 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                               const SizedBox(height: 12),
                               OutlinedButton.icon(
                                 onPressed: () {
-                                  showDialog(
-                                    context: context,
-                                    builder: (context) => const BatchAddSlotDialog(),
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => const BatchAddSlotsScreen()),
                                   );
                                 },
                                 icon: const Icon(Icons.date_range_rounded, size: 16),
@@ -396,11 +398,13 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                           padding: const EdgeInsets.only(bottom: 12),
                           child: InkWell(
                             onTap: () {
-                              showDialog(
-                                context: context,
-                                builder: (context) => AddEditSlotDialog(
-                                  existingSlot: sessionEntity,
-                                  initialDayOfWeek: s.dayOfWeek,
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => AddEditSlotScreen(
+                                    existingSlot: sessionEntity,
+                                    initialDayOfWeek: s.dayOfWeek,
+                                  ),
                                 ),
                               );
                             },

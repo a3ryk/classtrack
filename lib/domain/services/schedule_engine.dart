@@ -163,7 +163,9 @@ class ScheduleResolutionEngine {
       final String endTime = exception.actionType == 'MOVED' && exception.newEndTime != null
           ? exception.newEndTime!
           : slot.endTime;
-      final String? room = exception.newRoom ?? slot.room;
+      final String? room = exception.actionType == 'MOVED'
+          ? (exception.newRoom != null && exception.newRoom!.isNotEmpty ? exception.newRoom : null)
+          : slot.room;
 
       final sessionId = 'session_${slot.id}_$dateString';
       final outcome = existingOutcomes[sessionId] ?? 'PENDING';

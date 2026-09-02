@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
 import '../providers/app_state_provider.dart';
 import '../screens/ocr/ocr_scanner_screen.dart';
-import 'batch_add_slot_dialog.dart';
+import '../screens/schedule/batch_add_slots_screen.dart';
 import 'qr_scanner_dialog.dart';
 
 class WelcomeSetupCard extends ConsumerWidget {
@@ -112,9 +112,9 @@ class WelcomeSetupCard extends ConsumerWidget {
             subtitle: 'Type your subjects and pick multiple days at once',
             isDark: isDark,
             onTap: () {
-              showDialog(
-                context: context,
-                builder: (context) => const BatchAddSlotDialog(),
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const BatchAddSlotsScreen()),
               );
             },
           ),

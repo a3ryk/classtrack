@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/ui/app_toast.dart';
@@ -7,7 +7,7 @@ import '../../../domain/entities/class_session_entity.dart';
 import '../../../domain/entities/subject_entity.dart';
 import '../../../domain/services/schedule_engine.dart';
 import '../../providers/app_state_provider.dart';
-import '../../widgets/add_edit_slot_dialog.dart';
+import 'add_edit_slot_screen.dart';
 
 class ManageSubjectSlotsScreen extends ConsumerStatefulWidget {
   final SubjectEntity subject;
@@ -257,9 +257,9 @@ class _ManageSubjectSlotsScreenState extends ConsumerState<ManageSubjectSlotsScr
         icon: const Icon(Icons.add_rounded, size: 20),
         label: const Text('Add Slot', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
         onPressed: () {
-          showDialog(
-            context: context,
-            builder: (ctx) => const AddEditSlotDialog(initialDayOfWeek: 1),
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (ctx) => const AddEditSlotScreen(initialDayOfWeek: 1)),
           );
         },
       ),
@@ -570,9 +570,9 @@ class _ManageSubjectSlotsScreenState extends ConsumerState<ManageSubjectSlotsScr
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
                     onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (ctx) => const AddEditSlotDialog(initialDayOfWeek: 1),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (ctx) => const AddEditSlotScreen(initialDayOfWeek: 1)),
                       );
                     },
                     icon: const Icon(Icons.add_rounded, size: 18),
@@ -722,11 +722,13 @@ class _ManageSubjectSlotsScreenState extends ConsumerState<ManageSubjectSlotsScr
                       color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                       tooltip: 'Edit Slot',
                       onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (ctx) => AddEditSlotDialog(
-                            existingSlot: sessionEntity,
-                            initialDayOfWeek: slot.dayOfWeek,
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (ctx) => AddEditSlotScreen(
+                              existingSlot: sessionEntity,
+                              initialDayOfWeek: slot.dayOfWeek,
+                            ),
                           ),
                         );
                       },

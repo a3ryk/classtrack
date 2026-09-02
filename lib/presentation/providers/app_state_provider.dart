@@ -522,7 +522,8 @@ class SubjectsNotifier extends StateNotifier<List<SubjectEntity>> {
         updatedAt: nowIso,
       ),
     );
-    ref.read(timetableSlotsProvider.notifier).loadFromDb(state);
+    await ref.read(timetableSlotsProvider.notifier).loadFromDb(state);
+    await ref.read(extraClassesProvider.notifier).loadFromDb();
   }
 
   Future<void> deleteSubject(String subjectId, {bool deleteSlots = true}) async {
@@ -652,8 +653,8 @@ class TimetableSlotsNotifier extends StateNotifier<List<TimetableSlotItem>> {
       final updated = slot.copyWith(
         startTime: newStartTime ?? slot.startTime,
         endTime: newEndTime ?? slot.endTime,
-        room: newRoom != null ? Value(newRoom) : Value(slot.room),
-        teacherName: newTeacher != null ? Value(newTeacher) : Value(slot.teacherName),
+        room: Value(newRoom),
+        teacherName: Value(newTeacher),
         notes: newComponentType != null ? Value(newComponentType) : Value(slot.notes),
         updatedAt: DateTime.now().toIso8601String(),
       );

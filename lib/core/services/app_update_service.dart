@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -52,7 +53,9 @@ class AppReleaseInfo {
 
     final customWarning = json['warning_message']?.toString().trim() ??
         json['warning']?.toString().trim() ??
-        json['mandatory_message']?.toString().trim();
+        json['mandatory_message']?.toString().trim() ??
+        json['notice']?.toString().trim() ??
+        json['alert']?.toString().trim();
 
     return AppReleaseInfo(
       latestVersion: (json['latest_version'] ?? json['version'] ?? '1.0.0').toString().trim(),
@@ -70,7 +73,7 @@ class AppReleaseInfo {
     );
   }
 
-  /// Parse from GitHub Releases API response
+  /// Parse from GitHub Releases API response (strictly published, non-draft releases)
   factory AppReleaseInfo.fromGithubReleaseJson(Map<String, dynamic> json) {
     final tagName = (json['tag_name'] ?? '1.0.0').toString().replaceAll(RegExp(r'^[vV]'), '');
     final body = (json['body'] ?? '').toString();
@@ -92,16 +95,43 @@ class AppReleaseInfo {
       }
     }
 
+    String minSupported = '1.0.0';
     String? extractedWarning;
+    bool isMandatory = false;
     final List<String> changelog = [];
 
     for (final rawLine in body.split('\n')) {
       final line = rawLine.trim();
       if (line.isEmpty || line.startsWith('#')) continue;
 
-      if (line.contains('[!WARNING]') || line.contains('⚠️') || line.toUpperCase().startsWith('WARNING:')) {
+      final upper = line.toUpperCase();
+
+      if (upper.startsWith('MIN_VERSION:') || upper.startsWith('MIN_SUPPORTED:')) {
+        minSupported = line.split(':').last.trim().replaceAll(RegExp(r'^[vV]'), '');
+        continue;
+      }
+
+      if (line.contains('[!WARNING]') ||
+          line.contains('[!CAUTION]') ||
+          line.contains('⚠️') ||
+          line.contains('🚨') ||
+          upper.startsWith('MANDATORY:') ||
+          upper.startsWith('REQUIRED:') ||
+          upper.startsWith('BREAKING:') ||
+          upper.startsWith('CRITICAL:') ||
+          upper.startsWith('WARNING:')) {
+        isMandatory = true;
         extractedWarning = line
-            .replaceAll(RegExp(r'^(>\s*\[!WARNING\]\s*|⚠️\s*|WARNING:\s*)', caseSensitive: false), '')
+            .replaceAll(RegExp(r'^(>\s*\[!(WARNING|CAUTION|IMPORTANT|NOTE)\]\s*|[⚠️🚨📌]\s*|(MANDATORY|REQUIRED|BREAKING|CRITICAL|WARNING|ALERT|NOTICE|NOTE):\s*)', caseSensitive: false), '')
+            .trim();
+      } else if (line.contains('[!IMPORTANT]') ||
+          line.contains('[!NOTE]') ||
+          line.contains('📌') ||
+          upper.startsWith('ALERT:') ||
+          upper.startsWith('NOTICE:') ||
+          upper.startsWith('NOTE:')) {
+        extractedWarning = line
+            .replaceAll(RegExp(r'^(>\s*\[!(WARNING|CAUTION|IMPORTANT|NOTE)\]\s*|[⚠️🚨📌]\s*|(MANDATORY|REQUIRED|BREAKING|CRITICAL|WARNING|ALERT|NOTICE|NOTE):\s*)', caseSensitive: false), '')
             .trim();
       } else {
         changelog.add(line.replaceAll(RegExp(r'^[•\-\*]\s*'), '').trim());
@@ -111,14 +141,14 @@ class AppReleaseInfo {
     return AppReleaseInfo(
       latestVersion: tagName,
       buildNumber: 1,
-      minSupportedVersion: '1.0.0',
+      minSupportedVersion: minSupported,
       releaseDate: publishedAt.isNotEmpty ? publishedAt.split('T').first : '',
       releaseTitle: (json['name'] ?? 'ClassTrack $tagName').toString(),
       changelog: changelog,
       downloadUrl: apkUrl,
       releasePageUrl: htmlUrl,
-      isMandatory: extractedWarning != null && extractedWarning.isNotEmpty,
-      warningMessage: extractedWarning,
+      isMandatory: isMandatory,
+      warningMessage: extractedWarning?.isNotEmpty == true ? extractedWarning : null,
     );
   }
 }
@@ -127,27 +157,40 @@ class AppReleaseInfo {
 class AppUpdateService {
   AppUpdateService._();
 
-  /// Clean semantic version parsing (e.g. "v1.2.0+3" -> [1, 2, 0])
+  /// Clean semantic version parsing with pre-release support (e.g. "v1.0.0-alpha.3" -> [1, 0, 0, 3])
   static List<int> parseSemver(String versionStr) {
     try {
       final clean = versionStr
           .trim()
           .replaceAll(RegExp(r'^[vV]'), '')
-          .split('+').first
-          .split('-').first;
+          .split('+').first;
 
-      final parts = clean.split('.');
+      final parts = clean.split('-');
+      final baseParts = parts.first.split('.');
       final List<int> numbers = [];
       for (int i = 0; i < 3; i++) {
-        if (i < parts.length) {
-          numbers.add(int.tryParse(parts[i]) ?? 0);
+        if (i < baseParts.length) {
+          numbers.add(int.tryParse(baseParts[i]) ?? 0);
         } else {
           numbers.add(0);
         }
       }
+
+      if (parts.length > 1) {
+        final preStr = parts.sublist(1).join('-');
+        final match = RegExp(r'(\d+)').allMatches(preStr);
+        if (match.isNotEmpty) {
+          numbers.add(int.tryParse(match.last.group(1)!) ?? 0);
+        } else {
+          numbers.add(0);
+        }
+      } else {
+        numbers.add(999999);
+      }
+
       return numbers;
     } catch (_) {
-      return [1, 0, 0];
+      return [1, 0, 0, 0];
     }
   }
 
@@ -159,9 +202,11 @@ class AppUpdateService {
     final curr = parseSemver(currentVersion);
     final remote = parseSemver(remoteVersion);
 
-    for (int i = 0; i < 3; i++) {
-      if (remote[i] > curr[i]) return 1;
-      if (remote[i] < curr[i]) return -1;
+    for (int i = 0; i < math.max(curr.length, remote.length); i++) {
+      final c = i < curr.length ? curr[i] : 0;
+      final r = i < remote.length ? remote[i] : 0;
+      if (r > c) return 1;
+      if (r < c) return -1;
     }
     return 0;
   }
@@ -276,16 +321,21 @@ class AppUpdateService {
     return null;
   }
 
-  /// Fetches latest release, trying version manifest first, then GitHub Releases API
+  /// Fetches latest published release.
+  /// Prioritizes GitHub Releases API to guarantee draft/unpublished releases are ignored.
+  /// Falls back to the raw version manifest if GitHub API is unreachable or rate-limited.
   static Future<AppReleaseInfo?> fetchLatestRelease({
     String? customUrl,
     String owner = UpdateConstants.defaultGithubOwner,
     String repo = UpdateConstants.defaultGithubRepo,
     http.Client? client,
   }) async {
-    final manifestRelease = await fetchReleaseInfo(customUrl: customUrl, client: client);
-    if (manifestRelease != null) return manifestRelease;
-    return fetchGithubRelease(owner: owner, repo: repo, client: client);
+    // 1. Primary: GitHub Releases API (draft-immune)
+    final githubRelease = await fetchGithubRelease(owner: owner, repo: repo, client: client);
+    if (githubRelease != null) return githubRelease;
+
+    // 2. Secondary fallback: Raw version manifest
+    return fetchReleaseInfo(customUrl: customUrl, client: client);
   }
 
   /// Downloads an APK from [downloadUrl] to app cache with chunked streaming and progress reporting.

@@ -3,8 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/update_constants.dart';
-import '../../../core/services/app_update_service.dart';
+import '../../../core/constants/app_release_notes.dart';
 import '../../../core/ui/app_toast.dart';
 import '../../../core/ui/brand_social_icons.dart';
 import '../../../core/ui/tactile_button.dart';
@@ -70,67 +69,18 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
     }
   }
 
-  static const List<String> _bundledLaunchChangelog = [
-    '✨ 100% Offline & Private: Zero telemetry, cloud tracking, or mandatory logins',
-    '✨ Live Today Dashboard: Real-time lecture countdowns & 1-tap attendance marking',
-    '✨ Weekly Timetable Engine: Multi-day batch repeat (🔁) & custom component colors',
-    '✨ Calendar Overrides: Date-specific exceptions, reschedule single sessions, or add makeup labs',
-    '✨ Margin Analytics & What-If Simulator: Safe miss margins (+N) and leave forecast calculator',
-    '✨ Multi-Date Export Suite: Official multi-sheet Excel & printable PDF registers',
-    '✨ High-Res QR Timetable Share: Instant schedule sync with sharable QR card images',
-    '✨ Encrypted Local Backups: Scheduled auto-backups and 1-tap .ctbackup restoration',
-    '✨ System Notifications: Background alerts for exports, backups, and timetable imports (zero em-dashes)',
-  ];
-
   Future<void> _showWhatsNewDialog(BuildContext context, bool isDark) async {
     final updateState = ref.read(appUpdateProvider);
+    final installedVersion = updateState.currentVersion;
+    final releaseInfo = AppReleaseNotes.getForVersion(installedVersion);
 
-    // 1. If we already have fetched release notes
-    if (updateState.releaseInfo != null && updateState.releaseInfo!.changelog.isNotEmpty) {
-      Navigator.push(
-        context,
-        UpdateScreen.route(
-          updateState.releaseInfo!,
-          isWhatsNewMode: true,
-        ),
-      );
-      return;
-    }
-
-    // 2. Fetch live release notes dynamically from GitHub Releases / version manifest
-    try {
-      final latestRelease = await AppUpdateService.fetchLatestRelease();
-      if (latestRelease != null && context.mounted) {
-        Navigator.push(
-          context,
-          UpdateScreen.route(
-            latestRelease,
-            isWhatsNewMode: true,
-          ),
-        );
-        return;
-      }
-    } catch (_) {}
-
-    // 3. Fallback: Display bundled version changelog immediately
-    if (context.mounted) {
-      Navigator.push(
-        context,
-        UpdateScreen.route(
-          AppReleaseInfo(
-            latestVersion: updateState.currentVersion,
-            buildNumber: int.tryParse(updateState.currentBuildNumber) ?? 1,
-            minSupportedVersion: updateState.currentVersion,
-            releaseDate: 'August 2026',
-            releaseTitle: 'ClassTrack v${updateState.currentVersion}',
-            changelog: _bundledLaunchChangelog,
-            releasePageUrl: UpdateConstants.defaultWebsiteUrl,
-            isMandatory: false,
-          ),
-          isWhatsNewMode: true,
-        ),
-      );
-    }
+    Navigator.push(
+      context,
+      UpdateScreen.route(
+        releaseInfo,
+        isWhatsNewMode: true,
+      ),
+    );
   }
 
   @override
