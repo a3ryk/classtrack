@@ -1,7 +1,7 @@
 {
   "latest_version": "1.0.0-alpha.4",
   "build_number": 4,
-  "min_supported_version": "1.0.0-alpha.1",
+  "min_supported_version": "1.0.0-alpha.4",
   "release_date": "2026-09-03",
   "release_title": "ClassTrack v1.0.0-alpha.4 (Schedule Engine & Room Fixes)",
   "changelog": [
@@ -16,6 +16,6 @@
   ],
   "download_url": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.4/ClassTrack-v1.0.0-alpha.4.apk",
   "release_page_url": "https://github.com/a3ryk/classtrack/releases/tag/v1.0.0-alpha.4",
-  "is_mandatory": false,
-  "warning_message": "This is an Alpha testing build. Please report any issues on GitHub."
+  "is_mandatory": true,
+  "warning_message": "CRITICAL: Mandatory update required for database persistence and schedule resolution fixes."
 }

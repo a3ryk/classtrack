@@ -10,7 +10,7 @@ class AppReleaseNotes {
     '1.0.0-alpha.4': const AppReleaseInfo(
       latestVersion: '1.0.0-alpha.4',
       buildNumber: 4,
-      minSupportedVersion: '1.0.0-alpha.1',
+      minSupportedVersion: '1.0.0-alpha.4',
       releaseDate: 'September 2026',
       releaseTitle: 'ClassTrack v1.0.0-alpha.4 (Schedule Engine & Room Fixes)',
       changelog: [
@@ -23,7 +23,8 @@ class AppReleaseNotes {
         '✨ Flexible Notice & Warning Engine: Support for plain warning/notice messages, breaking alert cards, and minimum version constraints',
         '🧩 Fixed SQLite upsert omitting cleared/null fields in Timetable Slots, Extra Classes, and Subjects',
       ],
-      isMandatory: false,
+      isMandatory: true,
+      warningMessage: 'Mandatory update required for database persistence and timetable stability.',
     ),
     '1.0.0-alpha.3': const AppReleaseInfo(
       latestVersion: '1.0.0-alpha.3',
