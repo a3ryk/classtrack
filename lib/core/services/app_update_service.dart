@@ -105,10 +105,11 @@ class AppReleaseInfo {
       final line = rawLine.trim();
       if (line.isEmpty || line.startsWith('#')) continue;
 
-      final upper = line.toUpperCase();
+      final cleanLine = line.replaceAll(RegExp(r'<!--|-->'), '').trim();
+      final upper = cleanLine.toUpperCase();
 
       if (upper.startsWith('MIN_VERSION:') || upper.startsWith('MIN_SUPPORTED:')) {
-        minSupported = line.split(':').last.trim().replaceAll(RegExp(r'^[vV]'), '');
+        minSupported = cleanLine.split(':').last.trim().replaceAll(RegExp(r'^[vV]'), '');
         continue;
       }
 

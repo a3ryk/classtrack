@@ -1192,12 +1192,13 @@ void main() {
       final githubJson = {
         'tag_name': 'v1.0.0-alpha.4',
         'name': 'ClassTrack v1.0.0-alpha.4',
-        'body': '> [!WARNING] Critical update required.\n- Performance improvements',
+        'body': '> [!WARNING] Critical update required.\n- Performance improvements\n<!-- MIN_VERSION: 1.0.0-alpha.4 -->',
       };
 
       final info = AppReleaseInfo.fromGithubReleaseJson(githubJson);
       expect(info.isMandatory, isTrue);
       expect(info.warningMessage, equals('Critical update required.'));
+      expect(info.minSupportedVersion, equals('1.0.0-alpha.4'));
     });
 
     test('AppReleaseNotes Registry: Returns release notes for installed version offline', () {
