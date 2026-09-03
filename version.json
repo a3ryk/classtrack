@@ -1,21 +1,22 @@
 {
-  "latest_version": "1.0.0-alpha.4",
-  "build_number": 4,
-  "min_supported_version": "1.0.0-alpha.4",
+  "latest_version": "1.0.0-alpha.5",
+  "build_number": 5,
+  "min_supported_version": "1.0.0-alpha.5",
   "release_date": "2026-09-03",
-  "release_title": "ClassTrack v1.0.0-alpha.4 (Schedule Engine & Room Fixes)",
+  "release_title": "ClassTrack v1.0.0-alpha.5 (Multi-Room Timetables & Smart Schedule Management)",
   "changelog": [
-    "✨ Complete Room & Class Name Persistence: Fixed Drift SQLite column updates so editing, clearing, or removing rooms, teachers, and course codes persists instantly to the database",
-    "✨ Dynamic Subject Renaming Synchronization: Renaming a subject now immediately refreshes all Weekly Timetable slots, Today class cards, and Extra Classes across the entire app",
-    "✨ Reschedule Room Handling: Single-date reschedules now accurately respect updated or cleared room/lab entries without falling back to weekly defaults",
-    "✨ 120FPS Silky Smooth Settings Scrolling: Hardware-accelerated repaint boundaries and fluid momentum physics on settings screens",
-    "✨ Offline-Accurate \"What's New\": Instantly loads local build changelogs for the installed version in 0ms without network dependence",
-    "✨ Draft-Immune In-App Updater: GitHub Releases API integration that automatically ignores unpublished draft releases and unreleased git commits",
-    "✨ Flexible Notice & Warning Engine: Support for plain warning/notice messages, breaking alert cards, and minimum version constraints",
-    "🧩 Fixed SQLite upsert omitting cleared/null fields in Timetable Slots, Extra Classes, and Subjects"
+    "✨ Dedicated Full-Screen Schedule & Room Managers: Full-screen Subject Room Manager and Reschedule Session screens replacing cramped dialog modals",
+    "✨ Multi-Room Timetable Resolution: Support for subjects held across different classrooms on different days (e.g., Mon/Wed/Fri in Room 101, Tue/Thu in Lab B) with 1-tap bulk apply",
+    "✨ Date-Specific Room & Time Overrides: Reschedule or move individual class sessions for a single date without altering recurring weekly timetable templates",
+    "✨ Dynamic Schedule & Analytics Breakdown: Today screen, Calendar, and Attendance analytics dynamically resolve per-day room locations and attendance outcomes",
+    "✨ Overflow-Free Scrollable Action Sheets: Fixed RenderFlex overflow in quick-action bottom sheets with responsive constraints and momentum scroll physics",
+    "✨ Smart Change Detection & Dynamic Button Locking: Action buttons lock and dim automatically when no edits are detected and unlock instantly on modification",
+    "✨ Auto-Backup Frequency & Time Calculation: Accurate duration evaluation and background verification for scheduled automated database backups",
+    "🧩 Fixed slot ID targeting to update existing weekly timetable records in-place without duplicate entries",
+    "🧩 Fixed disabled input border rendering and darkened outlines during single-day cancellations"
   ],
-  "download_url": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.4/ClassTrack-v1.0.0-alpha.4.apk",
-  "release_page_url": "https://github.com/a3ryk/classtrack/releases/tag/v1.0.0-alpha.4",
+  "download_url": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.5/ClassTrack-v1.0.0-alpha.5.apk",
+  "release_page_url": "https://github.com/a3ryk/classtrack/releases/tag/v1.0.0-alpha.5",
   "is_mandatory": true,
-  "warning_message": "CRITICAL: Mandatory update required for database persistence and schedule resolution fixes."
+  "warning_message": "CRITICAL: Mandatory update required for multi-room schedule synchronization and auto-backup stability."
 }
