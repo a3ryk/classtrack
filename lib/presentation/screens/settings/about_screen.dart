@@ -108,12 +108,13 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
         title: Text(
           'About',
           style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
             color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-            letterSpacing: -0.4,
+            letterSpacing: -0.3,
           ),
         ),
+        centerTitle: true,
       ),
       body: SafeArea(
         child: Column(
