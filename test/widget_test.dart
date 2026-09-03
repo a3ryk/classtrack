@@ -24,6 +24,10 @@ import 'package:drift/drift.dart' show Value;
 import 'package:classtrack/core/constants/app_release_notes.dart';
 import 'package:classtrack/core/ui/tactile_button.dart';
 import 'package:classtrack/presentation/widgets/developer_passcode_dialog.dart';
+import 'package:classtrack/domain/entities/class_session_entity.dart';
+import 'package:classtrack/domain/entities/subject_entity.dart';
+import 'package:classtrack/presentation/screens/schedule/reschedule_session_screen.dart';
+import 'package:classtrack/presentation/screens/schedule/subject_room_manager_screen.dart';
 
 void main() {
   group('AttendanceMathService Tests', () {
@@ -1319,7 +1323,7 @@ void main() {
       );
       expect(movedWithRoom.first.room, equals('Auditorium'));
 
-      // 3. With MOVED exception clearing room (newRoom is null/empty)
+      // 3. With MOVED exception clearing room (newRoom is empty string "")
       final movedClearedRoom = ScheduleResolutionEngine.resolveScheduleForDate(
         targetDate: DateTime(2026, 8, 24),
         timetableSlots: [baseSlot],
@@ -1330,7 +1334,7 @@ void main() {
             actionType: 'MOVED',
             newStartTime: '10:00',
             newEndTime: '11:00',
-            newRoom: null,
+            newRoom: '',
           ),
         ],
         extraClasses: [],
@@ -1346,6 +1350,394 @@ void main() {
       final info = await AppUpdateService.fetchReleaseNotesForVersion(versionStr: '1.0.0-alpha.4');
       expect(info.latestVersion, equals('1.0.0-alpha.4'));
       expect(info.changelog.isNotEmpty, isTrue);
+    });
+
+    test('Auto-Backup Engine: isAutoBackupDue evaluates frequency durations accurately', () async {
+      final db = AppDatabase.inMemory();
+      final container = ProviderContainer(overrides: [
+        databaseProvider.overrideWithValue(db),
+      ]);
+      final notifier = container.read(backupProvider.notifier);
+
+      // 1. When auto backup is disabled -> never due
+      notifier.state = notifier.state.copyWith(
+        isAutoBackupEnabled: false,
+        lastBackupTimestamp: DateTime.now().subtract(const Duration(days: 10)),
+      );
+      expect(notifier.isAutoBackupDue(), isFalse);
+
+      // 2. When auto backup is enabled but never run (last is null) -> due immediately
+      notifier.state = notifier.state.copyWith(
+        isAutoBackupEnabled: true,
+        lastBackupTimestamp: null,
+      );
+      expect(notifier.isAutoBackupDue(), isTrue);
+
+      // 3. Every 6 Hours: 4 hours ago -> false, 7 hours ago -> true
+      notifier.state = notifier.state.copyWith(
+        isAutoBackupEnabled: true,
+        frequency: AutoBackupFrequency.every6Hours,
+        lastBackupTimestamp: DateTime.now().subtract(const Duration(hours: 4)),
+      );
+      expect(notifier.isAutoBackupDue(), isFalse);
+
+      notifier.state = notifier.state.copyWith(
+        lastBackupTimestamp: DateTime.now().subtract(const Duration(hours: 7)),
+      );
+      expect(notifier.isAutoBackupDue(), isTrue);
+
+      // 4. Daily: 12 hours ago -> false, 25 hours ago -> true
+      notifier.state = notifier.state.copyWith(
+        frequency: AutoBackupFrequency.daily,
+        lastBackupTimestamp: DateTime.now().subtract(const Duration(hours: 12)),
+      );
+      expect(notifier.isAutoBackupDue(), isFalse);
+
+      notifier.state = notifier.state.copyWith(
+        lastBackupTimestamp: DateTime.now().subtract(const Duration(hours: 25)),
+      );
+      expect(notifier.isAutoBackupDue(), isTrue);
+
+      // 5. Clock Reversal / Time Traveler Edge Case (clock moved back so last is in future) -> due immediately
+      notifier.state = notifier.state.copyWith(
+        lastBackupTimestamp: DateTime.now().add(const Duration(hours: 2)),
+      );
+      expect(notifier.isAutoBackupDue(), isTrue);
+
+      container.dispose();
+      await db.close();
+    });
+
+    test('ScheduleResolutionEngine: Multi-room weekly schedule resolves correct rooms per day', () {
+      final slots = [
+        // Mon (Day 1): Room 101 (Lecture)
+        TimetableSlotItem(
+          id: 'slot_mon',
+          semesterId: 'sem_1',
+          subjectComponentId: 'sub_physics',
+          subjectName: 'Physics',
+          category: 'MAJOR',
+          componentType: 'LECTURE',
+          colorHex: '#4F46E5',
+          dayOfWeek: 1,
+          startTime: '09:00',
+          endTime: '10:00',
+          room: 'Room 101',
+        ),
+        // Tue (Day 2): Physics Lab B (Practical)
+        TimetableSlotItem(
+          id: 'slot_tue',
+          semesterId: 'sem_1',
+          subjectComponentId: 'sub_physics',
+          subjectName: 'Physics',
+          category: 'MAJOR',
+          componentType: 'PRACTICAL',
+          colorHex: '#4F46E5',
+          dayOfWeek: 2,
+          startTime: '14:00',
+          endTime: '16:00',
+          room: 'Physics Lab B',
+        ),
+      ];
+
+      // Monday Aug 24, 2026
+      final monResolved = ScheduleResolutionEngine.resolveScheduleForDate(
+        targetDate: DateTime(2026, 8, 24),
+        semesterId: 'sem_1',
+        holidays: [],
+        dayConfigs: const [],
+        timetableSlots: slots,
+        exceptions: [],
+        extraClasses: [],
+      );
+      expect(monResolved.length, equals(1));
+      expect(monResolved.first.room, equals('Room 101'));
+      expect(monResolved.first.componentType, equals('LECTURE'));
+
+      // Tuesday Aug 25, 2026
+      final tueResolved = ScheduleResolutionEngine.resolveScheduleForDate(
+        targetDate: DateTime(2026, 8, 25),
+        semesterId: 'sem_1',
+        holidays: [],
+        dayConfigs: const [],
+        timetableSlots: slots,
+        exceptions: [],
+        extraClasses: [],
+      );
+      expect(tueResolved.length, equals(1));
+      expect(tueResolved.first.room, equals('Physics Lab B'));
+      expect(tueResolved.first.componentType, equals('PRACTICAL'));
+    });
+
+    test('ScheduleResolutionEngine: Single-date exception preserves default room when newRoom is null', () {
+      final slots = [
+        TimetableSlotItem(
+          id: 'slot_math',
+          semesterId: 'sem_1',
+          subjectComponentId: 'sub_math',
+          subjectName: 'Math',
+          category: 'MAJOR',
+          componentType: 'LECTURE',
+          colorHex: '#4F46E5',
+          dayOfWeek: 1,
+          startTime: '09:00',
+          endTime: '10:00',
+          room: 'Room 204',
+        ),
+      ];
+
+      // Moved time only (newRoom is null) -> should preserve Room 204
+      final exceptions = [
+        ScheduleExceptionItem(
+          timetableSlotId: 'slot_math',
+          exceptionDate: '2026-08-24',
+          actionType: 'MOVED',
+          newStartTime: '10:30',
+          newEndTime: '11:30',
+          newRoom: null,
+        ),
+      ];
+
+      final resolved = ScheduleResolutionEngine.resolveScheduleForDate(
+        targetDate: DateTime(2026, 8, 24),
+        semesterId: 'sem_1',
+        holidays: [],
+        dayConfigs: const [],
+        timetableSlots: slots,
+        exceptions: exceptions,
+        extraClasses: [],
+      );
+      expect(resolved.length, equals(1));
+      expect(resolved.first.startTime, equals('10:30'));
+      expect(resolved.first.room, equals('Room 204'));
+    });
+
+    test('TimetableSlotsNotifier: updateRoomForSubject updates all slots for that subject in SQLite', () async {
+      final db = AppDatabase.inMemory();
+      final nowIso = DateTime.now().toIso8601String();
+      await db.saveSemester(
+        SemesterData(
+          id: 'sem_1',
+          name: 'Semester 1',
+          startDate: '2026-08-01',
+          endDate: '2026-12-31',
+          defaultTargetPct: 75.0,
+          status: 'ACTIVE',
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        ),
+      );
+
+      await db.saveSubject(
+        SubjectData(
+          id: 'sub_cs',
+          semesterId: 'sem_1',
+          name: 'Computer Science',
+          code: 'CS101',
+          category: 'MAJOR',
+          credits: 4,
+          targetAttendancePct: 75.0,
+          baselineHeld: 0,
+          baselineAttended: 0,
+          isArchived: false,
+          colorHex: '#4F46E5',
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        ),
+      );
+
+      // Add Mon and Wed slots with Room 101
+      await db.saveTimetableSlot(
+        TimetableSlotData(
+          id: 'slot_1',
+          semesterId: 'sem_1',
+          subjectComponentId: 'sub_cs',
+          dayOfWeek: 1,
+          startTime: '09:00',
+          endTime: '10:00',
+          room: 'Room 101',
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        ),
+      );
+      await db.saveTimetableSlot(
+        TimetableSlotData(
+          id: 'slot_2',
+          semesterId: 'sem_1',
+          subjectComponentId: 'sub_cs',
+          dayOfWeek: 3,
+          startTime: '11:00',
+          endTime: '12:00',
+          room: 'Room 101',
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        ),
+      );
+
+      final notifier = TimetableSlotsNotifier(db, 'sem_1', []);
+      await notifier.loadFromDb();
+      expect(notifier.state.length, equals(2));
+
+      // Bulk update room for subject to Room 405
+      await notifier.updateRoomForSubject(subjectId: 'sub_cs', newRoom: 'Room 405');
+
+      final updatedSlots = await db.getTimetableSlots('sem_1');
+      expect(updatedSlots.length, equals(2));
+      expect(updatedSlots.every((s) => s.room == 'Room 405'), isTrue);
+
+      notifier.dispose();
+      await db.close();
+    });
+
+    testWidgets('RescheduleSessionScreen renders hero card and room input', (tester) async {
+      final db = AppDatabase.inMemory();
+      final session = ClassSessionEntity(
+        id: 'session_1',
+        sourceRefId: 'slot_1',
+        semesterId: 'sem_1',
+        subjectComponentId: 'sub_1',
+        subjectName: 'Computer Architecture',
+        category: 'MAJOR',
+        componentType: 'LECTURE',
+        colorHex: '#4F46E5',
+        sessionDate: '2026-08-26',
+        sessionSource: 'TIMETABLE_RECURRING',
+        status: 'PLANNED',
+        attendanceOutcome: 'PENDING',
+        startTime: '09:00',
+        endTime: '10:00',
+        room: 'Room 302',
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+          ],
+          child: MaterialApp(
+            home: RescheduleSessionScreen(
+              session: session,
+              dateIso: '2026-08-26',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Computer Architecture'), findsWidgets);
+      expect(find.text('Room 302'), findsWidgets);
+      expect(find.text('Save Changes'), findsOneWidget);
+      expect(find.text('Cancel class for this date'), findsOneWidget);
+
+      // Button is locked/disabled initially (no changes)
+      var saveButton = tester.widget<ElevatedButton>(find.widgetWithText(ElevatedButton, 'Save Changes'));
+      expect(saveButton.onPressed, isNull);
+
+      // Make a change
+      await tester.enterText(find.byType(TextField), 'Room 404');
+      await tester.pumpAndSettle();
+
+      // Button becomes unlocked/enabled
+      saveButton = tester.widget<ElevatedButton>(find.widgetWithText(ElevatedButton, 'Save Changes'));
+      expect(saveButton.onPressed, isNotNull);
+
+      await db.close();
+    });
+
+    testWidgets('SubjectRoomManagerScreen renders bulk and daily room inputs', (tester) async {
+      final db = AppDatabase.inMemory();
+      final nowIso = DateTime.now().toIso8601String();
+      await db.saveSemester(
+        SemesterData(
+          id: 'sem_1',
+          name: 'Semester 1',
+          startDate: '2026-08-01',
+          endDate: '2026-12-31',
+          defaultTargetPct: 75.0,
+          status: 'ACTIVE',
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        ),
+      );
+      await db.saveTimetableSlot(
+        TimetableSlotData(
+          id: 'slot_1',
+          semesterId: 'sem_1',
+          subjectComponentId: 'sub_1',
+          dayOfWeek: 1,
+          startTime: '09:00',
+          endTime: '10:00',
+          room: 'Room 101',
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        ),
+      );
+      await db.saveTimetableSlot(
+        TimetableSlotData(
+          id: 'slot_2',
+          semesterId: 'sem_1',
+          subjectComponentId: 'sub_1',
+          dayOfWeek: 3,
+          startTime: '11:00',
+          endTime: '12:00',
+          room: 'Room 102',
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        ),
+      );
+
+      final subject = SubjectEntity(
+        id: 'sub_1',
+        semesterId: 'sem_1',
+        name: 'Database Systems',
+        category: 'MAJOR',
+        credits: 4,
+        targetAttendancePct: 75.0,
+        baselineHeld: 0,
+        baselineAttended: 0,
+        isArchived: false,
+        colorHex: '#10B981',
+        components: [],
+      );
+
+      final notifier = TimetableSlotsNotifier(db, 'sem_1', [subject]);
+      await notifier.loadFromDb();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+            timetableSlotsProvider.overrideWith((ref) => notifier),
+          ],
+          child: MaterialApp(
+            home: SubjectRoomManagerScreen(
+              subject: subject,
+              initialRoom: 'Room 101',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Database Systems'), findsWidgets);
+      expect(find.text('Room & Location Manager'), findsOneWidget);
+      expect(find.text('Save Room Changes'), findsOneWidget);
+
+      // Save button is initially locked/disabled (no changes yet)
+      var saveRoomBtn = tester.widget<ElevatedButton>(find.widgetWithText(ElevatedButton, 'Save Room Changes'));
+      expect(saveRoomBtn.onPressed, isNull);
+
+      // Apply a change
+      await tester.enterText(find.widgetWithText(TextField, 'e.g. Room 405 or Lecture Hall A'), 'Room 500');
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Apply'));
+      await tester.pumpAndSettle();
+
+      // Save button is now enabled
+      saveRoomBtn = tester.widget<ElevatedButton>(find.widgetWithText(ElevatedButton, 'Save Room Changes'));
+      expect(saveRoomBtn.onPressed, isNotNull);
+
+      await db.close();
     });
   });
 }
