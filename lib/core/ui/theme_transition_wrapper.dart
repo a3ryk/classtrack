@@ -141,9 +141,8 @@ class ThemeTransitionWrapperState extends ConsumerState<ThemeTransitionWrapper>
           WidgetsBinding.instance.platformDispatcher.views.first.devicePixelRatio;
       final defaultOrigin = Offset(size.width / 2, size.height / 2);
 
-      // Snapshot capture capped at 2.0x to guarantee instant rasterization & 120 FPS
-      final snapRatio = math.min(devicePixelRatio, 2.0);
-      final image = await boundary.toImage(pixelRatio: snapRatio);
+      // Snapshot capture at true 1:1 devicePixelRatio for pixel-perfect raster alignment (zero shaking/resizing)
+      final image = await boundary.toImage(pixelRatio: devicePixelRatio);
       if (!mounted) {
         image.dispose();
         _isCapturing = false;
