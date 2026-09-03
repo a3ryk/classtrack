@@ -4,9 +4,30 @@ import '../services/app_update_service.dart';
 class AppReleaseNotes {
   AppReleaseNotes._();
 
-  static const String currentVersion = '1.0.0-alpha.5';
+  static const String currentVersion = '1.0.0-alpha.6';
 
   static final Map<String, AppReleaseInfo> _releases = {
+    '1.0.0-alpha.6': const AppReleaseInfo(
+      latestVersion: '1.0.0-alpha.6',
+      buildNumber: 6,
+      minSupportedVersion: '1.0.0-alpha.6',
+      releaseDate: 'September 2026',
+      releaseTitle: 'ClassTrack v1.0.0-alpha.6 (Telegram Theme Transitions & Appearance Hub)',
+      changelog: [
+        '✨ Dedicated Appearance & Themes Hub: Unified minimalist appearance screen with live interactive attendance hero, AMOLED Pure OLED Black toggle, and match-device schedule',
+        '✨ Telegram-Style Radial Theme Transitions: Center-locked circular wave emanating outward for Dark and inward for Light with tuned 650ms momentum',
+        '✨ 1:1 Native Resolution Theme Capture: True devicePixelRatio snapshot capture eliminating screen resize artifacts and blur across all Android displays',
+        '✨ Rock-Solid Theme Cards: Fixed 1.5px border geometry eliminating card shaking and flex reflow during theme switching',
+        '✨ Instant Touch Responsiveness: Visually synchronized anti-spam lock release and 0ms onTapDown gesture dispatch preventing dropped clicks',
+        '✨ Active 100% Progress Meter: Full emerald progress arc and clean "100%" typography in the appearance preview hero',
+        '✨ Unified Navigation Hierarchy: Standardized iOS-style chevron back buttons and centered titles across Appearance, About, and Backup & Restore',
+        '✨ Fixed-Height Alphabetical State Picker: Rock-solid 72% height searchable state/UT selector preventing sheet collapse during filtering',
+        '🧩 Fixed holiday sheet dismissal choreography to eliminate the 0.1ms button flash before downward glide',
+        '🧩 Harmonized settings typography and layout constraints across all device form factors',
+      ],
+      isMandatory: true,
+      warningMessage: 'Mandatory update required for appearance stability, theme transition fidelity, and navigation polish.',
+    ),
     '1.0.0-alpha.5': const AppReleaseInfo(
       latestVersion: '1.0.0-alpha.5',
       buildNumber: 5,

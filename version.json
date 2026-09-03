@@ -1,23 +1,23 @@
 {
-  "latest_version": "1.0.0-alpha.5",
-  "build_number": 5,
-  "min_supported_version": "1.0.0-alpha.5",
-  "release_date": "2026-09-03",
-  "release_title": "ClassTrack v1.0.0-alpha.5 (Multi-Room Timetables & Smart Schedule Management)",
+  "latest_version": "1.0.0-alpha.6",
+  "build_number": 6,
+  "min_supported_version": "1.0.0-alpha.6",
+  "release_date": "2026-09-04",
+  "release_title": "ClassTrack v1.0.0-alpha.6 (Telegram Theme Transitions & Appearance Hub)",
   "changelog": [
-    "✨ Dedicated Full-Screen Schedule & Room Managers: Full-screen Subject Room Manager and Reschedule Session screens replacing cramped dialog modals",
-    "✨ Multi-Room Timetable Resolution: Support for subjects held across different classrooms on different days (e.g., Mon/Wed/Fri in Room 101, Tue/Thu in Lab B) with 1-tap bulk apply",
-    "✨ Date-Specific Room & Time Overrides: Reschedule or move individual class sessions for a single date without altering recurring weekly timetable templates",
-    "✨ Dynamic Schedule & Analytics Breakdown: Today screen, Calendar, and Attendance analytics dynamically resolve per-day room locations and attendance outcomes",
-    "✨ Native Split-per-ABI In-App Updater: Smart on-device architecture detection (ARM64, ARMv7, x86_64) ensuring fast, lightweight, and exact-match APK downloads directly from GitHub Releases",
-    "✨ Overflow-Free Scrollable Action Sheets: Fixed RenderFlex overflow in quick-action bottom sheets with responsive constraints and momentum scroll physics",
-    "✨ Smart Change Detection & Dynamic Button Locking: Action buttons lock and dim automatically when no edits are detected and unlock instantly on modification",
-    "✨ Auto-Backup Frequency & Time Calculation: Accurate duration evaluation and background verification for scheduled automated database backups",
-    "🧩 Fixed slot ID targeting to update existing weekly timetable records in-place without duplicate entries",
-    "🧩 Fixed disabled input border rendering and darkened outlines during single-day cancellations"
+    "✨ Dedicated Appearance & Themes Hub: Unified minimalist appearance screen with live interactive attendance hero, AMOLED Pure OLED Black toggle, and match-device schedule",
+    "✨ Telegram-Style Radial Theme Transitions: Center-locked circular wave emanating outward for Dark and inward for Light with tuned 650ms momentum",
+    "✨ 1:1 Native Resolution Theme Capture: True devicePixelRatio snapshot capture eliminating screen resize artifacts and blur across all Android displays",
+    "✨ Rock-Solid Theme Cards: Fixed 1.5px border geometry eliminating card shaking and flex reflow during theme switching",
+    "✨ Instant Touch Responsiveness: Visually synchronized anti-spam lock release and 0ms onTapDown gesture dispatch preventing dropped clicks",
+    "✨ Active 100% Progress Meter: Full emerald progress arc and clean '100%' typography in the appearance preview hero",
+    "✨ Unified Navigation Hierarchy: Standardized iOS-style chevron back buttons and centered titles across Appearance, About, and Backup & Restore",
+    "✨ Fixed-Height Alphabetical State Picker: Rock-solid 72% height searchable state/UT selector preventing sheet collapse during filtering",
+    "🧩 Fixed holiday sheet dismissal choreography to eliminate the 0.1ms button flash before downward glide",
+    "🧩 Harmonized settings typography and layout constraints across all device form factors"
   ],
-  "download_url": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.5/ClassTrack-v1.0.0-alpha.5.apk",
-  "release_page_url": "https://github.com/a3ryk/classtrack/releases/tag/v1.0.0-alpha.5",
+  "download_url": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.6/ClassTrack-v1.0.0-alpha.6.apk",
+  "release_page_url": "https://github.com/a3ryk/classtrack/releases/tag/v1.0.0-alpha.6",
   "is_mandatory": true,
-  "warning_message": "CRITICAL: Mandatory update required for multi-room schedule synchronization and auto-backup stability."
+  "warning_message": "CRITICAL: Mandatory update required for appearance stability, theme transition fidelity, and navigation polish."
 }
