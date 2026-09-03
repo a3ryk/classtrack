@@ -38,6 +38,7 @@ class _AppearanceScreenState extends ConsumerState<AppearanceScreen> {
   String _activeThemeId = 'classic_indigo';
   final Set<String> _unlockedThemeIds = {'classic_indigo'};
   bool _pureOledBlack = false;
+  static const bool _showAestheticTemplates = false;
 
   static const List<AestheticTheme> _curatedThemes = [
     AestheticTheme(
@@ -238,28 +239,29 @@ class _AppearanceScreenState extends ConsumerState<AppearanceScreen> {
 
           const SizedBox(height: 24),
 
-          // 3. THEME STYLES & AESTHETIC TEMPLATES
-          _buildSectionHeader('Aesthetic Templates', isDark),
-          RepaintBoundary(
-            child: Container(
-              decoration: BoxDecoration(
-                color: groupBg,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: groupBorder, width: 0.8),
-              ),
-              child: Column(
-                children: [
-                  for (int i = 0; i < _curatedThemes.length; i++) ...[
-                    _buildAestheticThemeTile(_curatedThemes[i], isDark),
-                    if (i < _curatedThemes.length - 1)
-                      Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
+          // 3. THEME STYLES & AESTHETIC TEMPLATES (Disabled in UI until custom theme engine is built)
+          if (_showAestheticTemplates) ...[
+            _buildSectionHeader('Aesthetic Templates', isDark),
+            RepaintBoundary(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: groupBg,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: groupBorder, width: 0.8),
+                ),
+                child: Column(
+                  children: [
+                    for (int i = 0; i < _curatedThemes.length; i++) ...[
+                      _buildAestheticThemeTile(_curatedThemes[i], isDark),
+                      if (i < _curatedThemes.length - 1)
+                        Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
-          ),
-
-          const SizedBox(height: 24),
+            const SizedBox(height: 24),
+          ],
 
           // 4. DISPLAY OPTIONS
           _buildSectionHeader('Display Options', isDark),

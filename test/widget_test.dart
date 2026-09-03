@@ -2066,33 +2066,14 @@ void main() {
       expect(find.text('Dark'), findsOneWidget);
       expect(find.text('System'), findsOneWidget);
 
-      // Check Aesthetic Theme Templates
-      expect(find.text('AESTHETIC TEMPLATES'), findsOneWidget);
-      expect(find.text('Classic Indigo'), findsOneWidget);
-      expect(find.text('Sakura Blossom'), findsOneWidget);
-      expect(find.text('Matcha Study'), findsOneWidget);
-      expect(find.text('Cozy Mocha'), findsOneWidget);
-      expect(find.text('Cyber Neon'), findsOneWidget);
+      // Verify Aesthetic Theme Templates are disabled in UI for now
+      expect(find.text('AESTHETIC TEMPLATES'), findsNothing);
+      expect(find.text('Sakura Blossom'), findsNothing);
 
-      // Tap an unlockable theme (Sakura Blossom)
-      await tester.scrollUntilVisible(find.text('Sakura Blossom'), 100);
-      await tester.tap(find.text('Sakura Blossom'));
-      await tester.pumpAndSettle();
-
-      // Verify bottom sheet opened with unlock action
-      expect(find.text('Watch Short Ad to Unlock Theme'), findsOneWidget);
-
-      // Tap unlock
-      await tester.tap(find.text('Watch Short Ad to Unlock Theme'));
-      await tester.pumpAndSettle();
-
-      // Verify theme became active
-      expect(find.text('Active'), findsOneWidget);
-
-      // Scroll down to Display Options
-      await tester.scrollUntilVisible(find.text('DISPLAY OPTIONS'), 100);
+      // Check Display Options
       expect(find.text('DISPLAY OPTIONS'), findsOneWidget);
       expect(find.text('Pure OLED Black'), findsOneWidget);
+      expect(find.text('Match Device Appearance'), findsOneWidget);
 
       await db.close();
     });
