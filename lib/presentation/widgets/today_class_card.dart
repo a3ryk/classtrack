@@ -51,7 +51,8 @@ class TodayClassCard extends ConsumerWidget {
     ref.watch(realtimeClockProvider);
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final liveStatus = session.attendanceOutcome == 'CANCELLED' ? null : _getLiveStatus();
+    final isHoliday = session.attendanceOutcome == 'HOLIDAY' || session.status == 'HOLIDAY';
+    final liveStatus = (session.attendanceOutcome == 'CANCELLED' || isHoliday) ? null : _getLiveStatus();
 
     Color stripeColor;
     try {
@@ -92,7 +93,7 @@ class TodayClassCard extends ConsumerWidget {
               child: Container(
                 width: 3.5,
                 decoration: BoxDecoration(
-                  color: stripeColor,
+                  color: isHoliday ? const Color(0xFFD97706) : stripeColor,
                   borderRadius: const BorderRadius.horizontal(right: Radius.circular(4)),
                 ),
               ),
@@ -103,7 +104,7 @@ class TodayClassCard extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header: Subject Name & Live Status Badge
+                  // Header: Subject Name & Live Status Badge / Holiday Badge
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -118,7 +119,35 @@ class TodayClassCard extends ConsumerWidget {
                           ),
                         ),
                       ),
-                      if (liveStatus != null)
+                      if (isHoliday)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                          margin: const EdgeInsets.only(left: 6),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF78350F).withValues(alpha: 0.4) : const Color(0xFFFEF3C7),
+                            borderRadius: BorderRadius.circular(5),
+                            border: Border.all(
+                              color: isDark ? const Color(0xFFB45309).withValues(alpha: 0.4) : const Color(0xFFFDE68A),
+                              width: 0.7,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.beach_access_rounded, size: 11, color: Color(0xFFD97706)),
+                              const SizedBox(width: 3),
+                              Text(
+                                'Holiday',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else if (liveStatus != null)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                           margin: const EdgeInsets.only(left: 6),
@@ -129,7 +158,7 @@ class TodayClassCard extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(5),
                             border: Border.all(
                               color: liveStatus.startsWith('🟢')
-                                  ? (isDark ? const Color(0xFF059669).withValues(alpha: 0.4) : const Color(0xFF86EFAC))
+                                   ? (isDark ? const Color(0xFF059669).withValues(alpha: 0.4) : const Color(0xFF86EFAC))
                                   : (isDark ? AppColors.borderDark : const Color(0xFFCBD5E1)),
                               width: 0.7,
                             ),
@@ -160,8 +189,42 @@ class TodayClassCard extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
 
-                  // 3 Action Buttons / Locked notice
-                  if (isFuture)
+                  // Actions / Holiday / Locked notice
+                  if (isHoliday)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF78350F).withValues(alpha: 0.25) : const Color(0xFFFEF3C7),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isDark ? const Color(0xFFB45309).withValues(alpha: 0.4) : const Color(0xFFFDE68A),
+                          width: 0.8,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.beach_access_rounded,
+                            size: 14,
+                            color: Color(0xFFD97706),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'College Holiday · Class suspended (No penalty)',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else if (isFuture)
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
@@ -200,39 +263,39 @@ class TodayClassCard extends ConsumerWidget {
                           child: _FigmaActionButton(
                             label: 'Present',
                             icon: Icons.check_rounded,
-                          isSelected: session.attendanceOutcome == 'PRESENT',
-                          activeColor: AppColors.presentGreen,
-                          idleBgColor: isDark ? const Color(0xFF064E3B).withValues(alpha: 0.25) : AppColors.presentContainerLight,
-                          idleTextColor: isDark ? AppColors.presentGreenDark : AppColors.presentGreenText,
-                          onTap: () => onOutcomeChanged('PRESENT'),
+                            isSelected: session.attendanceOutcome == 'PRESENT',
+                            activeColor: AppColors.presentGreen,
+                            idleBgColor: isDark ? const Color(0xFF064E3B).withValues(alpha: 0.25) : AppColors.presentContainerLight,
+                            idleTextColor: isDark ? AppColors.presentGreenDark : AppColors.presentGreenText,
+                            onTap: () => onOutcomeChanged('PRESENT'),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: _FigmaActionButton(
-                          label: 'Absent',
-                          icon: Icons.close_rounded,
-                          isSelected: session.attendanceOutcome == 'ABSENT',
-                          activeColor: AppColors.absentRed,
-                          idleBgColor: isDark ? const Color(0xFF4C0519).withValues(alpha: 0.25) : AppColors.absentContainerLight,
-                          idleTextColor: isDark ? const Color(0xFFFB7185) : AppColors.absentRedText,
-                          onTap: () => onOutcomeChanged('ABSENT'),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: _FigmaActionButton(
+                            label: 'Absent',
+                            icon: Icons.close_rounded,
+                            isSelected: session.attendanceOutcome == 'ABSENT',
+                            activeColor: AppColors.absentRed,
+                            idleBgColor: isDark ? const Color(0xFF4C0519).withValues(alpha: 0.25) : AppColors.absentContainerLight,
+                            idleTextColor: isDark ? const Color(0xFFFB7185) : AppColors.absentRedText,
+                            onTap: () => onOutcomeChanged('ABSENT'),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: _FigmaActionButton(
-                          label: 'Cancelled',
-                          icon: Icons.block_rounded,
-                          isSelected: session.attendanceOutcome == 'CANCELLED',
-                          activeColor: AppColors.cancelledViolet,
-                          idleBgColor: isDark ? const Color(0xFF2E1065).withValues(alpha: 0.25) : AppColors.cancelledContainerLight,
-                          idleTextColor: isDark ? const Color(0xFFA78BFA) : AppColors.cancelledVioletText,
-                          onTap: () => onOutcomeChanged('CANCELLED'),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: _FigmaActionButton(
+                            label: 'Cancelled',
+                            icon: Icons.block_rounded,
+                            isSelected: session.attendanceOutcome == 'CANCELLED',
+                            activeColor: AppColors.cancelledViolet,
+                            idleBgColor: isDark ? const Color(0xFF2E1065).withValues(alpha: 0.25) : AppColors.cancelledContainerLight,
+                            idleTextColor: isDark ? const Color(0xFFA78BFA) : AppColors.cancelledVioletText,
+                            onTap: () => onOutcomeChanged('CANCELLED'),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
               ],
             ),
           ),

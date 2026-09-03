@@ -29,6 +29,7 @@ import 'package:classtrack/domain/entities/subject_entity.dart';
 import 'package:classtrack/presentation/screens/schedule/reschedule_session_screen.dart';
 import 'package:classtrack/presentation/screens/schedule/subject_room_manager_screen.dart';
 import 'package:classtrack/presentation/widgets/update_available_dialog.dart';
+import 'package:classtrack/presentation/widgets/declare_holiday_dialog.dart';
 
 void main() {
   group('AttendanceMathService Tests', () {
@@ -58,7 +59,7 @@ void main() {
   });
 
   group('ScheduleResolutionEngine Tests', () {
-    test('Level 1 Holiday suppresses recurring timetable slots', () {
+    test('Level 1 Holiday resolves recurring timetable slots with HOLIDAY status', () {
       final mondayDate = DateTime(2026, 8, 24); // Monday
       final resolved = ScheduleResolutionEngine.resolveScheduleForDate(
         targetDate: mondayDate,
@@ -85,7 +86,9 @@ void main() {
         extraClasses: [],
       );
 
-      expect(resolved.isEmpty, isTrue);
+      expect(resolved.length, equals(1));
+      expect(resolved.first.status, equals('HOLIDAY'));
+      expect(resolved.first.attendanceOutcome, equals('HOLIDAY'));
     });
 
     test('Strict Date Isolation: Marking outcome for Monday Aug 24 does not mark Monday Aug 31', () {
@@ -1694,7 +1697,7 @@ void main() {
       expect(find.text('Computer Architecture'), findsWidgets);
       expect(find.text('Room 302'), findsWidgets);
       expect(find.text('Save Changes'), findsOneWidget);
-      expect(find.text('Cancel class for this date'), findsOneWidget);
+      expect(find.text('Cancel class for this date'), findsNothing);
 
       // Button is locked/disabled initially (no changes)
       var saveButton = tester.widget<ElevatedButton>(find.widgetWithText(ElevatedButton, 'Save Changes'));
@@ -1711,7 +1714,14 @@ void main() {
       await db.close();
     });
 
-    testWidgets('SubjectRoomManagerScreen renders bulk and daily room inputs', (tester) async {
+    testWidgets('SubjectRoomManagerScreen renders bulk and daily room inputs without overflow on 320px screen', (tester) async {
+      tester.view.physicalSize = const Size(320, 640);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
       final db = AppDatabase.inMemory();
       final nowIso = DateTime.now().toIso8601String();
       await db.saveSemester(
@@ -1803,6 +1813,64 @@ void main() {
       // Save button is now enabled
       saveRoomBtn = tester.widget<ElevatedButton>(find.widgetWithText(ElevatedButton, 'Save Room Changes'));
       expect(saveRoomBtn.onPressed, isNotNull);
+
+      await db.close();
+    });
+
+    testWidgets('DeclareHolidayDialog saves holiday to provider and database', (tester) async {
+      final db = AppDatabase.inMemory();
+      final nowIso = DateTime.now().toIso8601String();
+      await db.saveSemester(
+        SemesterData(
+          id: 'sem_1',
+          name: 'Semester 1',
+          startDate: '2026-08-01',
+          endDate: '2026-12-31',
+          defaultTargetPct: 75.0,
+          status: 'ACTIVE',
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        ),
+      );
+
+      final notifier = HolidaysNotifier(db, 'sem_1');
+      await notifier.loadFromDb();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+            holidaysProvider.overrideWith((ref) => notifier),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: DeclareHolidayDialog(
+                initialDate: DateTime(2026, 9, 5),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Declare Holiday'), findsWidgets);
+      expect(find.text('OCCASION / TITLE'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), 'Teachers Day');
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Declare Holiday'));
+      await tester.pumpAndSettle();
+
+      final savedHolidays = await db.getHolidays('sem_1');
+      expect(savedHolidays.length, equals(1));
+      expect(savedHolidays.first.title, equals('Teachers Day'));
+      expect(savedHolidays.first.startDate, equals('2026-09-05'));
+
+      // Test removeHolidayForDate
+      await notifier.removeHolidayForDate('2026-09-05');
+      final remainingHolidays = await db.getHolidays('sem_1');
+      expect(remainingHolidays.isEmpty, isTrue);
 
       await db.close();
     });

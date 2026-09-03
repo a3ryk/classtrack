@@ -7,8 +7,10 @@ import '../../../core/ui/tactile_button.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../domain/entities/class_session_entity.dart';
 import '../../../domain/entities/subject_entity.dart';
+import '../../../domain/services/schedule_engine.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/edit_semester_dialog.dart';
+import '../../widgets/declare_holiday_dialog.dart';
 import '../schedule/add_edit_slot_screen.dart';
 import '../schedule/manage_subject_slots_screen.dart';
 import '../schedule/reschedule_session_screen.dart';
@@ -239,9 +241,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
 
     List<ClassSessionEntity> getSessionsForDay(DateTime date) => ref.watch(resolvedDayScheduleProvider(date));
     final daySessions = getSessionsForDay(_selectedDate);
+    final holidays = ref.watch(holidaysProvider);
+    final isSelectedDateHoliday = holidays.any((h) => selectedDateIso.compareTo(h.startDate) >= 0 && selectedDateIso.compareTo(h.endDate) <= 0);
+    final HolidayItem? currentHoliday = holidays.where((h) => selectedDateIso.compareTo(h.startDate) >= 0 && selectedDateIso.compareTo(h.endDate) <= 0).firstOrNull;
 
     final int presentCount = daySessions.where((s) => s.attendanceOutcome == 'PRESENT').length;
-    final int totalHeld = daySessions.where((s) => s.attendanceOutcome != 'CANCELLED').length;
+    final int totalHeld = daySessions.where((s) => s.attendanceOutcome != 'CANCELLED' && s.attendanceOutcome != 'HOLIDAY').length;
 
     final monthYearTitle = DateFormat('MMMM yyyy').format(_viewMode == CalendarViewMode.week ? _selectedDate : _currentMonth);
     final dayHeaderTitle = DateFormat('MMMM d').format(_selectedDate);
@@ -452,52 +457,159 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                         ),
                       ),
                       Text(
-                        totalHeld > 0 ? 'Attended $presentCount of $totalHeld' : 'No classes',
+                        isSelectedDateHoliday
+                            ? 'Holiday • No attendance penalty'
+                            : (totalHeld > 0 ? 'Attended $presentCount of $totalHeld' : 'No classes'),
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                          color: isSelectedDateHoliday
+                              ? const Color(0xFFD97706)
+                              : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
                         ),
                       ),
                     ],
                   ),
                   if (!ref.watch(activeSemesterProvider).isUnset)
-                    InkWell(
-                      onTap: () => _showAddExtraClassDialog(context, selectedDateIso),
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: isDark ? AppColors.pillDark : const Color(0xFFEEF2FF),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: isDark ? AppColors.borderDark : const Color(0xFFC7D2FE),
-                            width: 0.8,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.add_rounded,
-                              size: 14,
-                              color: isDark ? AppColors.accentIndigoDark : AppColors.accentIndigoLight,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Extra Class',
-                              style: TextStyle(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.bold,
-                                color: isDark ? AppColors.accentIndigoDark : AppColors.accentIndigoLight,
+                    Row(
+                      children: [
+                        if (isSelectedDateHoliday)
+                          InkWell(
+                            onTap: () async {
+                              await ref.read(holidaysProvider.notifier).removeHolidayForDate(selectedDateIso);
+                              if (context.mounted) {
+                                AppToast.info(context, 'Holiday removed for $selectedDateIso');
+                              }
+                            },
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                              margin: const EdgeInsets.only(right: 6),
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF78350F).withValues(alpha: 0.3) : const Color(0xFFFEF3C7),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: isDark ? const Color(0xFFB45309).withValues(alpha: 0.4) : const Color(0xFFFDE68A),
+                                  width: 0.8,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.close_rounded, size: 13, color: Color(0xFFD97706)),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    'Remove Holiday',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
+                          )
+                        else
+                          InkWell(
+                            onTap: () => _showDeclareHolidayDialog(context, _selectedDate),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                              margin: const EdgeInsets.only(right: 6),
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF78350F).withValues(alpha: 0.2) : const Color(0xFFFEF3C7),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: isDark ? const Color(0xFFB45309).withValues(alpha: 0.35) : const Color(0xFFFDE68A),
+                                  width: 0.8,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.beach_access_rounded, size: 13, color: Color(0xFFD97706)),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    '+ Holiday',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        InkWell(
+                          onTap: () => _showAddExtraClassDialog(context, selectedDateIso),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: isDark ? AppColors.pillDark : const Color(0xFFEEF2FF),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: isDark ? AppColors.borderDark : const Color(0xFFC7D2FE),
+                                width: 0.8,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.add_rounded,
+                                  size: 14,
+                                  color: isDark ? AppColors.accentIndigoDark : AppColors.accentIndigoLight,
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  'Extra Class',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark ? AppColors.accentIndigoDark : AppColors.accentIndigoLight,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                 ],
               ),
             ),
+
+            if (isSelectedDateHoliday)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF78350F).withValues(alpha: 0.25) : const Color(0xFFFEF3C7),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isDark ? const Color(0xFFB45309).withValues(alpha: 0.4) : const Color(0xFFFDE68A),
+                      width: 0.8,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.beach_access_rounded, size: 16, color: Color(0xFFD97706)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '${currentHoliday?.title.isNotEmpty == true ? currentHoliday!.title : "College Holiday"} · Classes suspended',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
 
             const SizedBox(height: 12),
 
@@ -627,6 +739,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                               badgeBg = isDark ? const Color(0xFF2E1065).withValues(alpha: 0.3) : AppColors.cancelledContainerLight;
                               badgeTextColor = isDark ? const Color(0xFFA78BFA) : AppColors.cancelledVioletText;
                               break;
+                            case 'HOLIDAY':
+                              badgeLabel = 'Holiday';
+                              badgeBg = isDark ? const Color(0xFF78350F).withValues(alpha: 0.3) : const Color(0xFFFEF3C7);
+                              badgeTextColor = isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309);
+                              break;
                             default:
                               badgeLabel = 'Pending';
                               badgeBg = isDark ? AppColors.pillDark : AppColors.pillLight;
@@ -734,6 +851,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
               dotColor = AppColors.absentRed;
             } else if (sessionsForDate.any((s) => s.attendanceOutcome == 'PRESENT')) {
               dotColor = AppColors.presentGreen;
+            } else if (sessionsForDate.any((s) => s.attendanceOutcome == 'HOLIDAY' || s.status == 'HOLIDAY')) {
+              dotColor = const Color(0xFFF59E0B);
             } else if (sessionsForDate.any((s) => s.attendanceOutcome == 'CANCELLED')) {
               dotColor = AppColors.cancelledViolet;
             } else {
@@ -865,6 +984,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                   dotColor = AppColors.absentRed;
                 } else if (sessionsForDate.any((s) => s.attendanceOutcome == 'PRESENT')) {
                   dotColor = AppColors.presentGreen;
+                } else if (sessionsForDate.any((s) => s.attendanceOutcome == 'HOLIDAY' || s.status == 'HOLIDAY')) {
+                  dotColor = const Color(0xFFF59E0B);
                 } else if (sessionsForDate.any((s) => s.attendanceOutcome == 'CANCELLED')) {
                   dotColor = AppColors.cancelledViolet;
                 } else {
@@ -1129,15 +1250,19 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                     trailing: const Icon(Icons.chevron_right_rounded, size: 18),
                     onTap: () {
                       Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => RescheduleSessionScreen(
-                            session: session,
-                            dateIso: dateIso,
-                          ),
-                        ),
-                      );
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (context.mounted) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => RescheduleSessionScreen(
+                                session: session,
+                                dateIso: dateIso,
+                              ),
+                            ),
+                          );
+                        }
+                      });
                     },
                   ),
 
@@ -1157,7 +1282,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                     subtitle: const Text('Set or customize rooms for all days of this subject', style: TextStyle(fontSize: 11)),
                     trailing: const Icon(Icons.chevron_right_rounded, size: 18),
                     onTap: () {
-                      Navigator.pop(context);
                       final subjects = ref.read(subjectsProvider);
                       final sub = subjects.firstWhere(
                         (s) => s.id == session.subjectComponentId,
@@ -1175,15 +1299,20 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                           components: [],
                         ),
                       );
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => SubjectRoomManagerScreen(
-                            subject: sub,
-                            initialRoom: session.room,
-                          ),
-                        ),
-                      );
+                      Navigator.pop(context);
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (context.mounted) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => SubjectRoomManagerScreen(
+                                subject: sub,
+                                initialRoom: session.room,
+                              ),
+                            ),
+                          );
+                        }
+                      });
                     },
                   ),
 
@@ -1455,6 +1584,13 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
           );
         },
       ),
+    );
+  }
+
+  void _showDeclareHolidayDialog(BuildContext context, DateTime date) {
+    showDialog(
+      context: context,
+      builder: (context) => DeclareHolidayDialog(initialDate: date),
     );
   }
 }

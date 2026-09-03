@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
@@ -28,7 +27,6 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _notificationsEnabled = true;
-  final GlobalKey _segmentedKey = GlobalKey();
 
   @override
   Widget build(BuildContext context) {
@@ -181,83 +179,36 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           _buildSectionHeader('Appearance', isDark),
           RepaintBoundary(
             child: Container(
-              padding: const EdgeInsets.all(6),
+              padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: groupBg,
+                color: isDark ? const Color(0xFF0B0F17) : const Color(0xFFF1F5F9),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: groupBorder, width: 0.8),
               ),
-              child: SizedBox(
-                width: double.infinity,
-                child: CupertinoSlidingSegmentedControl<ThemeMode>(
-                  key: _segmentedKey,
-                  groupValue: currentThemeMode,
-                  backgroundColor: isDark ? const Color(0xFF0B0F17) : const Color(0xFFF1F5F9),
-                  thumbColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-                  padding: const EdgeInsets.all(3),
-                  children: {
-                    ThemeMode.system: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Text(
-                        'System',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: currentThemeMode == ThemeMode.system ? FontWeight.w600 : FontWeight.w500,
-                          color: currentThemeMode == ThemeMode.system
-                              ? (isDark ? Colors.white : const Color(0xFF0F172A))
-                              : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
-                        ),
-                      ),
-                    ),
-                    ThemeMode.light: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Text(
-                        'Light',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: currentThemeMode == ThemeMode.light ? FontWeight.w600 : FontWeight.w500,
-                          color: currentThemeMode == ThemeMode.light
-                              ? (isDark ? Colors.white : const Color(0xFF0F172A))
-                              : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
-                        ),
-                      ),
-                    ),
-                    ThemeMode.dark: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Text(
-                        'Dark',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: currentThemeMode == ThemeMode.dark ? FontWeight.w600 : FontWeight.w500,
-                          color: currentThemeMode == ThemeMode.dark
-                              ? (isDark ? Colors.white : const Color(0xFF0F172A))
-                              : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
-                        ),
-                      ),
-                    ),
-                  },
-                  onValueChanged: (ThemeMode? value) {
-                    if (value != null && value != currentThemeMode) {
-                      if (ThemeTransition.isAnimating) return;
-                      Offset? origin;
-                      final box = _segmentedKey.currentContext?.findRenderObject() as RenderBox?;
-                      if (box != null && box.hasSize) {
-                        final pos = box.localToGlobal(Offset.zero);
-                        final width = box.size.width;
-                        double fraction = 0.5;
-                        if (value == ThemeMode.system) {
-                          fraction = 1.0 / 6.0;
-                        } else if (value == ThemeMode.light) {
-                          fraction = 3.0 / 6.0;
-                        } else if (value == ThemeMode.dark) {
-                          fraction = 5.0 / 6.0;
-                        }
-                        origin = Offset(pos.dx + width * fraction, pos.dy + box.size.height / 2);
-                      }
-                      ThemeTransition.switchTheme(context, ref, value, origin: origin);
-                    }
-                  },
-                ),
+              child: Row(
+                children: [
+                  _buildThemeOption(
+                    title: 'System',
+                    mode: ThemeMode.system,
+                    currentMode: currentThemeMode,
+                    isDark: isDark,
+                    context: context,
+                  ),
+                  _buildThemeOption(
+                    title: 'Light',
+                    mode: ThemeMode.light,
+                    currentMode: currentThemeMode,
+                    isDark: isDark,
+                    context: context,
+                  ),
+                  _buildThemeOption(
+                    title: 'Dark',
+                    mode: ThemeMode.dark,
+                    currentMode: currentThemeMode,
+                    isDark: isDark,
+                    context: context,
+                  ),
+                ],
               ),
             ),
           ),
@@ -850,5 +801,62 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         AppToast.error(context, 'Export failed: $e');
       }
     }
+  }
+
+  Widget _buildThemeOption({
+    required String title,
+    required ThemeMode mode,
+    required ThemeMode currentMode,
+    required bool isDark,
+    required BuildContext context,
+  }) {
+    final isSelected = mode == currentMode;
+    final activeBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final activeText = isDark ? Colors.white : const Color(0xFF0F172A);
+    final inactiveText = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+
+    return Expanded(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: (details) {
+          if (mode != currentMode) {
+            ThemeTransition.switchTheme(
+              context,
+              ref,
+              mode,
+              origin: details.globalPosition,
+            );
+          }
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(vertical: 8.5),
+          decoration: BoxDecoration(
+            color: isSelected ? activeBg : Colors.transparent,
+            borderRadius: BorderRadius.circular(9),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1.5),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Center(
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? activeText : inactiveText,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

@@ -24,13 +24,11 @@ class _RescheduleSessionScreenState extends ConsumerState<RescheduleSessionScree
   late TimeOfDay _startTime;
   late TimeOfDay _endTime;
   late TextEditingController _roomController;
-  bool _isCancelled = false;
   bool _isSaving = false;
 
   late String _initialStartTimeStr;
   late String _initialEndTimeStr;
   late String _initialRoom;
-  late bool _initialIsCancelled;
 
   @override
   void initState() {
@@ -48,8 +46,6 @@ class _RescheduleSessionScreenState extends ConsumerState<RescheduleSessionScree
     _initialStartTimeStr = _formatTime(_startTime);
     _initialEndTimeStr = _formatTime(_endTime);
     _initialRoom = (widget.session.room ?? '').trim();
-    _initialIsCancelled = widget.session.status == 'CANCELLED' || widget.session.attendanceOutcome == 'CANCELLED';
-    _isCancelled = _initialIsCancelled;
 
     _roomController = TextEditingController(text: widget.session.room ?? '');
     _roomController.addListener(() {
@@ -58,7 +54,6 @@ class _RescheduleSessionScreenState extends ConsumerState<RescheduleSessionScree
   }
 
   bool get _hasChanges {
-    if (_isCancelled != _initialIsCancelled) return true;
     if (_formatTime(_startTime) != _initialStartTimeStr) return true;
     if (_formatTime(_endTime) != _initialEndTimeStr) return true;
     if (_roomController.text.trim() != _initialRoom) return true;
@@ -106,19 +101,6 @@ class _RescheduleSessionScreenState extends ConsumerState<RescheduleSessionScree
     setState(() => _isSaving = true);
 
     try {
-      if (_isCancelled) {
-        await ref.read(scheduleExceptionsProvider.notifier).addOrUpdateException(
-          timetableSlotId: widget.session.sourceRefId!,
-          exceptionDate: widget.dateIso,
-          actionType: 'CANCELLED',
-        );
-        if (mounted) {
-          Navigator.pop(context);
-          AppToast.info(context, 'Class cancelled for ${widget.dateIso}');
-        }
-        return;
-      }
-
       final startStr = _formatTime(_startTime);
       final endStr = _formatTime(_endTime);
 
@@ -218,359 +200,293 @@ class _RescheduleSessionScreenState extends ConsumerState<RescheduleSessionScree
           ],
         ),
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Hero Summary Card
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.cardDark : Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
-                    width: 0.9,
+      body: RepaintBoundary(
+        child: SafeArea(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Hero Summary Card
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.cardDark : Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
+                      width: 0.9,
+                    ),
                   ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: subjectColor.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      alignment: Alignment.center,
-                      child: Icon(
-                        Icons.edit_calendar_rounded,
-                        color: subjectColor,
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            widget.session.subjectName,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Original: ${DateFormatter.formatTime12h(widget.session.startTime)} - ${DateFormatter.formatTime12h(widget.session.endTime)}  •  ${widget.session.componentType}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Date Isolation Notice
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.surfaceDark : const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
-                    width: 0.8,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.info_outline_rounded, size: 16, color: isDark ? AppColors.accentIndigoDark : AppColors.accentIndigoLight),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Changes made here apply ONLY to this date (${widget.dateIso}). Your recurring weekly timetable remains unchanged.',
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          height: 1.35,
-                          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Time Selection Section
-              Text(
-                'SESSION TIME',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.6,
-                  color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: InkWell(
-                      onTap: _isCancelled ? null : _pickStartTime,
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
                         decoration: BoxDecoration(
-                          color: isDark ? AppColors.cardDark : Colors.white,
+                          color: subjectColor.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
-                          ),
                         ),
+                        alignment: Alignment.center,
+                        child: Icon(
+                          Icons.edit_calendar_rounded,
+                          color: subjectColor,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Start Time',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _formatTime(_startTime),
+                              widget.session.subjectName,
                               style: TextStyle(
                                 fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: _isCancelled
-                                    ? (isDark ? AppColors.textMutedDark : AppColors.textMutedLight)
-                                    : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
+                                fontWeight: FontWeight.w800,
+                                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Original: ${DateFormatter.formatTime12h(widget.session.startTime)} - ${DateFormatter.formatTime12h(widget.session.endTime)}  •  ${widget.session.componentType}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                               ),
                             ),
                           ],
                         ),
                       ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Date Isolation Notice
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.surfaceDark : const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
+                      width: 0.8,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: InkWell(
-                      onTap: _isCancelled ? null : _pickEndTime,
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: isDark ? AppColors.cardDark : Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline_rounded, size: 16, color: isDark ? AppColors.accentIndigoDark : AppColors.accentIndigoLight),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Changes made here apply ONLY to this date (${widget.dateIso}). Your recurring weekly timetable remains unchanged.',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            height: 1.35,
+                            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                           ),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'End Time',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _formatTime(_endTime),
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: _isCancelled
-                                    ? (isDark ? AppColors.textMutedDark : AppColors.textMutedLight)
-                                    : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
-                              ),
-                            ),
-                          ],
-                        ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
-              ),
-
-              const SizedBox(height: 24),
-
-              // Room Selection Section
-              Text(
-                'ROOM / LAB LOCATION',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.6,
-                  color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
                 ),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: _roomController,
-                enabled: !_isCancelled,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: _isCancelled
-                      ? (isDark ? AppColors.textMutedDark : AppColors.textMutedLight)
-                      : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
-                ),
-                decoration: InputDecoration(
-                  hintText: 'e.g. Room 302, Physics Lab B, Audi-1',
-                  hintStyle: TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.normal,
+
+                const SizedBox(height: 24),
+
+                // Time Selection Section
+                Text(
+                  'SESSION TIME',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.6,
                     color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
                   ),
-                  prefixIcon: Icon(
-                    Icons.meeting_room_outlined,
-                    size: 18,
-                    color: _isCancelled
-                        ? (isDark ? AppColors.textMutedDark.withValues(alpha: 0.5) : AppColors.textMutedLight.withValues(alpha: 0.6))
-                        : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
-                  ),
-                  suffixIcon: (!_isCancelled && _roomController.text.isNotEmpty)
-                      ? IconButton(
-                          icon: const Icon(Icons.clear_rounded, size: 16),
-                          onPressed: () => setState(() => _roomController.clear()),
-                        )
-                      : null,
-                  filled: true,
-                  fillColor: _isCancelled
-                      ? (isDark ? AppColors.pillDark : const Color(0xFFF1F5F9))
-                      : (isDark ? AppColors.cardDark : Colors.white),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
-                  ),
-                  disabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
-                  ),
                 ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Cancellation Toggle Card
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.cardDark : Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
-                    width: 0.9,
-                  ),
-                ),
-                child: Row(
+                const SizedBox(height: 10),
+                Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF4C0519).withValues(alpha: 0.3) : const Color(0xFFFEE2E2),
-                        borderRadius: BorderRadius.circular(8),
+                    Expanded(
+                      child: InkWell(
+                        onTap: _pickStartTime,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.cardDark : Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Start Time',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _formatTime(_startTime),
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                      child: const Icon(Icons.block_rounded, size: 18, color: AppColors.absentRed),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Cancel class for this date',
-                            style: TextStyle(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w700,
-                              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                      child: InkWell(
+                        onTap: _pickEndTime,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.cardDark : Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
                             ),
                           ),
-                          const SizedBox(height: 1),
-                          Text(
-                            'Remove from schedule without deleting weekly slot',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                            ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'End Time',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _formatTime(_endTime),
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
-                    ),
-                    Switch(
-                      value: _isCancelled,
-                      activeThumbColor: AppColors.absentRed,
-                      activeTrackColor: AppColors.absentRed.withValues(alpha: 0.3),
-                      onChanged: (val) => setState(() => _isCancelled = val),
                     ),
                   ],
                 ),
-              ),
 
-              const SizedBox(height: 32),
+                const SizedBox(height: 24),
 
-              // Save Action Button
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                    foregroundColor: isDark ? AppColors.bgDark : Colors.white,
-                    disabledBackgroundColor: isDark ? const Color(0xFF1E2028) : const Color(0xFFE2E8F0),
-                    disabledForegroundColor: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    elevation: 0,
-                  ),
-                  onPressed: (_hasChanges && !_isSaving) ? _saveChanges : null,
-                  child: _isSaving
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
-                      : Text(
-                          _isCancelled ? 'Confirm Cancellation' : 'Save Changes',
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                        ),
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // Reset to default button
-              Center(
-                child: TextButton.icon(
-                  onPressed: _isSaving ? null : _resetToDefault,
-                  icon: const Icon(Icons.restore_rounded, size: 16),
-                  label: const Text('Reset to Weekly Schedule Default'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                // Room Selection Section
+                Text(
+                  'ROOM / LAB LOCATION',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.6,
+                    color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _roomController,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'e.g. Room 302, Physics Lab B, Audi-1',
+                    hintStyle: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.normal,
+                      color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                    ),
+                    prefixIcon: Icon(
+                      Icons.meeting_room_outlined,
+                      size: 18,
+                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                    ),
+                    suffixIcon: _roomController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear_rounded, size: 16),
+                            onPressed: () => setState(() => _roomController.clear()),
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: isDark ? AppColors.cardDark : Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
+                    ),
+                    disabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+
+                // Save Action Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                      foregroundColor: isDark ? AppColors.bgDark : Colors.white,
+                      disabledBackgroundColor: isDark ? const Color(0xFF1E2028) : const Color(0xFFE2E8F0),
+                      disabledForegroundColor: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
+                    ),
+                    onPressed: (_hasChanges && !_isSaving) ? _saveChanges : null,
+                    child: _isSaving
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Text(
+                            'Save Changes',
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                          ),
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                // Reset to default button
+                Center(
+                  child: TextButton.icon(
+                    onPressed: _isSaving ? null : _resetToDefault,
+                    icon: const Icon(Icons.restore_rounded, size: 16),
+                    label: const Text('Reset to Weekly Schedule Default'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -211,15 +211,21 @@ class HolidaysNotifier extends StateNotifier<List<HolidayItem>> {
   }
 
   Future<void> removeHoliday(String title) async {
-    final target = state.firstWhere((h) => h.title == title, orElse: () => HolidayItem(title: '', startDate: '', endDate: ''));
-    state = state.where((h) => h.title != title).toList();
-    if (target.title.isNotEmpty) {
-      final rows = await db.getHolidays(semesterId);
-      final match = rows.where((r) => r.title == title).toList();
-      for (final m in match) {
-        await db.deleteHoliday(m.id);
-      }
+    final rows = await db.getHolidays(semesterId);
+    final match = rows.where((r) => r.title == title).toList();
+    for (final m in match) {
+      await db.deleteHoliday(m.id);
     }
+    await loadFromDb();
+  }
+
+  Future<void> removeHolidayForDate(String dateIso) async {
+    final rows = await db.getHolidays(semesterId);
+    final matching = rows.where((r) => dateIso.compareTo(r.startDate) >= 0 && dateIso.compareTo(r.endDate) <= 0).toList();
+    for (final m in matching) {
+      await db.deleteHoliday(m.id);
+    }
+    await loadFromDb();
   }
 }
 

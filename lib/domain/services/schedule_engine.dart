@@ -122,10 +122,6 @@ class ScheduleResolutionEngine {
 
     // LEVEL 1: Holiday Check
     final isHoliday = holidays.any((h) => _isDateInRange(dateString, h.startDate, h.endDate));
-    if (isHoliday) {
-      // Suppress normal timetable slots. Only explicit ExtraClasses scheduled for today are included.
-      return _resolveExtraClasses(extraClasses, dateString, semesterId, existingOutcomes);
-    }
 
     // LEVEL 2 & 3: Process Timetable Slots & Apply Exceptions
     final List<ClassSessionEntity> resolved = [];
@@ -147,6 +143,32 @@ class ScheduleResolutionEngine {
     }).toList();
 
     for (final slot in matchingSlots) {
+      if (isHoliday) {
+        final sessionId = 'session_${slot.id}_$dateString';
+        resolved.add(ClassSessionEntity(
+          id: sessionId,
+          semesterId: semesterId,
+          subjectComponentId: slot.subjectComponentId,
+          subjectName: slot.subjectName,
+          subjectCode: slot.subjectCode,
+          category: slot.category,
+          componentType: slot.componentType,
+          colorHex: slot.colorHex,
+          sessionDate: dateString,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          sessionSource: 'TIMETABLE',
+          sourceRefId: slot.id,
+          status: 'HOLIDAY',
+          room: slot.room,
+          teacherName: slot.teacherName,
+          attendanceOutcome: 'HOLIDAY',
+          effectiveFrom: slot.effectiveFrom,
+          effectiveUntil: slot.effectiveUntil,
+        ));
+        continue;
+      }
+
       final exception = exceptions.firstWhere(
         (e) => e.timetableSlotId == slot.id && e.exceptionDate == dateString,
         orElse: () => ScheduleExceptionItem(timetableSlotId: '', exceptionDate: '', actionType: 'NONE'),

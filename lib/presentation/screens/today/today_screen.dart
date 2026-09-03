@@ -12,6 +12,8 @@ import '../../providers/app_state_provider.dart';
 import '../../widgets/attendance_ring_widget.dart';
 import '../../widgets/today_class_card.dart';
 import '../../widgets/edit_semester_dialog.dart';
+import '../../widgets/declare_holiday_dialog.dart';
+import '../../../domain/services/schedule_engine.dart';
 import '../schedule/add_edit_slot_screen.dart';
 import '../schedule/manage_subject_slots_screen.dart';
 import '../schedule/reschedule_session_screen.dart';
@@ -40,14 +42,19 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
     final String selectedDateIso = DateFormatter.toIsoDate(_selectedDate);
     final sessions = ref.watch(resolvedDayScheduleProvider(_selectedDate));
     final overallStats = ref.watch(overallStatsProvider);
-    final bool isToday = DateFormatter.toIsoDate(_selectedDate) == DateFormatter.toIsoDate(DateTime.now());
+    final holidays = ref.watch(holidaysProvider);
+    final isToday = DateFormatter.toIsoDate(_selectedDate) == DateFormatter.toIsoDate(DateTime.now());
+    final isSelectedDateHoliday = holidays.any((h) => selectedDateIso.compareTo(h.startDate) >= 0 && selectedDateIso.compareTo(h.endDate) <= 0);
+    final HolidayItem? currentHoliday = holidays.where((h) => selectedDateIso.compareTo(h.startDate) >= 0 && selectedDateIso.compareTo(h.endDate) <= 0).firstOrNull;
 
     final isSafe = overallStats.totalHeld == 0 || overallStats.overallPercentage >= overallStats.targetPercentage;
 
     final String dayName = DateFormat('EEEE').format(_selectedDate);
-    final String countTitle = isToday
-        ? '${sessions.length} class${sessions.length == 1 ? '' : 'es'} today'
-        : '${sessions.length} class${sessions.length == 1 ? '' : 'es'} on $dayName';
+    final String countTitle = isSelectedDateHoliday
+        ? 'Holiday Today'
+        : (isToday
+            ? '${sessions.length} class${sessions.length == 1 ? '' : 'es'} today'
+            : '${sessions.length} class${sessions.length == 1 ? '' : 'es'} on $dayName');
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.bgDark : const Color(0xFFF8FAFC),
@@ -148,6 +155,34 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                           ),
                         ),
                       ),
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: TactileIconButton(
+                        icon: isSelectedDateHoliday ? Icons.beach_access_rounded : Icons.beach_access_outlined,
+                        iconSize: 18,
+                        size: 38,
+                        backgroundColor: isSelectedDateHoliday
+                            ? (isDark ? const Color(0xFF78350F).withValues(alpha: 0.4) : const Color(0xFFFEF3C7))
+                            : (isDark ? AppColors.cardDark : Colors.white),
+                        borderColor: isSelectedDateHoliday
+                            ? (isDark ? const Color(0xFFB45309).withValues(alpha: 0.5) : const Color(0xFFFDE68A))
+                            : (isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
+                        iconColor: isSelectedDateHoliday
+                            ? const Color(0xFFD97706)
+                            : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
+                        onTap: () {
+                          if (isSelectedDateHoliday) {
+                            ref.read(holidaysProvider.notifier).removeHolidayForDate(selectedDateIso);
+                            AppToast.info(context, 'Holiday removed for $selectedDateIso');
+                          } else {
+                            showDialog(
+                              context: context,
+                              builder: (context) => DeclareHolidayDialog(initialDate: _selectedDate),
+                            );
+                          }
+                        },
+                      ),
+                    ),
                     TactileIconButton(
                       icon: Icons.settings_outlined,
                       iconSize: 19,
@@ -319,11 +354,75 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
 
             const SizedBox(height: 20),
 
+            if (isSelectedDateHoliday)
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF78350F).withValues(alpha: 0.25) : const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isDark ? const Color(0xFFB45309).withValues(alpha: 0.45) : const Color(0xFFFDE68A),
+                    width: 0.9,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF92400E).withValues(alpha: 0.4) : const Color(0xFFFDE68A),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.beach_access_rounded,
+                        size: 24,
+                        color: Color(0xFFD97706),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            currentHoliday?.title.isNotEmpty == true ? currentHoliday!.title : 'College Holiday Declared',
+                            style: TextStyle(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w800,
+                              color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Classes are suspended for today. Attendance percentages are preserved with zero penalties.',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              height: 1.3,
+                              color: isDark ? const Color(0xFFFCD34D) : const Color(0xFF92400E),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () async {
+                        await ref.read(holidaysProvider.notifier).removeHolidayForDate(selectedDateIso);
+                        if (context.mounted) {
+                          AppToast.info(context, 'Holiday removed for $selectedDateIso');
+                        }
+                      },
+                      child: const Text('Undo', style: TextStyle(color: Color(0xFFD97706), fontWeight: FontWeight.bold, fontSize: 12)),
+                    ),
+                  ],
+                ),
+              ),
+
             // Section Title: Upcoming Classes
             Padding(
               padding: const EdgeInsets.only(left: 2, bottom: 10),
               child: Text(
-                "Upcoming Classes",
+                isSelectedDateHoliday ? "Scheduled Classes (Holiday)" : "Upcoming Classes",
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -536,15 +635,19 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                     trailing: const Icon(Icons.chevron_right_rounded, size: 18),
                     onTap: () {
                       Navigator.pop(ctx);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => RescheduleSessionScreen(
-                            session: session,
-                            dateIso: dateIso,
-                          ),
-                        ),
-                      );
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (context.mounted) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => RescheduleSessionScreen(
+                                session: session,
+                                dateIso: dateIso,
+                              ),
+                            ),
+                          );
+                        }
+                      });
                     },
                   ),
 
@@ -563,7 +666,6 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                     subtitle: const Text('Set or customize rooms for all days of this subject', style: TextStyle(fontSize: 11)),
                     trailing: const Icon(Icons.chevron_right_rounded, size: 18),
                     onTap: () {
-                      Navigator.pop(ctx);
                       final subjects = ref.read(subjectsProvider);
                       final sub = subjects.firstWhere(
                         (s) => s.id == session.subjectComponentId,
@@ -581,15 +683,20 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                           components: [],
                         ),
                       );
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => SubjectRoomManagerScreen(
-                            subject: sub,
-                            initialRoom: session.room,
-                          ),
-                        ),
-                      );
+                      Navigator.pop(ctx);
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (context.mounted) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => SubjectRoomManagerScreen(
+                                subject: sub,
+                                initialRoom: session.room,
+                              ),
+                            ),
+                          );
+                        }
+                      });
                     },
                   ),
 

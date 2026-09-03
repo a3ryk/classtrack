@@ -194,8 +194,9 @@ class _SubjectRoomManagerScreenState extends ConsumerState<SubjectRoomManagerScr
           ],
         ),
       ),
-      body: SafeArea(
-        child: subjectSlots.isEmpty
+      body: RepaintBoundary(
+        child: SafeArea(
+          child: subjectSlots.isEmpty
             ? Center(
                 child: Padding(
                   padding: const EdgeInsets.all(24),
@@ -249,13 +250,17 @@ class _SubjectRoomManagerScreenState extends ConsumerState<SubjectRoomManagerScr
                             children: [
                               Icon(Icons.auto_fix_high_rounded, size: 18, color: isDark ? AppColors.accentIndigoDark : AppColors.accentIndigoLight),
                               const SizedBox(width: 8),
-                              Text(
-                                'QUICK APPLY TO ALL ${subjectSlots.length} DAYS',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.6,
-                                  color: isDark ? AppColors.accentIndigoDark : AppColors.accentIndigoLight,
+                              Expanded(
+                                child: Text(
+                                  'QUICK APPLY TO ALL ${subjectSlots.length} DAYS',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.6,
+                                    color: isDark ? AppColors.accentIndigoDark : AppColors.accentIndigoLight,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
@@ -329,15 +334,20 @@ class _SubjectRoomManagerScreenState extends ConsumerState<SubjectRoomManagerScr
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'DAILY CLASSROOM ROOMS',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.6,
-                            color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                        Expanded(
+                          child: Text(
+                            'DAILY CLASSROOM ROOMS',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.6,
+                              color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        const SizedBox(width: 8),
                         Text(
                           '${subjectSlots.length} slots',
                           style: TextStyle(
@@ -390,15 +400,19 @@ class _SubjectRoomManagerScreenState extends ConsumerState<SubjectRoomManagerScr
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                Text(
-                                  '$dayName • ${DateFormatter.formatTime12h(slot.startTime)} - ${DateFormatter.formatTime12h(slot.endTime)}',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                Expanded(
+                                  child: Text(
+                                    '$dayName • ${DateFormatter.formatTime12h(slot.startTime)} - ${DateFormatter.formatTime12h(slot.endTime)}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                    ),
                                   ),
                                 ),
-                                const Spacer(),
+                                const SizedBox(width: 6),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
@@ -491,6 +505,7 @@ class _SubjectRoomManagerScreenState extends ConsumerState<SubjectRoomManagerScr
                   ],
                 ),
               ),
+        ),
       ),
     );
   }

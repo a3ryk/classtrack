@@ -35,11 +35,6 @@ class ThemeTransition {
       return;
     }
 
-    // Anti-spam lock guard: absorb any extra clicks while a transition is actively running
-    if (state.isAnimating) {
-      return;
-    }
-
     await state.startTransition(ref, newMode, origin: origin);
   }
 }
@@ -74,11 +69,11 @@ class ThemeTransitionWrapperState extends ConsumerState<ThemeTransitionWrapper>
     ThemeTransition._register(this);
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 850),
+      duration: const Duration(milliseconds: 380),
     );
     _animation = CurvedAnimation(
       parent: _animController,
-      curve: Curves.easeInOutCubic,
+      curve: Curves.easeOutCubic,
     )..addStatusListener((status) {
         if (status == AnimationStatus.completed || status == AnimationStatus.dismissed) {
           _cleanupSnapshot();
@@ -112,7 +107,9 @@ class ThemeTransitionWrapperState extends ConsumerState<ThemeTransitionWrapper>
     ThemeMode newMode, {
     Offset? origin,
   }) async {
-    if (isAnimating) return;
+    if (isAnimating) {
+      _cleanupSnapshot();
+    }
 
     try {
       final currentMode = ref.read(themeModeProvider);
