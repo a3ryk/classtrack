@@ -30,6 +30,7 @@ import 'package:classtrack/presentation/screens/schedule/reschedule_session_scre
 import 'package:classtrack/presentation/screens/schedule/subject_room_manager_screen.dart';
 import 'package:classtrack/presentation/widgets/update_available_dialog.dart';
 import 'package:classtrack/presentation/widgets/declare_holiday_dialog.dart';
+import 'package:classtrack/presentation/widgets/university_selector_dialog.dart';
 import 'package:classtrack/presentation/screens/calendar/calendar_screen.dart';
 import 'package:classtrack/core/utils/date_formatter.dart';
 
@@ -1987,6 +1988,53 @@ void main() {
       expect(find.text('Remove'), findsOneWidget);
       expect(find.text('Extra Class'), findsOneWidget);
       expect(find.text('College Holiday · Classes suspended'), findsOneWidget);
+
+      await db.close();
+    });
+
+    testWidgets('UniversitySelectorSheet opens searchable state picker and selects state alphabetically', (tester) async {
+      final db = AppDatabase.inMemory();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(
+              body: UniversitySelectorSheet(),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('University & College'), findsOneWidget);
+      expect(find.text('STEP 1: SELECT STATE / UT'), findsOneWidget);
+
+      // Tap the State selector tile
+      await tester.tap(find.text('Choose State / Union Territory'));
+      await tester.pumpAndSettle();
+
+      // Verify the modal sheet opened
+      expect(find.text('Select State / UT'), findsOneWidget);
+      expect(find.text('Andhra Pradesh'), findsOneWidget);
+      expect(find.text('Arunachal Pradesh'), findsOneWidget);
+
+      // Search for Delhi
+      await tester.enterText(find.widgetWithText(TextField, 'Search State or Union Territory...'), 'Delhi');
+      await tester.pumpAndSettle();
+
+      expect(find.text('Delhi (NCT)'), findsOneWidget);
+      expect(find.text('Andhra Pradesh'), findsNothing);
+
+      // Tap Delhi (NCT)
+      await tester.tap(find.text('Delhi (NCT)'));
+      await tester.pumpAndSettle();
+
+      // Verify state was selected and Step 2 updated
+      expect(find.text('Delhi (NCT)'), findsOneWidget);
+      expect(find.text('STEP 2: SELECT UNIVERSITY IN Delhi (NCT)'), findsOneWidget);
 
       await db.close();
     });

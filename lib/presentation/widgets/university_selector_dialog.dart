@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/ui/app_toast.dart';
@@ -148,38 +148,7 @@ class _UniversitySelectorSheetState extends ConsumerState<UniversitySelectorShee
                     ),
                   ),
                   const SizedBox(height: 6),
-                  DropdownButtonFormField<String>(
-                    initialValue: _selectedState,
-                    isExpanded: true,
-                    hint: Text(
-                      'Choose State / Union Territory',
-                      style: TextStyle(color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight, fontSize: 13),
-                    ),
-                    dropdownColor: isDark ? AppColors.cardDark : AppColors.cardLight,
-                    style: TextStyle(color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight, fontSize: 13),
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: isDark ? AppColors.pillDark : const Color(0xFFF8FAFC),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0))),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0))),
-                    ),
-                    items: IndianUniversitiesData.statesAndUTs.map((st) {
-                      return DropdownMenuItem(value: st, child: Text(st));
-                    }).toList(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        setState(() {
-                          _selectedState = val;
-                          final firstUni = IndianUniversitiesData.universities.firstWhere(
-                            (u) => u.state == val,
-                            orElse: () => IndianUniversitiesData.universities.first,
-                          );
-                          _selectedUniversityName = firstUni.name;
-                        });
-                      }
-                    },
-                  ),
+                  _buildStateSelectorTile(isDark),
                   const SizedBox(height: 14),
 
                   // STEP 2: UNIVERSITY
@@ -347,6 +316,82 @@ class _UniversitySelectorSheetState extends ConsumerState<UniversitySelectorShee
     );
   }
 
+  Widget _buildStateSelectorTile(bool isDark) {
+    return InkWell(
+      onTap: () => _openStatePicker(context, isDark),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.pillDark : const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.map_outlined,
+              size: 18,
+              color: _selectedState != null
+                  ? AppColors.accentIndigoLight
+                  : (isDark ? AppColors.textMutedDark : AppColors.textMutedLight),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                _selectedState ?? 'Choose State / Union Territory',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: _selectedState != null ? FontWeight.w600 : FontWeight.normal,
+                  color: _selectedState != null
+                      ? (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight)
+                      : (isDark ? AppColors.textMutedDark : AppColors.textMutedLight),
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Icon(
+              Icons.keyboard_arrow_down_rounded,
+              size: 20,
+              color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openStatePicker(BuildContext context, bool isDark) async {
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      sheetAnimationStyle: AnimationStyle(
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+        duration: const Duration(milliseconds: 280),
+      ),
+      builder: (ctx) => _StatePickerSheet(
+        initialState: _selectedState,
+        isDark: isDark,
+      ),
+    );
+
+    if (selected != null && selected != _selectedState) {
+      setState(() {
+        _selectedState = selected;
+        final firstUni = IndianUniversitiesData.universities.firstWhere(
+          (u) => u.state == selected,
+          orElse: () => IndianUniversitiesData.universities.first,
+        );
+        _selectedUniversityName = firstUni.name;
+        _searchController.clear();
+        _searchQuery = '';
+      });
+    }
+  }
+
   Widget _buildCampusPill({
     required String label,
     required bool isSelected,
@@ -383,6 +428,208 @@ class _UniversitySelectorSheetState extends ConsumerState<UniversitySelectorShee
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Sleek modal sheet for searchable, alphabetized State/UT selection
+class _StatePickerSheet extends StatefulWidget {
+  final String? initialState;
+  final bool isDark;
+
+  const _StatePickerSheet({
+    required this.initialState,
+    required this.isDark,
+  });
+
+  @override
+  State<_StatePickerSheet> createState() => _StatePickerSheetState();
+}
+
+class _StatePickerSheetState extends State<_StatePickerSheet> {
+  final TextEditingController _filterController = TextEditingController();
+  String _filter = '';
+
+  @override
+  void dispose() {
+    _filterController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = widget.isDark;
+    final allStates = IndianUniversitiesData.statesAndUTs;
+    final filteredStates = _filter.trim().isEmpty
+        ? allStates
+        : allStates.where((s) => s.toLowerCase().contains(_filter.toLowerCase().trim())).toList();
+
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.70,
+      ),
+      padding: EdgeInsets.fromLTRB(20, 12, 20, MediaQuery.of(context).viewInsets.bottom + 16),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.cardDark : AppColors.cardLight,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+        border: Border.all(color: isDark ? AppColors.borderDark : AppColors.borderLight),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Drag handle
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.map_outlined,
+                    size: 20,
+                    color: AppColors.accentIndigoLight,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Select State / UT',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                    ),
+                  ),
+                ],
+              ),
+              IconButton(
+                icon: Icon(Icons.close_rounded, size: 20, color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight),
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Search Field
+          TextField(
+            controller: _filterController,
+            autofocus: false,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+            ),
+            decoration: InputDecoration(
+              hintText: 'Search State or Union Territory...',
+              hintStyle: TextStyle(
+                fontSize: 13,
+                color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+              ),
+              prefixIcon: Icon(
+                Icons.search_rounded,
+                size: 18,
+                color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+              ),
+              suffixIcon: _filter.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear_rounded, size: 16),
+                      onPressed: () {
+                        _filterController.clear();
+                        setState(() => _filter = '');
+                      },
+                    )
+                  : null,
+              filled: true,
+              fillColor: isDark ? AppColors.pillDark : const Color(0xFFF8FAFC),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
+              ),
+            ),
+            onChanged: (val) => setState(() => _filter = val),
+          ),
+          const SizedBox(height: 12),
+
+          // Filtered States List
+          Flexible(
+            child: filteredStates.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: Text(
+                        'No matching state found',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                        ),
+                      ),
+                    ),
+                  )
+                : ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: filteredStates.length,
+                    separatorBuilder: (_, __) => Divider(
+                      height: 1,
+                      thickness: 0.5,
+                      color: isDark ? AppColors.borderDark : const Color(0xFFF1F5F9),
+                    ),
+                    itemBuilder: (context, index) {
+                      final state = filteredStates[index];
+                      final isSelected = state == widget.initialState;
+
+                      return InkWell(
+                        onTap: () => Navigator.pop(context, state),
+                        borderRadius: BorderRadius.circular(8),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 11),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  state,
+                                  style: TextStyle(
+                                    fontSize: 13.5,
+                                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                    color: isSelected
+                                        ? AppColors.accentIndigoLight
+                                        : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
+                                  ),
+                                ),
+                              ),
+                              if (isSelected)
+                                const Icon(
+                                  Icons.check_circle_rounded,
+                                  size: 18,
+                                  color: AppColors.accentIndigoLight,
+                                ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
       ),
     );
   }

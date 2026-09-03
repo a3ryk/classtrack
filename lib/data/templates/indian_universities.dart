@@ -18,26 +18,23 @@ class UniversityItem {
 
 class IndianUniversitiesData {
   static const List<String> statesAndUTs = [
-    'Assam',
-    'Delhi (NCT)',
-    'Karnataka',
-    'Maharashtra',
-    'Uttar Pradesh',
-    'Tamil Nadu',
-    'West Bengal',
     'Andhra Pradesh',
     'Arunachal Pradesh',
+    'Assam',
     'Bihar',
     'Chandigarh (UT)',
     'Chhattisgarh',
+    'Delhi (NCT)',
     'Goa',
     'Gujarat',
     'Haryana',
     'Himachal Pradesh',
     'Jammu & Kashmir (UT)',
     'Jharkhand',
+    'Karnataka',
     'Kerala',
     'Madhya Pradesh',
+    'Maharashtra',
     'Manipur',
     'Meghalaya',
     'Mizoram',
@@ -47,9 +44,12 @@ class IndianUniversitiesData {
     'Punjab',
     'Rajasthan',
     'Sikkim',
+    'Tamil Nadu',
     'Telangana',
     'Tripura',
+    'Uttar Pradesh',
     'Uttarakhand',
+    'West Bengal',
   ];
 
   static const List<UniversityItem> universities = [
