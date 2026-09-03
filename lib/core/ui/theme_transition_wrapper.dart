@@ -69,7 +69,7 @@ class ThemeTransitionWrapperState extends ConsumerState<ThemeTransitionWrapper>
     ThemeTransition._register(this);
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 380),
+      duration: const Duration(milliseconds: 850),
     );
     _animation = CurvedAnimation(
       parent: _animController,

@@ -177,40 +177,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           // 2. APPEARANCE
           _buildSectionHeader('Appearance', isDark),
-          RepaintBoundary(
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF0B0F17) : const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: groupBorder, width: 0.8),
-              ),
-              child: Row(
-                children: [
-                  _buildThemeOption(
-                    title: 'System',
-                    mode: ThemeMode.system,
-                    currentMode: currentThemeMode,
-                    isDark: isDark,
-                    context: context,
-                  ),
-                  _buildThemeOption(
-                    title: 'Light',
-                    mode: ThemeMode.light,
-                    currentMode: currentThemeMode,
-                    isDark: isDark,
-                    context: context,
-                  ),
-                  _buildThemeOption(
-                    title: 'Dark',
-                    mode: ThemeMode.dark,
-                    currentMode: currentThemeMode,
-                    isDark: isDark,
-                    context: context,
-                  ),
-                ],
-              ),
-            ),
+          _buildSegmentedThemeControl(
+            currentMode: currentThemeMode,
+            isDark: isDark,
+            groupBorder: groupBorder,
+            context: context,
           ),
 
           const SizedBox(height: 20),
@@ -803,17 +774,100 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  Widget _buildThemeOption({
+  Widget _buildSegmentedThemeControl({
+    required ThemeMode currentMode,
+    required bool isDark,
+    required Color groupBorder,
+    required BuildContext context,
+  }) {
+    // 3 options: System (index 0), Light (index 1), Dark (index 2)
+    final double targetAlignmentX = currentMode == ThemeMode.system
+        ? -1.0
+        : (currentMode == ThemeMode.light ? 0.0 : 1.0);
+
+    final activePillBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final activeText = isDark ? Colors.white : const Color(0xFF0F172A);
+    final inactiveText = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+
+    return RepaintBoundary(
+      child: Container(
+        height: 42,
+        padding: const EdgeInsets.all(3.5),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF0B0F17) : const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: groupBorder, width: 0.8),
+        ),
+        child: Stack(
+          children: [
+            // Smoothly gliding active capsule pill
+            AnimatedAlign(
+              alignment: Alignment(targetAlignmentX, 0.0),
+              duration: const Duration(milliseconds: 260),
+              curve: Curves.easeOutCubic,
+              child: FractionallySizedBox(
+                widthFactor: 1 / 3,
+                heightFactor: 1.0,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: activePillBg,
+                    borderRadius: BorderRadius.circular(9),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.06),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1.5),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // Tap targets and labels row
+            Row(
+              children: [
+                _buildThemeSegment(
+                  title: 'System',
+                  mode: ThemeMode.system,
+                  currentMode: currentMode,
+                  activeText: activeText,
+                  inactiveText: inactiveText,
+                  context: context,
+                ),
+                _buildThemeSegment(
+                  title: 'Light',
+                  mode: ThemeMode.light,
+                  currentMode: currentMode,
+                  activeText: activeText,
+                  inactiveText: inactiveText,
+                  context: context,
+                ),
+                _buildThemeSegment(
+                  title: 'Dark',
+                  mode: ThemeMode.dark,
+                  currentMode: currentMode,
+                  activeText: activeText,
+                  inactiveText: inactiveText,
+                  context: context,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThemeSegment({
     required String title,
     required ThemeMode mode,
     required ThemeMode currentMode,
-    required bool isDark,
+    required Color activeText,
+    required Color inactiveText,
     required BuildContext context,
   }) {
     final isSelected = mode == currentMode;
-    final activeBg = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final activeText = isDark ? Colors.white : const Color(0xFF0F172A);
-    final inactiveText = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
 
     return Expanded(
       child: GestureDetector(
@@ -828,32 +882,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             );
           }
         },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOutCubic,
-          padding: const EdgeInsets.symmetric(vertical: 8.5),
-          decoration: BoxDecoration(
-            color: isSelected ? activeBg : Colors.transparent,
-            borderRadius: BorderRadius.circular(9),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1.5),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Center(
-            child: Text(
-              title,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected ? activeText : inactiveText,
-              ),
+        child: Center(
+          child: AnimatedDefaultTextStyle(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutCubic,
+            style: TextStyle(
+              fontSize: 13,
+              fontFamily: 'Plus Jakarta Sans',
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              color: isSelected ? activeText : inactiveText,
             ),
+            child: Text(title),
           ),
         ),
       ),

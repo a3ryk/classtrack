@@ -1819,7 +1819,7 @@ void main() {
       await db.close();
     });
 
-    testWidgets('DeclareHolidayDialog saves holiday to provider and database', (tester) async {
+    testWidgets('DeclareHolidayDialog saves custom holiday title to provider and database', (tester) async {
       final db = AppDatabase.inMemory();
       final nowIso = DateTime.now().toIso8601String();
       await db.saveSemester(
@@ -1856,7 +1856,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Declare Holiday'), findsWidgets);
-      expect(find.text('OCCASION / TITLE'), findsOneWidget);
+      expect(find.text('OCCASION / TITLE (OPTIONAL)'), findsOneWidget);
 
       await tester.enterText(find.byType(TextField), 'Teachers Day');
       await tester.pumpAndSettle();
@@ -1869,10 +1869,57 @@ void main() {
       expect(savedHolidays.first.title, equals('Teachers Day'));
       expect(savedHolidays.first.startDate, equals('2026-09-05'));
 
-      // Test removeHolidayForDate
       await notifier.removeHolidayForDate('2026-09-05');
       final remainingHolidays = await db.getHolidays('sem_1');
       expect(remainingHolidays.isEmpty, isTrue);
+
+      await db.close();
+    });
+
+    testWidgets('DeclareHolidayDialog defaults to Holiday when title is empty', (tester) async {
+      final db = AppDatabase.inMemory();
+      final nowIso = DateTime.now().toIso8601String();
+      await db.saveSemester(
+        SemesterData(
+          id: 'sem_1',
+          name: 'Semester 1',
+          startDate: '2026-08-01',
+          endDate: '2026-12-31',
+          defaultTargetPct: 75.0,
+          status: 'ACTIVE',
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        ),
+      );
+
+      final notifier = HolidaysNotifier(db, 'sem_1');
+      await notifier.loadFromDb();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+            holidaysProvider.overrideWith((ref) => notifier),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: DeclareHolidayDialog(
+                initialDate: DateTime(2026, 9, 5),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Tap without typing anything -> should save as "Holiday"
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Declare Holiday'));
+      await tester.pumpAndSettle();
+
+      final savedHolidays = await db.getHolidays('sem_1');
+      expect(savedHolidays.length, equals(1));
+      expect(savedHolidays.first.title, equals('Holiday'));
+      expect(savedHolidays.first.startDate, equals('2026-09-05'));
 
       await db.close();
     });

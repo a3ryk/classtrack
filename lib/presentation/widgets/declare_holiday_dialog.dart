@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/constants/app_colors.dart';
@@ -40,7 +41,7 @@ class DeclareHolidaySheet extends ConsumerStatefulWidget {
 typedef DeclareHolidayDialog = DeclareHolidaySheet;
 
 class _DeclareHolidaySheetState extends ConsumerState<DeclareHolidaySheet> {
-  final _titleController = TextEditingController(text: 'College Holiday');
+  final _titleController = TextEditingController();
   late DateTime _startDate;
   late DateTime _endDate;
   bool _isDateRange = false;
@@ -91,11 +92,8 @@ class _DeclareHolidaySheetState extends ConsumerState<DeclareHolidaySheet> {
   }
 
   Future<void> _saveHoliday() async {
-    final title = _titleController.text.trim();
-    if (title.isEmpty) {
-      AppToast.error(context, 'Please enter a title or occasion for the holiday');
-      return;
-    }
+    final rawTitle = _titleController.text.trim();
+    final title = rawTitle.isNotEmpty ? rawTitle : 'Holiday';
 
     setState(() => _isSaving = true);
     try {
@@ -210,7 +208,7 @@ class _DeclareHolidaySheetState extends ConsumerState<DeclareHolidaySheet> {
 
               // Occasion / Title TextField
               Text(
-                'OCCASION / TITLE',
+                'OCCASION / TITLE (OPTIONAL)',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w800,
@@ -221,6 +219,11 @@ class _DeclareHolidaySheetState extends ConsumerState<DeclareHolidaySheet> {
               const SizedBox(height: 6),
               TextField(
                 controller: _titleController,
+                maxLength: 40,
+                buildCounter: (context, {required currentLength, required isFocused, maxLength}) => null,
+                inputFormatters: [
+                  LengthLimitingTextInputFormatter(40),
+                ],
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
