@@ -208,10 +208,25 @@ class _AppearanceScreenState extends ConsumerState<AppearanceScreen> {
         backgroundColor: isDark ? AppColors.bgDark : const Color(0xFFF8FAFC),
         elevation: 0,
         scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, size: 22),
-          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-          onPressed: () => Navigator.pop(context),
+        leadingWidth: 100,
+        leading: InkWell(
+          onTap: () => Navigator.pop(context),
+          borderRadius: BorderRadius.circular(8),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(width: 14),
+              Icon(Icons.chevron_left_rounded, size: 22, color: AppColors.accentBlue),
+              Text(
+                'Back',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.accentBlue,
+                ),
+              ),
+            ],
+          ),
         ),
         title: Text(
           'Appearance',
