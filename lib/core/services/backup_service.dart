@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
@@ -106,17 +106,10 @@ class BackupService {
       // 4. App external files fallback
       Directory? extDir;
       try {
-        extDir = await getExternalStorageDirectory().timeout(
-          const Duration(milliseconds: 500),
-          onTimeout: () => null,
-        );
+        extDir = await getExternalStorageDirectory();
       } catch (_) {}
 
-      final baseDir = extDir ??
-          await getApplicationDocumentsDirectory().timeout(
-            const Duration(milliseconds: 500),
-            onTimeout: () => Directory.systemTemp,
-          );
+      final baseDir = extDir ?? await getApplicationDocumentsDirectory();
       final backupDir = Directory(p.join(baseDir.path, 'ClassTrack', 'backups'));
       if (!await backupDir.exists()) {
         await backupDir.create(recursive: true);
@@ -127,10 +120,7 @@ class BackupService {
     // Windows / macOS / Linux / iOS
     Directory baseDir;
     try {
-      baseDir = await getApplicationDocumentsDirectory().timeout(
-        const Duration(milliseconds: 500),
-        onTimeout: () => Directory.systemTemp,
-      );
+      baseDir = await getApplicationDocumentsDirectory();
     } catch (_) {
       baseDir = Directory.systemTemp;
     }

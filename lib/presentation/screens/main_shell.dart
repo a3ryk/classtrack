@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
 import '../providers/app_state_provider.dart';
 import '../providers/app_update_provider.dart';
+import '../providers/backup_provider.dart';
 import '../widgets/walkthrough/app_walkthrough_overlay.dart';
 import 'onboarding/welcome_onboarding_screen.dart';
 import 'today/today_screen.dart';
@@ -18,10 +19,11 @@ class MainShell extends ConsumerStatefulWidget {
   ConsumerState<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends ConsumerState<MainShell> {
+class _MainShellState extends ConsumerState<MainShell> with WidgetsBindingObserver {
   int _currentIndex = 0;
   bool _hasCheckedOnboarding = false;
   Timer? _updateTimer;
+  Timer? _autoBackupTimer;
 
   final List<Widget> _screens = const [
     TodayScreen(),
@@ -33,16 +35,41 @@ class _MainShellState extends ConsumerState<MainShell> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkFirstRun();
       _checkStartupUpdates();
+      _checkAutoBackup();
+      _startAutoBackupHeartbeat();
     });
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _updateTimer?.cancel();
+    _autoBackupTimer?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkAutoBackup();
+    }
+  }
+
+  void _startAutoBackupHeartbeat() {
+    _autoBackupTimer?.cancel();
+    if (WidgetsBinding.instance.runtimeType.toString() != 'WidgetsFlutterBinding') return;
+    _autoBackupTimer = Timer.periodic(const Duration(minutes: 15), (_) {
+      _checkAutoBackup();
+    });
+  }
+
+  void _checkAutoBackup() {
+    if (!mounted) return;
+    ref.read(backupProvider.notifier).checkAndRunAutoBackup(ref.read(databaseProvider));
   }
 
   void _checkStartupUpdates() {

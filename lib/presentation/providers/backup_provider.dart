@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
@@ -122,8 +123,25 @@ class BackupNotifier extends StateNotifier<BackupState> {
   final Ref ref;
   AppDatabase get db => ref.read(databaseProvider);
 
+  final Completer<void> _initCompleter = Completer<void>();
+  bool _isPerformingBackup = false;
+
   BackupNotifier(this.ref) : super(const BackupState()) {
     loadSettingsAndBackups();
+  }
+
+  /// Evaluates whether an automated backup is overdue based on current frequency & clock integrity
+  bool isAutoBackupDue() {
+    if (!state.isAutoBackupEnabled) return false;
+    final last = state.lastBackupTimestamp;
+    if (last == null) return true; // Never backed up -> due immediately
+
+    final now = DateTime.now();
+    // Clock anomaly / time traveler edge case recovery
+    if (now.isBefore(last)) return true;
+
+    final interval = state.frequency.duration;
+    return now.difference(last) >= interval;
   }
 
   Future<void> loadSettingsAndBackups() async {
@@ -149,7 +167,12 @@ class BackupNotifier extends StateNotifier<BackupState> {
         );
       }
       await refreshLocalBackupsList();
-    } catch (_) {}
+    } catch (_) {
+    } finally {
+      if (!_initCompleter.isCompleted) {
+        _initCompleter.complete();
+      }
+    }
   }
 
   Future<void> _persistSettings() async {
@@ -169,11 +192,17 @@ class BackupNotifier extends StateNotifier<BackupState> {
   Future<void> setAutoBackupEnabled(bool enabled) async {
     state = state.copyWith(isAutoBackupEnabled: enabled);
     await _persistSettings();
+    if (enabled) {
+      unawaited(checkAndRunAutoBackup(db));
+    }
   }
 
   Future<void> setFrequency(AutoBackupFrequency freq) async {
     state = state.copyWith(frequency: freq);
     await _persistSettings();
+    if (state.isAutoBackupEnabled) {
+      unawaited(checkAndRunAutoBackup(db));
+    }
   }
 
   Future<void> setMaxBackupsToRetain(int count) async {
@@ -445,37 +474,52 @@ class BackupNotifier extends StateNotifier<BackupState> {
     } catch (_) {}
   }
 
-  /// Background Auto-Backup check on app launch
+  /// Background Auto-Backup check triggered on app launch, lifecycle resume, periodic heartbeat, or setting change
   Future<void> checkAndRunAutoBackup(AppDatabase database) async {
+    if (!_initCompleter.isCompleted) {
+      await _initCompleter.future;
+    }
+
     if (!state.isAutoBackupEnabled) return;
+    if (_isPerformingBackup || state.isBackingUp || state.isRestoring) return;
 
-    final last = state.lastBackupTimestamp;
-    final interval = state.frequency.duration;
+    if (!isAutoBackupDue()) return;
 
-    if (last == null || DateTime.now().difference(last) >= interval) {
-      try {
-        final jsonString = await BackupService.generateFullBackupJson(database);
-        final file = await BackupService.saveBackupToFile(
-          jsonString,
-          customDirectoryPath: state.customBackupDirectory,
-        );
-        final size = await file.length();
-        await BackupService.pruneOldBackups(state.maxBackupsToRetain, customDirectoryPath: state.customBackupDirectory);
+    _isPerformingBackup = true;
+    try {
+      final jsonString = await BackupService.generateFullBackupJson(database);
+      final file = await BackupService.saveBackupToFile(
+        jsonString,
+        customDirectoryPath: state.customBackupDirectory,
+      );
+      final size = await file.length();
+      await BackupService.pruneOldBackups(
+        state.maxBackupsToRetain,
+        customDirectoryPath: state.customBackupDirectory,
+      );
 
-        state = state.copyWith(
-          lastBackupTimestamp: DateTime.now(),
-          lastBackupFilePath: file.path,
-          lastBackupSize: size,
-        );
-        await _persistSettings();
-        await refreshLocalBackupsList();
+      final validation = BackupService.validateBackup(jsonString);
+      final counts = validation.itemCounts;
+      final summary = '${counts['subjects'] ?? 0} Subjects • ${counts['timetable_slots'] ?? 0} Slots • ${counts['attendance_records'] ?? 0} Logs';
 
-        // Dispatch phone notification for auto-backup
-        await NotificationService.instance.showBackupNotification(
-          title: 'Auto-Backup Completed',
-          body: 'Scheduled backup saved safely (${BackupService.formatFileSize(size)}).',
-        );
-      } catch (_) {}
+      final now = DateTime.now();
+      state = state.copyWith(
+        lastBackupTimestamp: now,
+        lastBackupFilePath: file.path,
+        lastBackupSize: size,
+        lastBackupSummary: summary,
+      );
+      await _persistSettings();
+      await refreshLocalBackupsList();
+
+      // Dispatch phone notification for auto-backup
+      await NotificationService.instance.showBackupNotification(
+        title: 'Auto-Backup Completed',
+        body: 'Scheduled backup saved (${BackupService.formatFileSize(size)}) at ${BackupService.formatDeviceTimestamp(now)}.',
+      );
+    } catch (_) {
+    } finally {
+      _isPerformingBackup = false;
     }
   }
 }
