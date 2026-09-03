@@ -482,7 +482,7 @@ class _SubjectRoomManagerScreenState extends ConsumerState<SubjectRoomManagerScr
                                 child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                               )
                             : const Text(
-                                'Save Changes',
+                                'Save Room Changes',
                                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                               ),
                       ),

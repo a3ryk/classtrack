@@ -427,7 +427,9 @@ class _RescheduleSessionScreenState extends ConsumerState<RescheduleSessionScree
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                  color: _isCancelled
+                      ? (isDark ? AppColors.textMutedDark : AppColors.textMutedLight)
+                      : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
                 ),
                 decoration: InputDecoration(
                   hintText: 'e.g. Room 302, Physics Lab B, Audi-1',
@@ -436,21 +438,33 @@ class _RescheduleSessionScreenState extends ConsumerState<RescheduleSessionScree
                     fontWeight: FontWeight.normal,
                     color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
                   ),
-                  prefixIcon: const Icon(Icons.meeting_room_outlined, size: 18),
-                  suffixIcon: _roomController.text.isNotEmpty
+                  prefixIcon: Icon(
+                    Icons.meeting_room_outlined,
+                    size: 18,
+                    color: _isCancelled
+                        ? (isDark ? AppColors.textMutedDark.withValues(alpha: 0.5) : AppColors.textMutedLight.withValues(alpha: 0.6))
+                        : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                  ),
+                  suffixIcon: (!_isCancelled && _roomController.text.isNotEmpty)
                       ? IconButton(
                           icon: const Icon(Icons.clear_rounded, size: 16),
                           onPressed: () => setState(() => _roomController.clear()),
                         )
                       : null,
                   filled: true,
-                  fillColor: isDark ? AppColors.cardDark : Colors.white,
+                  fillColor: _isCancelled
+                      ? (isDark ? AppColors.pillDark : const Color(0xFFF1F5F9))
+                      : (isDark ? AppColors.cardDark : Colors.white),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
                   ),
                   enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
+                  ),
+                  disabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
                   ),
