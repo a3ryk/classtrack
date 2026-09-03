@@ -30,12 +30,12 @@ class BackupRestoreScreen extends ConsumerWidget {
           'Backup & Restore',
           style: TextStyle(
             fontSize: 18,
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w700,
             color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-            letterSpacing: -0.4,
+            letterSpacing: -0.3,
           ),
         ),
-        centerTitle: false,
+        centerTitle: true,
       ),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
