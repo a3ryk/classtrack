@@ -1,9 +1,38 @@
-﻿# Changelog
+# Changelog
 
 All notable changes to **ClassTrack** will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+---
+
+## [1.0.0-alpha.5] - 2026-09-03
+
+### ✨ Features & Architecture
+- **Dedicated Full-Screen Room & Reschedule Screens**: Added full-screen `SubjectRoomManagerScreen` and `RescheduleSessionScreen` replacing cramped inline dialogs.
+- **Multi-Room Timetable Resolution**: Dynamic support for subjects scheduled in different classrooms across different weekdays (e.g. Mon/Wed/Fri in Room 101, Tue/Thu in Lab B) with 1-tap bulk apply across all days.
+- **Date-Specific Single-Day Overrides**: Reschedule or move individual class sessions for a single date without altering recurring weekly timetable templates.
+- **Dynamic Schedule & Analytics Breakdown**: Today dashboard, Calendar, and Attendance analytics dynamically compute per-day room locations and attendance stats directly from live SQLite.
+- **Dynamic Change Detection & Smart Button Locking**: Action buttons automatically lock and dim when no edits are detected and unlock immediately upon user input.
+- **Overflow-Free Action Sheets**: Fixed 56px bottom RenderFlex overflow in quick-action menus using responsive constraints and momentum scroll physics.
+- **Automated Backup Timing & Frequency Verification**: Fixed backup duration calculations and robust background check routines.
+
+### 🧩 Bug Fixes & Stability
+- **Weekly Slot ID Resolution**: Fixed slot targeting (`sourceRefId ?? id`) to update existing timetable slots in-place without generating duplicate orphaned entries.
+- **Disabled Input Styling**: Prevented input border from darkening when room field is disabled during single-date class cancellations.
+- **Soft Placeholder Styling**: Configured global and screen-level muted placeholder hint styles (`#94A3B8` light / `#64748B` dark) with regular font weight.
+
+---
+
+## [1.0.0-alpha.4] - 2026-09-03
+
+### ✨ Features & Improvements
+- **Complete Room & Metadata Persistence**: Fixed Drift SQLite column updates so editing, clearing, or removing rooms, teachers, and course codes persists instantly.
+- **Dynamic Subject Renaming Synchronization**: Renaming a subject immediately refreshes all Weekly Timetable slots, Today class cards, and Extra Classes across the app.
+- **120FPS Smooth Settings Scrolling**: Hardware-accelerated repaint boundaries and fluid momentum physics on settings screens.
+- **Offline-Accurate "What's New"**: Instantly loads local build changelogs for the installed version in 0ms without network dependence.
+- **Draft-Immune In-App Updater**: GitHub Releases API integration that automatically ignores unpublished draft releases.
 
 ---
 

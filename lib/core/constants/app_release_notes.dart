@@ -4,9 +4,29 @@ import '../services/app_update_service.dart';
 class AppReleaseNotes {
   AppReleaseNotes._();
 
-  static const String currentVersion = '1.0.0-alpha.4';
+  static const String currentVersion = '1.0.0-alpha.5';
 
   static final Map<String, AppReleaseInfo> _releases = {
+    '1.0.0-alpha.5': const AppReleaseInfo(
+      latestVersion: '1.0.0-alpha.5',
+      buildNumber: 5,
+      minSupportedVersion: '1.0.0-alpha.5',
+      releaseDate: 'September 2026',
+      releaseTitle: 'ClassTrack v1.0.0-alpha.5 (Multi-Room Timetables & Smart Schedule Management)',
+      changelog: [
+        '✨ Dedicated Full-Screen Schedule & Room Managers: Full-screen Subject Room Manager and Reschedule Session screens replacing cramped dialog modals',
+        '✨ Multi-Room Timetable Resolution: Support for subjects held across different classrooms on different days (e.g., Mon/Wed/Fri in Room 101, Tue/Thu in Lab B) with 1-tap bulk apply',
+        '✨ Date-Specific Room & Time Overrides: Reschedule or move individual class sessions for a single date without altering recurring weekly timetable templates',
+        '✨ Dynamic Schedule & Analytics Breakdown: Today screen, Calendar, and Attendance analytics dynamically resolve per-day room locations and attendance outcomes',
+        '✨ Overflow-Free Scrollable Action Sheets: Fixed RenderFlex overflow in quick-action bottom sheets with responsive constraints and momentum scroll physics',
+        '✨ Smart Change Detection & Dynamic Button Locking: Action buttons lock and dim automatically when no edits are detected and unlock instantly on modification',
+        '✨ Auto-Backup Frequency & Time Calculation: Accurate duration evaluation and background verification for scheduled automated database backups',
+        '🧩 Fixed slot ID targeting to update existing weekly timetable records in-place without duplicate entries',
+        '🧩 Fixed disabled input border rendering and darkened outlines during single-day cancellations',
+      ],
+      isMandatory: true,
+      warningMessage: 'Mandatory update required for multi-room schedule synchronization and auto-backup stability.',
+    ),
     '1.0.0-alpha.4': const AppReleaseInfo(
       latestVersion: '1.0.0-alpha.4',
       buildNumber: 4,
