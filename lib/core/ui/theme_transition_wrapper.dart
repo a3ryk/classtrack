@@ -69,11 +69,11 @@ class ThemeTransitionWrapperState extends ConsumerState<ThemeTransitionWrapper>
     ThemeTransition._register(this);
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 850),
+      duration: const Duration(milliseconds: 500),
     );
     _animation = CurvedAnimation(
       parent: _animController,
-      curve: Curves.easeOutCubic,
+      curve: Curves.easeInOutCubic,
     )..addStatusListener((status) {
         if (status == AnimationStatus.completed || status == AnimationStatus.dismissed) {
           _cleanupSnapshot();
@@ -141,8 +141,9 @@ class ThemeTransitionWrapperState extends ConsumerState<ThemeTransitionWrapper>
           WidgetsBinding.instance.platformDispatcher.views.first.devicePixelRatio;
       final defaultOrigin = Offset(size.width / 2, size.height / 2);
 
-      // Snapshot capture at true 1:1 devicePixelRatio for pixel-perfect raster alignment (zero shaking)
-      final image = await boundary.toImage(pixelRatio: devicePixelRatio);
+      // Snapshot capture capped at 2.0x to guarantee instant rasterization & 120 FPS
+      final snapRatio = math.min(devicePixelRatio, 2.0);
+      final image = await boundary.toImage(pixelRatio: snapRatio);
       if (!mounted) {
         image.dispose();
         _isCapturing = false;

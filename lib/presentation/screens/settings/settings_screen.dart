@@ -870,31 +870,42 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final isSelected = mode == currentMode;
 
     return Expanded(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapDown: (details) {
-          if (mode != currentMode) {
-            ThemeTransition.switchTheme(
-              context,
-              ref,
-              mode,
-              origin: details.globalPosition,
-            );
-          }
-        },
-        child: Center(
-          child: AnimatedDefaultTextStyle(
-            duration: const Duration(milliseconds: 180),
-            curve: Curves.easeOutCubic,
-            style: TextStyle(
-              fontSize: 13,
-              fontFamily: 'Plus Jakarta Sans',
-              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-              color: isSelected ? activeText : inactiveText,
+      child: Builder(
+        builder: (segmentContext) {
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              if (mode != currentMode) {
+                Offset? center;
+                final box = segmentContext.findRenderObject() as RenderBox?;
+                if (box != null && box.hasSize) {
+                  final pos = box.localToGlobal(Offset.zero);
+                  center = Offset(pos.dx + box.size.width / 2, pos.dy + box.size.height / 2);
+                }
+
+                ThemeTransition.switchTheme(
+                  context,
+                  ref,
+                  mode,
+                  origin: center,
+                );
+              }
+            },
+            child: Center(
+              child: AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOutCubic,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontFamily: 'Plus Jakarta Sans',
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected ? activeText : inactiveText,
+                ),
+                child: Text(title),
+              ),
             ),
-            child: Text(title),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
