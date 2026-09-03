@@ -466,9 +466,7 @@ class _StatePickerSheetState extends State<_StatePickerSheet> {
         : allStates.where((s) => s.toLowerCase().contains(_filter.toLowerCase().trim())).toList();
 
     return Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.70,
-      ),
+      height: MediaQuery.of(context).size.height * 0.72,
       padding: EdgeInsets.fromLTRB(20, 12, 20, MediaQuery.of(context).viewInsets.bottom + 16),
       decoration: BoxDecoration(
         color: isDark ? AppColors.cardDark : AppColors.cardLight,
@@ -476,7 +474,6 @@ class _StatePickerSheetState extends State<_StatePickerSheet> {
         border: Border.all(color: isDark ? AppColors.borderDark : AppColors.borderLight),
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Drag handle
@@ -571,7 +568,7 @@ class _StatePickerSheetState extends State<_StatePickerSheet> {
           const SizedBox(height: 12),
 
           // Filtered States List
-          Flexible(
+          Expanded(
             child: filteredStates.isEmpty
                 ? Center(
                     child: Padding(
@@ -586,7 +583,6 @@ class _StatePickerSheetState extends State<_StatePickerSheet> {
                     ),
                   )
                 : ListView.separated(
-                    shrinkWrap: true,
                     itemCount: filteredStates.length,
                     separatorBuilder: (_, __) => Divider(
                       height: 1,
