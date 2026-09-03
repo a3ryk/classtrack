@@ -152,15 +152,17 @@ class _DeveloperPasscodeDialogState extends ConsumerState<DeveloperPasscodeDialo
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Theme.of(context).brightness == Brightness.dark ? AppColors.cardDark : Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-          side: BorderSide(
-            color: Theme.of(context).brightness == Brightness.dark ? AppColors.borderDark : const Color(0xFFE2E8F0),
-            width: 0.8,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        return AlertDialog(
+          backgroundColor: isDark ? AppColors.cardDark : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(
+              color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
+              width: 0.8,
+            ),
           ),
-        ),
         title: const Text('Unlock with Badge Token', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -173,8 +175,17 @@ class _DeveloperPasscodeDialogState extends ConsumerState<DeveloperPasscodeDialo
             const SizedBox(height: 12),
             TextField(
               controller: tokenController,
+              style: TextStyle(
+                fontSize: 13,
+                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+              ),
               decoration: InputDecoration(
                 hintText: 'classtrack://dev-unlock?hash=...',
+                hintStyle: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.normal,
+                  color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                ),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
@@ -204,8 +215,9 @@ class _DeveloperPasscodeDialogState extends ConsumerState<DeveloperPasscodeDialo
             child: const Text('Verify & Unlock', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
-      ),
-    );
+      );
+    },
+  );
   }
 
   @override

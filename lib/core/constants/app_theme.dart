@@ -159,6 +159,11 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: const Color(0xFFF8FAFC),
+        hintStyle: const TextStyle(
+          color: AppColors.textMutedLight,
+          fontSize: 13.5,
+          fontWeight: FontWeight.normal,
+        ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
@@ -343,6 +348,11 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.surfaceDark,
+        hintStyle: const TextStyle(
+          color: AppColors.textMutedDark,
+          fontSize: 13.5,
+          fontWeight: FontWeight.normal,
+        ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),

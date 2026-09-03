@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/ui/app_toast.dart';
@@ -75,8 +75,8 @@ class _UserProfileSheetState extends ConsumerState<UserProfileSheet> {
       hintText: hint,
       hintStyle: TextStyle(
         fontSize: 13,
-        fontWeight: FontWeight.w500,
-        color: isDark ? AppColors.textMutedDark : const Color(0xFF64748B),
+        fontWeight: FontWeight.normal,
+        color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
       ),
       filled: true,
       fillColor: isDark ? AppColors.pillDark : const Color(0xFFF1F5F9).withValues(alpha: 0.7),
