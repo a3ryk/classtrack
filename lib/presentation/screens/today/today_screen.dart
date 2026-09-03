@@ -175,10 +175,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                             ref.read(holidaysProvider.notifier).removeHolidayForDate(selectedDateIso);
                             AppToast.info(context, 'Holiday removed for $selectedDateIso');
                           } else {
-                            showDialog(
-                              context: context,
-                              builder: (context) => DeclareHolidayDialog(initialDate: _selectedDate),
-                            );
+                            DeclareHolidaySheet.show(context, initialDate: _selectedDate);
                           }
                         },
                       ),

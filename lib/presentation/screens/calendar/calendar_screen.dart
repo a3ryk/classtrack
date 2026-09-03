@@ -1588,9 +1588,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
   }
 
   void _showDeclareHolidayDialog(BuildContext context, DateTime date) {
-    showDialog(
-      context: context,
-      builder: (context) => DeclareHolidayDialog(initialDate: date),
-    );
+    DeclareHolidaySheet.show(context, initialDate: date);
   }
 }

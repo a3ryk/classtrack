@@ -7,19 +7,32 @@ import '../../core/utils/date_formatter.dart';
 import '../../domain/services/schedule_engine.dart';
 import '../providers/app_state_provider.dart';
 
-class DeclareHolidayDialog extends ConsumerStatefulWidget {
+/// Modern Modal Bottom Sheet for Declaring Single-day or Multi-day Holidays
+class DeclareHolidaySheet extends ConsumerStatefulWidget {
   final DateTime initialDate;
 
-  const DeclareHolidayDialog({
+  const DeclareHolidaySheet({
     super.key,
     required this.initialDate,
   });
 
+  static Future<void> show(BuildContext context, {required DateTime initialDate}) {
+    return showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DeclareHolidaySheet(initialDate: initialDate),
+    );
+  }
+
   @override
-  ConsumerState<DeclareHolidayDialog> createState() => _DeclareHolidayDialogState();
+  ConsumerState<DeclareHolidaySheet> createState() => _DeclareHolidaySheetState();
 }
 
-class _DeclareHolidayDialogState extends ConsumerState<DeclareHolidayDialog> {
+/// Backward compatibility alias
+typedef DeclareHolidayDialog = DeclareHolidaySheet;
+
+class _DeclareHolidaySheetState extends ConsumerState<DeclareHolidaySheet> {
   final _titleController = TextEditingController(text: 'College Holiday');
   late DateTime _startDate;
   late DateTime _endDate;
@@ -110,18 +123,33 @@ class _DeclareHolidayDialogState extends ConsumerState<DeclareHolidayDialog> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Dialog(
-      backgroundColor: isDark ? AppColors.cardDark : Colors.white,
-      surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 400),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+    return Container(
+      padding: EdgeInsets.fromLTRB(20, 12, 20, MediaQuery.of(context).viewInsets.bottom + 20),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.cardDark : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        border: Border.all(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Drag handle
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.borderDark : const Color(0xFFCBD5E1),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+
               // Header
               Row(
                 children: [
@@ -150,6 +178,7 @@ class _DeclareHolidayDialogState extends ConsumerState<DeclareHolidayDialog> {
                             fontSize: 17,
                             fontWeight: FontWeight.w800,
                             color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                            letterSpacing: -0.2,
                           ),
                         ),
                         Text(
@@ -161,6 +190,10 @@ class _DeclareHolidayDialogState extends ConsumerState<DeclareHolidayDialog> {
                         ),
                       ],
                     ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, size: 20),
+                    onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),
@@ -180,7 +213,6 @@ class _DeclareHolidayDialogState extends ConsumerState<DeclareHolidayDialog> {
               const SizedBox(height: 6),
               TextField(
                 controller: _titleController,
-                autofocus: true,
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -365,13 +397,13 @@ class _DeclareHolidayDialogState extends ConsumerState<DeclareHolidayDialog> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 8),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFD97706),
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       elevation: 0,
                     ),
                     onPressed: _isSaving ? null : _saveHoliday,
