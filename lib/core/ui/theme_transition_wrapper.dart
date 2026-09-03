@@ -34,6 +34,7 @@ class ThemeTransition {
       await ref.read(themeModeProvider.notifier).setThemeMode(newMode);
       return;
     }
+    if (state.isAnimating) return;
 
     await state.startTransition(ref, newMode, origin: origin);
   }
@@ -69,7 +70,7 @@ class ThemeTransitionWrapperState extends ConsumerState<ThemeTransitionWrapper>
     ThemeTransition._register(this);
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 650),
     );
     _animation = CurvedAnimation(
       parent: _animController,
@@ -107,9 +108,7 @@ class ThemeTransitionWrapperState extends ConsumerState<ThemeTransitionWrapper>
     ThemeMode newMode, {
     Offset? origin,
   }) async {
-    if (isAnimating) {
-      _cleanupSnapshot();
-    }
+    if (isAnimating) return;
 
     try {
       final currentMode = ref.read(themeModeProvider);
