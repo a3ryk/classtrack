@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/ui/app_toast.dart';
-import '../../../core/ui/theme_transition_wrapper.dart';
 import '../../../domain/entities/academic_template.dart';
 import '../../../domain/entities/attendance_stats.dart';
 import '../../../domain/entities/semester_entity.dart';
@@ -15,6 +14,7 @@ import '../../providers/theme_provider.dart';
 import '../../widgets/target_percentage_dialog.dart';
 import '../profile/profile_screen.dart';
 import 'about_screen.dart';
+import 'appearance_screen.dart';
 import 'backup_restore_screen.dart';
 import 'developer_tools_screen.dart';
 
@@ -175,18 +175,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
         const SizedBox(height: 20),
 
-          // 2. APPEARANCE
-          _buildSectionHeader('Appearance', isDark),
-          _buildSegmentedThemeControl(
-            currentMode: currentThemeMode,
-            isDark: isDark,
-            groupBorder: groupBorder,
-            context: context,
-          ),
-
-          const SizedBox(height: 20),
-
-          // 3. GENERAL PREFERENCES
+          // 2. GENERAL PREFERENCES
           _buildSectionHeader('Preferences', isDark),
           RepaintBoundary(
             child: Container(
@@ -197,6 +186,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
               child: Column(
                 children: [
+                  _buildTile(
+                    title: 'Appearance & Themes',
+                    isDark: isDark,
+                    trailing: _buildChevronValue(
+                      currentThemeMode == ThemeMode.system
+                          ? 'System'
+                          : (currentThemeMode == ThemeMode.dark ? 'Dark' : 'Light'),
+                      isDark,
+                    ),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const AppearanceScreen()),
+                      );
+                    },
+                  ),
+                  Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
                   _buildTile(
                     title: 'Notifications',
                     isDark: isDark,
@@ -773,141 +779,5 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       }
     }
   }
-
-  Widget _buildSegmentedThemeControl({
-    required ThemeMode currentMode,
-    required bool isDark,
-    required Color groupBorder,
-    required BuildContext context,
-  }) {
-    // 3 options: System (index 0), Light (index 1), Dark (index 2)
-    final double targetAlignmentX = currentMode == ThemeMode.system
-        ? -1.0
-        : (currentMode == ThemeMode.light ? 0.0 : 1.0);
-
-    final activePillBg = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final activeText = isDark ? Colors.white : const Color(0xFF0F172A);
-    final inactiveText = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
-
-    return RepaintBoundary(
-      child: Container(
-        height: 42,
-        padding: const EdgeInsets.all(3.5),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF0B0F17) : const Color(0xFFF1F5F9),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: groupBorder, width: 0.8),
-        ),
-        child: Stack(
-          children: [
-            // Smoothly gliding active capsule pill
-            AnimatedAlign(
-              alignment: Alignment(targetAlignmentX, 0.0),
-              duration: const Duration(milliseconds: 260),
-              curve: Curves.easeOutCubic,
-              child: FractionallySizedBox(
-                widthFactor: 1 / 3,
-                heightFactor: 1.0,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: activePillBg,
-                    borderRadius: BorderRadius.circular(9),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.06),
-                        blurRadius: 4,
-                        offset: const Offset(0, 1.5),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // Tap targets and labels row
-            Row(
-              children: [
-                _buildThemeSegment(
-                  title: 'System',
-                  mode: ThemeMode.system,
-                  currentMode: currentMode,
-                  activeText: activeText,
-                  inactiveText: inactiveText,
-                  context: context,
-                ),
-                _buildThemeSegment(
-                  title: 'Light',
-                  mode: ThemeMode.light,
-                  currentMode: currentMode,
-                  activeText: activeText,
-                  inactiveText: inactiveText,
-                  context: context,
-                ),
-                _buildThemeSegment(
-                  title: 'Dark',
-                  mode: ThemeMode.dark,
-                  currentMode: currentMode,
-                  activeText: activeText,
-                  inactiveText: inactiveText,
-                  context: context,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildThemeSegment({
-    required String title,
-    required ThemeMode mode,
-    required ThemeMode currentMode,
-    required Color activeText,
-    required Color inactiveText,
-    required BuildContext context,
-  }) {
-    final isSelected = mode == currentMode;
-
-    return Expanded(
-      child: Builder(
-        builder: (segmentContext) {
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapDown: (_) {
-              if (ThemeTransition.isAnimating) return;
-              if (mode != currentMode) {
-                Offset? center;
-                final box = segmentContext.findRenderObject() as RenderBox?;
-                if (box != null && box.hasSize) {
-                  final pos = box.localToGlobal(Offset.zero);
-                  center = Offset(pos.dx + box.size.width / 2, pos.dy + box.size.height / 2);
-                }
-
-                ThemeTransition.switchTheme(
-                  context,
-                  ref,
-                  mode,
-                  origin: center,
-                );
-              }
-            },
-            child: Center(
-              child: AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 180),
-                curve: Curves.easeOutCubic,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontFamily: 'Plus Jakarta Sans',
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected ? activeText : inactiveText,
-                ),
-                child: Text(title),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
 }
+

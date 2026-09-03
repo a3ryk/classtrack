@@ -32,6 +32,7 @@ import 'package:classtrack/presentation/widgets/update_available_dialog.dart';
 import 'package:classtrack/presentation/widgets/declare_holiday_dialog.dart';
 import 'package:classtrack/presentation/widgets/university_selector_dialog.dart';
 import 'package:classtrack/presentation/screens/calendar/calendar_screen.dart';
+import 'package:classtrack/presentation/screens/settings/appearance_screen.dart';
 import 'package:classtrack/core/utils/date_formatter.dart';
 
 void main() {
@@ -2035,6 +2036,63 @@ void main() {
       // Verify state was selected and Step 2 updated
       expect(find.text('Delhi (NCT)'), findsOneWidget);
       expect(find.text('STEP 2: SELECT UNIVERSITY IN Delhi (NCT)'), findsOneWidget);
+
+      await db.close();
+    });
+
+    testWidgets('AppearanceScreen renders live preview, color mode cards, and aesthetic themes', (tester) async {
+      final db = AppDatabase.inMemory();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+          ],
+          child: const MaterialApp(
+            home: AppearanceScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Check header and live preview
+      expect(find.text('Appearance'), findsOneWidget);
+      expect(find.text('LIVE PREVIEW'), findsOneWidget);
+      expect(find.text('CS201 · Operating Systems'), findsOneWidget);
+
+      // Check 3 Color Mode visual cards
+      expect(find.text('COLOR MODE'), findsOneWidget);
+      expect(find.text('Light'), findsOneWidget);
+      expect(find.text('Dark'), findsOneWidget);
+      expect(find.text('System'), findsOneWidget);
+
+      // Check Aesthetic Theme Templates
+      expect(find.text('AESTHETIC TEMPLATES'), findsOneWidget);
+      expect(find.text('Classic Indigo'), findsOneWidget);
+      expect(find.text('Sakura Blossom'), findsOneWidget);
+      expect(find.text('Matcha Study'), findsOneWidget);
+      expect(find.text('Cozy Mocha'), findsOneWidget);
+      expect(find.text('Cyber Neon'), findsOneWidget);
+
+      // Tap an unlockable theme (Sakura Blossom)
+      await tester.scrollUntilVisible(find.text('Sakura Blossom'), 100);
+      await tester.tap(find.text('Sakura Blossom'));
+      await tester.pumpAndSettle();
+
+      // Verify bottom sheet opened with unlock action
+      expect(find.text('Watch Short Ad to Unlock Theme'), findsOneWidget);
+
+      // Tap unlock
+      await tester.tap(find.text('Watch Short Ad to Unlock Theme'));
+      await tester.pumpAndSettle();
+
+      // Verify theme became active
+      expect(find.text('Active'), findsOneWidget);
+
+      // Scroll down to Display Options
+      await tester.scrollUntilVisible(find.text('DISPLAY OPTIONS'), 100);
+      expect(find.text('DISPLAY OPTIONS'), findsOneWidget);
+      expect(find.text('Pure OLED Black'), findsOneWidget);
 
       await db.close();
     });
