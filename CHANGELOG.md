@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Multi-Room Timetable Resolution**: Dynamic support for subjects scheduled in different classrooms across different weekdays (e.g. Mon/Wed/Fri in Room 101, Tue/Thu in Lab B) with 1-tap bulk apply across all days.
 - **Date-Specific Single-Day Overrides**: Reschedule or move individual class sessions for a single date without altering recurring weekly timetable templates.
 - **Dynamic Schedule & Analytics Breakdown**: Today dashboard, Calendar, and Attendance analytics dynamically compute per-day room locations and attendance stats directly from live SQLite.
+- **Native Split-per-ABI In-App Updater**: Added intelligent on-device architecture detection (`dart:ffi` `Abi.current()`) to automatically select and download matching APK architecture (ARM64, ARMv7, x86_64) directly from GitHub Releases.
 - **Dynamic Change Detection & Smart Button Locking**: Action buttons automatically lock and dim when no edits are detected and unlock immediately upon user input.
 - **Overflow-Free Action Sheets**: Fixed 56px bottom RenderFlex overflow in quick-action menus using responsive constraints and momentum scroll physics.
 - **Automated Backup Timing & Frequency Verification**: Fixed backup duration calculations and robust background check routines.

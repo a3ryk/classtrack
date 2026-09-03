@@ -18,6 +18,7 @@ class AppReleaseNotes {
         '✨ Multi-Room Timetable Resolution: Support for subjects held across different classrooms on different days (e.g., Mon/Wed/Fri in Room 101, Tue/Thu in Lab B) with 1-tap bulk apply',
         '✨ Date-Specific Room & Time Overrides: Reschedule or move individual class sessions for a single date without altering recurring weekly timetable templates',
         '✨ Dynamic Schedule & Analytics Breakdown: Today screen, Calendar, and Attendance analytics dynamically resolve per-day room locations and attendance outcomes',
+        '✨ Native Split-per-ABI In-App Updater: Smart on-device architecture detection (ARM64, ARMv7, x86_64) ensuring fast, lightweight, and exact-match APK downloads directly from GitHub Releases',
         '✨ Overflow-Free Scrollable Action Sheets: Fixed RenderFlex overflow in quick-action bottom sheets with responsive constraints and momentum scroll physics',
         '✨ Smart Change Detection & Dynamic Button Locking: Action buttons lock and dim automatically when no edits are detected and unlock instantly on modification',
         '✨ Auto-Backup Frequency & Time Calculation: Accurate duration evaluation and background verification for scheduled automated database backups',
