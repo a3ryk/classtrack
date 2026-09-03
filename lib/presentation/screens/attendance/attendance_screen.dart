@@ -318,6 +318,28 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                 (s) => s.id == stat.subjectId,
                 orElse: () => subjects.first,
               );
+              final allSlots = ref.watch(timetableSlotsProvider);
+              final subSlots = allSlots.where((s) => s.subjectComponentId == stat.subjectId).toList();
+
+              String? roomSummary;
+              if (subSlots.isNotEmpty) {
+                final Map<String, List<String>> roomDays = {};
+                const dayAbbrs = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                for (final slot in subSlots) {
+                  final roomName = (slot.room != null && slot.room!.trim().isNotEmpty)
+                      ? (slot.room!.toLowerCase().contains('room') || slot.room!.toLowerCase().contains('lab')
+                          ? slot.room!.trim()
+                          : 'Room ${slot.room!.trim()}')
+                      : 'No Room Set';
+                  final dayStr = (slot.dayOfWeek >= 1 && slot.dayOfWeek <= 7)
+                      ? dayAbbrs[slot.dayOfWeek - 1]
+                      : 'Day ${slot.dayOfWeek}';
+                  roomDays.putIfAbsent(roomName, () => []).add(dayStr);
+                }
+                roomSummary = roomDays.entries
+                    .map((e) => '${e.key} (${e.value.join(", ")})')
+                    .join('  •  ');
+              }
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
@@ -391,6 +413,31 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                           letterSpacing: -0.2,
                         ),
                       ),
+                      if (roomSummary != null && roomSummary.isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.meeting_room_outlined,
+                              size: 13,
+                              color: isDark ? AppColors.accentIndigoDark : AppColors.accentIndigoLight,
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                roomSummary,
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w500,
+                                  color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                       const SizedBox(height: 10),
                       ClipRRect(
                         borderRadius: BorderRadius.circular(3),

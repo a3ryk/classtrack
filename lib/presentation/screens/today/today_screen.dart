@@ -12,7 +12,10 @@ import '../../providers/app_state_provider.dart';
 import '../../widgets/attendance_ring_widget.dart';
 import '../../widgets/today_class_card.dart';
 import '../../widgets/edit_semester_dialog.dart';
+import '../schedule/add_edit_slot_screen.dart';
 import '../schedule/manage_subject_slots_screen.dart';
+import '../schedule/reschedule_session_screen.dart';
+import '../schedule/subject_room_manager_screen.dart';
 import '../settings/settings_screen.dart';
 
 class TodayScreen extends ConsumerStatefulWidget {
@@ -473,279 +476,227 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: isDark ? AppColors.cardDark : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
         return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
-                      borderRadius: BorderRadius.circular(2),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.85,
+            ),
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  session.subjectName,
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                  const SizedBox(height: 14),
+                  Text(
+                    session.subjectName,
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '${DateFormatter.formatTime12h(session.startTime)} – ${DateFormatter.formatTime12h(session.endTime)}  •  ${session.componentType}',
-                  style: TextStyle(fontSize: 12, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
-                ),
-                const SizedBox(height: 16),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${DateFormatter.formatTime12h(session.startTime)} – ${DateFormatter.formatTime12h(session.endTime)}  •  ${session.componentType}',
+                    style: TextStyle(fontSize: 12, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                  ),
+                  const SizedBox(height: 16),
 
-                ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.pillDark : const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(8),
+                  ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.pillDark : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(Icons.edit_calendar_rounded, size: 16, color: isDark ? AppColors.accentIndigoDark : AppColors.accentIndigoLight),
                     ),
-                    child: Icon(Icons.edit_calendar_rounded, size: 16, color: isDark ? AppColors.accentIndigoDark : AppColors.accentIndigoLight),
-                  ),
-                  title: const Text('Reschedule for today only', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                  subtitle: const Text('Change time/room without altering weekly schedule', style: TextStyle(fontSize: 11)),
-                  trailing: const Icon(Icons.chevron_right_rounded, size: 18),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _showRescheduleDateDialog(context, session, dateIso);
-                  },
-                ),
-
-                ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF4C0519).withValues(alpha: 0.3) : const Color(0xFFFEE2E2),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.delete_outline_rounded, size: 16, color: AppColors.absentRed),
-                  ),
-                  title: const Text('Remove for today only', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                  subtitle: const Text('Erase this session from today\'s schedule', style: TextStyle(fontSize: 11)),
-                  trailing: const Icon(Icons.chevron_right_rounded, size: 18),
-                  onTap: () async {
-                    Navigator.pop(ctx);
-                    if (session.sourceRefId != null) {
-                      await ref.read(scheduleExceptionsProvider.notifier).addOrUpdateException(
-                        timetableSlotId: session.sourceRefId!,
-                        exceptionDate: dateIso,
-                        actionType: 'CANCELLED',
+                    title: const Text('Change room / time for today only', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                    subtitle: const Text('Override today without altering weekly timetable', style: TextStyle(fontSize: 11)),
+                    trailing: const Icon(Icons.chevron_right_rounded, size: 18),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => RescheduleSessionScreen(
+                            session: session,
+                            dateIso: dateIso,
+                          ),
+                        ),
                       );
-                      if (context.mounted) {
-                        AppToast.info(context, 'Removed ${session.subjectName} for today');
-                      }
-                    }
-                  },
-                ),
-
-                ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.pillDark : const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(Icons.tune_rounded, size: 16, color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
+                    },
                   ),
-                  title: const Text('Manage all slots for this subject', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                  subtitle: const Text('View and bulk edit all days this subject is scheduled', style: TextStyle(fontSize: 11)),
-                  trailing: const Icon(Icons.chevron_right_rounded, size: 18),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    final subjects = ref.read(subjectsProvider);
-                    final sub = subjects.firstWhere(
-                      (s) => s.id == session.subjectComponentId,
-                      orElse: () => SubjectEntity(
-                        id: session.subjectComponentId,
-                        semesterId: session.semesterId,
-                        name: session.subjectName,
-                        category: session.category,
-                        credits: 3,
-                        targetAttendancePct: 75.0,
-                        baselineHeld: 0,
-                        baselineAttended: 0,
-                        isArchived: false,
-                        colorHex: session.colorHex,
-                        components: [],
+
+                  ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.pillDark : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                    );
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ManageSubjectSlotsScreen(subject: sub),
+                      child: Icon(Icons.meeting_room_outlined, size: 16, color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
+                    ),
+                    title: const Text('Manage rooms for this subject', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                    subtitle: const Text('Set or customize rooms for all days of this subject', style: TextStyle(fontSize: 11)),
+                    trailing: const Icon(Icons.chevron_right_rounded, size: 18),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      final subjects = ref.read(subjectsProvider);
+                      final sub = subjects.firstWhere(
+                        (s) => s.id == session.subjectComponentId,
+                        orElse: () => SubjectEntity(
+                          id: session.subjectComponentId,
+                          semesterId: session.semesterId,
+                          name: session.subjectName,
+                          category: session.category,
+                          credits: 3,
+                          targetAttendancePct: 75.0,
+                          baselineHeld: 0,
+                          baselineAttended: 0,
+                          isArchived: false,
+                          colorHex: session.colorHex,
+                          components: [],
+                        ),
+                      );
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SubjectRoomManagerScreen(
+                            subject: sub,
+                            initialRoom: session.room,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+
+                  ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.pillDark : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                    );
-                  },
-                ),
-              ],
+                      child: Icon(Icons.edit_note_rounded, size: 16, color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
+                    ),
+                    title: const Text('Edit this weekly slot permanently', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                    subtitle: const Text('Change time, room, or teacher for this recurring day', style: TextStyle(fontSize: 11)),
+                    trailing: const Icon(Icons.chevron_right_rounded, size: 18),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AddEditSlotScreen(
+                            existingSlot: session,
+                            initialDayOfWeek: session.dayOfWeek ?? DateFormatter.getDayOfWeek(DateTime.now()),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+
+                  ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF4C0519).withValues(alpha: 0.3) : const Color(0xFFFEE2E2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.delete_outline_rounded, size: 16, color: AppColors.absentRed),
+                    ),
+                    title: const Text('Remove for today only', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                    subtitle: const Text('Erase this session from today\'s schedule', style: TextStyle(fontSize: 11)),
+                    trailing: const Icon(Icons.chevron_right_rounded, size: 18),
+                    onTap: () async {
+                      Navigator.pop(ctx);
+                      if (session.sourceRefId != null) {
+                        await ref.read(scheduleExceptionsProvider.notifier).addOrUpdateException(
+                          timetableSlotId: session.sourceRefId!,
+                          exceptionDate: dateIso,
+                          actionType: 'CANCELLED',
+                        );
+                        if (context.mounted) {
+                          AppToast.info(context, 'Removed ${session.subjectName} for today');
+                        }
+                      }
+                    },
+                  ),
+
+                  ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.pillDark : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(Icons.tune_rounded, size: 16, color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
+                    ),
+                    title: const Text('Manage all slots for this subject', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                    subtitle: const Text('View, add, and customize all weekly days and times', style: TextStyle(fontSize: 11)),
+                    trailing: const Icon(Icons.chevron_right_rounded, size: 18),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      final subjects = ref.read(subjectsProvider);
+                      final sub = subjects.firstWhere(
+                        (s) => s.id == session.subjectComponentId,
+                        orElse: () => SubjectEntity(
+                          id: session.subjectComponentId,
+                          semesterId: session.semesterId,
+                          name: session.subjectName,
+                          category: session.category,
+                          credits: 3,
+                          targetAttendancePct: 75.0,
+                          baselineHeld: 0,
+                          baselineAttended: 0,
+                          isArchived: false,
+                          colorHex: session.colorHex,
+                          components: [],
+                        ),
+                      );
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ManageSubjectSlotsScreen(subject: sub),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
         );
       },
-    );
-  }
-
-  void _showRescheduleDateDialog(BuildContext context, ClassSessionEntity session, String dateIso) async {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    TimeOfDay newStart = const TimeOfDay(hour: 9, minute: 0);
-    TimeOfDay newEnd = const TimeOfDay(hour: 10, minute: 0);
-    final roomController = TextEditingController(text: session.room ?? '');
-
-    try {
-      final s = session.startTime.split(':');
-      newStart = TimeOfDay(hour: int.parse(s[0]), minute: int.parse(s[1]));
-      final e = session.endTime.split(':');
-      newEnd = TimeOfDay(hour: int.parse(e[0]), minute: int.parse(e[1]));
-    } catch (_) {}
-
-    await showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) {
-          return AlertDialog(
-            backgroundColor: isDark ? AppColors.cardDark : Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: const Text('Reschedule for Today'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Changing time/room for ${session.subjectName} on $dateIso only.',
-                  style: TextStyle(fontSize: 12, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: () async {
-                          final p = await showTimePicker(context: ctx, initialTime: newStart);
-                          if (p != null) setDialogState(() => newStart = p);
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: isDark ? AppColors.surfaceDark : const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Start Time', style: TextStyle(fontSize: 10, color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight)),
-                              Text('${newStart.hour.toString().padLeft(2, "0")}:${newStart.minute.toString().padLeft(2, "0")}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: InkWell(
-                        onTap: () async {
-                          final p = await showTimePicker(context: ctx, initialTime: newEnd);
-                          if (p != null) setDialogState(() => newEnd = p);
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: isDark ? AppColors.surfaceDark : const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('End Time', style: TextStyle(fontSize: 10, color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight)),
-                              Text('${newEnd.hour.toString().padLeft(2, "0")}:${newEnd.minute.toString().padLeft(2, "0")}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: roomController,
-                  style: const TextStyle(fontSize: 13),
-                  decoration: InputDecoration(
-                    hintText: 'New Room / Lab (Optional)',
-                    filled: true,
-                    fillColor: isDark ? AppColors.surfaceDark : const Color(0xFFF8FAFC),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0))),
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(
-                  'Cancel',
-                  style: TextStyle(
-                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                  foregroundColor: isDark ? AppColors.bgDark : Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                onPressed: () async {
-                  final startStr = '${newStart.hour.toString().padLeft(2, "0")}:${newStart.minute.toString().padLeft(2, "0")}';
-                  final endStr = '${newEnd.hour.toString().padLeft(2, "0")}:${newEnd.minute.toString().padLeft(2, "0")}';
-                  if (session.sourceRefId != null) {
-                    await ref.read(scheduleExceptionsProvider.notifier).addOrUpdateException(
-                      timetableSlotId: session.sourceRefId!,
-                      exceptionDate: dateIso,
-                      actionType: 'MOVED',
-                      newStartTime: startStr,
-                      newEndTime: endStr,
-                      newRoom: roomController.text.trim().isNotEmpty ? roomController.text.trim() : null,
-                    );
-                  }
-                  if (ctx.mounted) {
-                    Navigator.pop(ctx);
-                    AppToast.success(context, 'Rescheduled for today');
-                  }
-                },
-                child: const Text('Save Change', style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
-            ],
-          );
-        },
-      ),
     );
   }
 }

@@ -441,9 +441,18 @@ class _ManageSubjectSlotsScreenState extends ConsumerState<ManageSubjectSlotsScr
                   const SizedBox(height: 10),
                   TextField(
                     controller: _bulkRoomController,
-                    style: const TextStyle(fontSize: 13),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                    ),
                     decoration: InputDecoration(
                       hintText: 'Room / Lab (e.g. Lab 204)',
+                      hintStyle: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.normal,
+                        color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                      ),
                       filled: true,
                       fillColor: isDark ? AppColors.cardDark : Colors.white,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -453,9 +462,18 @@ class _ManageSubjectSlotsScreenState extends ConsumerState<ManageSubjectSlotsScr
                   const SizedBox(height: 10),
                   TextField(
                     controller: _bulkTeacherController,
-                    style: const TextStyle(fontSize: 13),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                    ),
                     decoration: InputDecoration(
                       hintText: 'Instructor / Faculty Name (Optional)',
+                      hintStyle: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.normal,
+                        color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                      ),
                       filled: true,
                       fillColor: isDark ? AppColors.cardDark : Colors.white,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),

@@ -9,7 +9,10 @@ import '../../../domain/entities/class_session_entity.dart';
 import '../../../domain/entities/subject_entity.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/edit_semester_dialog.dart';
+import '../schedule/add_edit_slot_screen.dart';
 import '../schedule/manage_subject_slots_screen.dart';
+import '../schedule/reschedule_session_screen.dart';
+import '../schedule/subject_room_manager_screen.dart';
 
 enum CalendarViewMode {
   week,
@@ -922,74 +925,184 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
     );
   }
 
-   void _showQuickAttendancePicker(BuildContext context, ClassSessionEntity session, String dateIso) {
+  void _showQuickAttendancePicker(BuildContext context, ClassSessionEntity session, String dateIso) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isPastOrToday = dateIso.compareTo(DateFormatter.toIsoDate(DateTime.now())) <= 0;
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: isDark ? AppColors.cardDark : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
         return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-
-                // Header
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            session.subjectName,
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w700,
-                              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '${DateFormatter.formatTime12h(session.startTime)} – ${DateFormatter.formatTime12h(session.endTime)}  •  $dateIso',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                            ),
-                          ),
-                        ],
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.85,
+            ),
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.close_rounded, size: 20),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
+                  ),
+                  const SizedBox(height: 14),
 
-                // 1-TAP ATTENDANCE BUTTONS (if today or past)
-                if (isPastOrToday) ...[
+                  // Header
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              session.subjectName,
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w700,
+                                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${DateFormatter.formatTime12h(session.startTime)} – ${DateFormatter.formatTime12h(session.endTime)}  •  $dateIso',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded, size: 20),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 1-TAP ATTENDANCE BUTTONS (if today or past)
+                  if (isPastOrToday) ...[
+                    Text(
+                      'MARK ATTENDANCE:',
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.6,
+                        color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: session.attendanceOutcome == 'PRESENT'
+                                  ? AppColors.presentGreen
+                                  : (isDark ? const Color(0xFF064E3B).withValues(alpha: 0.3) : AppColors.presentContainerLight),
+                              foregroundColor: session.attendanceOutcome == 'PRESENT'
+                                  ? Colors.white
+                                  : (isDark ? AppColors.presentGreenDark : AppColors.presentGreenText),
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            icon: const Icon(Icons.check_rounded, size: 16),
+                            label: const Text('Present', style: TextStyle(fontWeight: FontWeight.w600)),
+                            onPressed: () {
+                              Navigator.pop(context);
+                              ref.read(attendanceRecordsProvider.notifier).markAttendance(
+                                sessionId: session.id,
+                                slotId: session.sourceRefId ?? session.id,
+                                subjectId: session.subjectComponentId,
+                                sessionDate: dateIso,
+                                outcome: 'PRESENT',
+                              );
+                              AppToast.success(context, 'Marked Present for ${session.subjectName}');
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: session.attendanceOutcome == 'ABSENT'
+                                  ? AppColors.absentRed
+                                  : (isDark ? const Color(0xFF4C0519).withValues(alpha: 0.3) : AppColors.absentContainerLight),
+                              foregroundColor: session.attendanceOutcome == 'ABSENT'
+                                  ? Colors.white
+                                  : (isDark ? const Color(0xFFFB7185) : AppColors.absentRedText),
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            icon: const Icon(Icons.close_rounded, size: 16),
+                            label: const Text('Absent', style: TextStyle(fontWeight: FontWeight.w600)),
+                            onPressed: () {
+                              Navigator.pop(context);
+                              ref.read(attendanceRecordsProvider.notifier).markAttendance(
+                                sessionId: session.id,
+                                slotId: session.sourceRefId ?? session.id,
+                                subjectId: session.subjectComponentId,
+                                sessionDate: dateIso,
+                                outcome: 'ABSENT',
+                              );
+                              AppToast.info(context, 'Marked Absent for ${session.subjectName}');
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: session.attendanceOutcome == 'CANCELLED'
+                                  ? AppColors.cancelledViolet
+                                  : (isDark ? const Color(0xFF2E1065).withValues(alpha: 0.3) : AppColors.cancelledContainerLight),
+                              foregroundColor: session.attendanceOutcome == 'CANCELLED'
+                                  ? Colors.white
+                                  : (isDark ? const Color(0xFFA78BFA) : AppColors.cancelledVioletText),
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            icon: const Icon(Icons.block_rounded, size: 16),
+                            label: const Text('Cancelled', style: TextStyle(fontWeight: FontWeight.w600)),
+                            onPressed: () {
+                              Navigator.pop(context);
+                              ref.read(attendanceRecordsProvider.notifier).markAttendance(
+                                sessionId: session.id,
+                                slotId: session.sourceRefId ?? session.id,
+                                subjectId: session.subjectComponentId,
+                                sessionDate: dateIso,
+                                outcome: 'CANCELLED',
+                              );
+                              AppToast.info(context, 'Marked Cancelled for ${session.subjectName}');
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+
+                  // SCHEDULE ACTIONS SECTION
                   Text(
-                    'MARK ATTENDANCE:',
+                    'SCHEDULE ACTIONS:',
                     style: TextStyle(
                       fontSize: 10.5,
                       fontWeight: FontWeight.bold,
@@ -998,349 +1111,189 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: session.attendanceOutcome == 'PRESENT'
-                                ? AppColors.presentGreen
-                                : (isDark ? const Color(0xFF064E3B).withValues(alpha: 0.3) : AppColors.presentContainerLight),
-                            foregroundColor: session.attendanceOutcome == 'PRESENT'
-                                ? Colors.white
-                                : (isDark ? AppColors.presentGreenDark : AppColors.presentGreenText),
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                          icon: const Icon(Icons.check_rounded, size: 16),
-                          label: const Text('Present', style: TextStyle(fontWeight: FontWeight.w600)),
-                          onPressed: () {
-                            Navigator.pop(context);
-                            ref.read(attendanceRecordsProvider.notifier).markAttendance(
-                              sessionId: session.id,
-                              slotId: session.sourceRefId ?? session.id,
-                              subjectId: session.subjectComponentId,
-                              sessionDate: dateIso,
-                              outcome: 'PRESENT',
-                            );
-                            AppToast.success(context, 'Marked Present for ${session.subjectName}');
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: session.attendanceOutcome == 'ABSENT'
-                                ? AppColors.absentRed
-                                : (isDark ? const Color(0xFF4C0519).withValues(alpha: 0.3) : AppColors.absentContainerLight),
-                            foregroundColor: session.attendanceOutcome == 'ABSENT'
-                                ? Colors.white
-                                : (isDark ? const Color(0xFFFB7185) : AppColors.absentRedText),
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                          icon: const Icon(Icons.close_rounded, size: 16),
-                          label: const Text('Absent', style: TextStyle(fontWeight: FontWeight.w600)),
-                          onPressed: () {
-                            Navigator.pop(context);
-                            ref.read(attendanceRecordsProvider.notifier).markAttendance(
-                              sessionId: session.id,
-                              slotId: session.sourceRefId ?? session.id,
-                              subjectId: session.subjectComponentId,
-                              sessionDate: dateIso,
-                              outcome: 'ABSENT',
-                            );
-                            AppToast.info(context, 'Marked Absent for ${session.subjectName}');
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: session.attendanceOutcome == 'CANCELLED'
-                                ? AppColors.cancelledViolet
-                                : (isDark ? const Color(0xFF2E1065).withValues(alpha: 0.3) : AppColors.cancelledContainerLight),
-                            foregroundColor: session.attendanceOutcome == 'CANCELLED'
-                                ? Colors.white
-                                : (isDark ? const Color(0xFFA78BFA) : AppColors.cancelledVioletText),
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                          icon: const Icon(Icons.block_rounded, size: 16),
-                          label: const Text('Cancelled', style: TextStyle(fontWeight: FontWeight.w600)),
-                          onPressed: () {
-                            Navigator.pop(context);
-                            ref.read(attendanceRecordsProvider.notifier).markAttendance(
-                              sessionId: session.id,
-                              slotId: session.sourceRefId ?? session.id,
-                              subjectId: session.subjectComponentId,
-                              sessionDate: dateIso,
-                              outcome: 'CANCELLED',
-                            );
-                            AppToast.info(context, 'Marked Cancelled for ${session.subjectName}');
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                ],
 
-                // SCHEDULE ACTIONS SECTION
-                Text(
-                  'SCHEDULE ACTIONS:',
-                  style: TextStyle(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.6,
-                    color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
-                  ),
-                ),
-                const SizedBox(height: 8),
-
-                // Reschedule for this date only
-                ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.pillDark : const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(8),
+                  // Reschedule for this date only
+                  ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.pillDark : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(Icons.edit_calendar_rounded, size: 16, color: isDark ? AppColors.accentIndigoDark : AppColors.accentIndigoLight),
                     ),
-                    child: Icon(Icons.edit_calendar_rounded, size: 16, color: isDark ? AppColors.accentIndigoDark : AppColors.accentIndigoLight),
-                  ),
-                  title: const Text('Reschedule for this date only', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                  subtitle: const Text('Change time/room without affecting weekly timetable', style: TextStyle(fontSize: 11)),
-                  trailing: const Icon(Icons.chevron_right_rounded, size: 18),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _showRescheduleDateDialog(context, session, dateIso);
-                  },
-                ),
-
-                // Cancel class for this date only
-                ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF4C0519).withValues(alpha: 0.3) : const Color(0xFFFEE2E2),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.delete_outline_rounded, size: 16, color: AppColors.absentRed),
-                  ),
-                  title: const Text('Remove from this date only', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                  subtitle: const Text('Erase this session from this date\'s schedule', style: TextStyle(fontSize: 11)),
-                  trailing: const Icon(Icons.chevron_right_rounded, size: 18),
-                  onTap: () async {
-                    Navigator.pop(context);
-                    if (session.sourceRefId != null) {
-                      await ref.read(scheduleExceptionsProvider.notifier).addOrUpdateException(
-                        timetableSlotId: session.sourceRefId!,
-                        exceptionDate: dateIso,
-                        actionType: 'CANCELLED',
+                    title: const Text('Change room / time for this date only', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                    subtitle: const Text('Override this date without affecting weekly timetable', style: TextStyle(fontSize: 11)),
+                    trailing: const Icon(Icons.chevron_right_rounded, size: 18),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => RescheduleSessionScreen(
+                            session: session,
+                            dateIso: dateIso,
+                          ),
+                        ),
                       );
-                      if (context.mounted) {
-                        AppToast.info(context, 'Removed ${session.subjectName} for $dateIso');
-                      }
-                    }
-                  },
-                ),
-
-                // Edit master slot or manage all slots
-                ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.pillDark : const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(Icons.tune_rounded, size: 16, color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
+                    },
                   ),
-                  title: const Text('Manage all slots for this subject', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                  subtitle: const Text('View and bulk edit all days this subject is scheduled', style: TextStyle(fontSize: 11)),
-                  trailing: const Icon(Icons.chevron_right_rounded, size: 18),
-                  onTap: () {
-                    Navigator.pop(context);
-                    final subjects = ref.read(subjectsProvider);
-                    final sub = subjects.firstWhere(
-                      (s) => s.id == session.subjectComponentId,
-                      orElse: () => SubjectEntity(
-                        id: session.subjectComponentId,
-                        semesterId: session.semesterId,
-                        name: session.subjectName,
-                        category: session.category,
-                        credits: 3,
-                        targetAttendancePct: 75.0,
-                        baselineHeld: 0,
-                        baselineAttended: 0,
-                        isArchived: false,
-                        colorHex: session.colorHex,
-                        components: [],
+
+                  // Update room for all weekly slots of this subject
+                  ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.pillDark : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                    );
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ManageSubjectSlotsScreen(subject: sub),
+                      child: Icon(Icons.meeting_room_outlined, size: 16, color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
+                    ),
+                    title: const Text('Manage rooms for this subject', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                    subtitle: const Text('Set or customize rooms for all days of this subject', style: TextStyle(fontSize: 11)),
+                    trailing: const Icon(Icons.chevron_right_rounded, size: 18),
+                    onTap: () {
+                      Navigator.pop(context);
+                      final subjects = ref.read(subjectsProvider);
+                      final sub = subjects.firstWhere(
+                        (s) => s.id == session.subjectComponentId,
+                        orElse: () => SubjectEntity(
+                          id: session.subjectComponentId,
+                          semesterId: session.semesterId,
+                          name: session.subjectName,
+                          category: session.category,
+                          credits: 3,
+                          targetAttendancePct: 75.0,
+                          baselineHeld: 0,
+                          baselineAttended: 0,
+                          isArchived: false,
+                          colorHex: session.colorHex,
+                          components: [],
+                        ),
+                      );
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SubjectRoomManagerScreen(
+                            subject: sub,
+                            initialRoom: session.room,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+
+                  // Edit this recurring weekly slot permanently
+                  ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.pillDark : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                    );
-                  },
-                ),
-              ],
+                      child: Icon(Icons.edit_note_rounded, size: 16, color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
+                    ),
+                    title: const Text('Edit this weekly slot permanently', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                    subtitle: const Text('Change time, room, or teacher for this recurring day', style: TextStyle(fontSize: 11)),
+                    trailing: const Icon(Icons.chevron_right_rounded, size: 18),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AddEditSlotScreen(
+                            existingSlot: session,
+                            initialDayOfWeek: session.dayOfWeek ?? DateFormatter.getDayOfWeek(DateTime.tryParse(dateIso) ?? DateTime.now()),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+
+                  // Cancel class for this date only
+                  ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF4C0519).withValues(alpha: 0.3) : const Color(0xFFFEE2E2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.delete_outline_rounded, size: 16, color: AppColors.absentRed),
+                    ),
+                    title: const Text('Remove from this date only', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                    subtitle: const Text('Erase this session from this date\'s schedule', style: TextStyle(fontSize: 11)),
+                    trailing: const Icon(Icons.chevron_right_rounded, size: 18),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      if (session.sourceRefId != null) {
+                        await ref.read(scheduleExceptionsProvider.notifier).addOrUpdateException(
+                          timetableSlotId: session.sourceRefId!,
+                          exceptionDate: dateIso,
+                          actionType: 'CANCELLED',
+                        );
+                        if (context.mounted) {
+                          AppToast.info(context, 'Removed ${session.subjectName} for $dateIso');
+                        }
+                      }
+                    },
+                  ),
+
+                  // Edit master slot or manage all slots
+                  ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.pillDark : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(Icons.tune_rounded, size: 16, color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
+                    ),
+                    title: const Text('Manage all slots for this subject', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                    subtitle: const Text('View, add, and customize all weekly days and rooms', style: TextStyle(fontSize: 11)),
+                    trailing: const Icon(Icons.chevron_right_rounded, size: 18),
+                    onTap: () {
+                      Navigator.pop(context);
+                      final subjects = ref.read(subjectsProvider);
+                      final sub = subjects.firstWhere(
+                        (s) => s.id == session.subjectComponentId,
+                        orElse: () => SubjectEntity(
+                          id: session.subjectComponentId,
+                          semesterId: session.semesterId,
+                          name: session.subjectName,
+                          category: session.category,
+                          credits: 3,
+                          targetAttendancePct: 75.0,
+                          baselineHeld: 0,
+                          baselineAttended: 0,
+                          isArchived: false,
+                          colorHex: session.colorHex,
+                          components: [],
+                        ),
+                      );
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ManageSubjectSlotsScreen(subject: sub),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
         );
       },
-    );
-  }
-
-  void _showRescheduleDateDialog(BuildContext context, ClassSessionEntity session, String dateIso) async {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    TimeOfDay newStart = const TimeOfDay(hour: 9, minute: 0);
-    TimeOfDay newEnd = const TimeOfDay(hour: 10, minute: 0);
-    final roomController = TextEditingController(text: session.room ?? '');
-
-    try {
-      final s = session.startTime.split(':');
-      newStart = TimeOfDay(hour: int.parse(s[0]), minute: int.parse(s[1]));
-      final e = session.endTime.split(':');
-      newEnd = TimeOfDay(hour: int.parse(e[0]), minute: int.parse(e[1]));
-    } catch (_) {}
-
-    await showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) {
-          return AlertDialog(
-            backgroundColor: isDark ? AppColors.cardDark : Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: Text('Reschedule for $dateIso'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Changing time/room for ${session.subjectName} on $dateIso only.',
-                  style: TextStyle(fontSize: 12, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: () async {
-                          final p = await showTimePicker(context: ctx, initialTime: newStart);
-                          if (p != null) setDialogState(() => newStart = p);
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: isDark ? AppColors.surfaceDark : const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Start Time', style: TextStyle(fontSize: 10, color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight)),
-                              Text('${newStart.hour.toString().padLeft(2, "0")}:${newStart.minute.toString().padLeft(2, "0")}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: InkWell(
-                        onTap: () async {
-                          final p = await showTimePicker(context: ctx, initialTime: newEnd);
-                          if (p != null) setDialogState(() => newEnd = p);
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: isDark ? AppColors.surfaceDark : const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('End Time', style: TextStyle(fontSize: 10, color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight)),
-                              Text('${newEnd.hour.toString().padLeft(2, "0")}:${newEnd.minute.toString().padLeft(2, "0")}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: roomController,
-                  style: const TextStyle(fontSize: 13),
-                  decoration: InputDecoration(
-                    hintText: 'New Room / Lab (Optional)',
-                    filled: true,
-                    fillColor: isDark ? AppColors.surfaceDark : const Color(0xFFF8FAFC),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0))),
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(
-                  'Cancel',
-                  style: TextStyle(
-                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                  foregroundColor: isDark ? AppColors.bgDark : Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                onPressed: () async {
-                  final startStr = '${newStart.hour.toString().padLeft(2, "0")}:${newStart.minute.toString().padLeft(2, "0")}';
-                  final endStr = '${newEnd.hour.toString().padLeft(2, "0")}:${newEnd.minute.toString().padLeft(2, "0")}';
-                  if (session.sourceRefId != null) {
-                    await ref.read(scheduleExceptionsProvider.notifier).addOrUpdateException(
-                      timetableSlotId: session.sourceRefId!,
-                      exceptionDate: dateIso,
-                      actionType: 'MOVED',
-                      newStartTime: startStr,
-                      newEndTime: endStr,
-                      newRoom: roomController.text.trim().isNotEmpty ? roomController.text.trim() : null,
-                    );
-                  }
-                  if (ctx.mounted) {
-                    Navigator.pop(ctx);
-                    AppToast.success(context, 'Rescheduled for $dateIso');
-                  }
-                },
-                child: const Text('Save Change', style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
-            ],
-          );
-        },
-      ),
     );
   }
 
@@ -1444,9 +1397,14 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                 const SizedBox(height: 10),
                 TextField(
                   controller: extraRoomController,
-                  style: const TextStyle(fontSize: 13),
+                  style: TextStyle(fontSize: 13, color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
                   decoration: InputDecoration(
                     hintText: 'Room / Lab (Optional)',
+                    hintStyle: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.normal,
+                      color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                    ),
                     filled: true,
                     fillColor: isDark ? AppColors.surfaceDark : const Color(0xFFF8FAFC),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
@@ -1456,9 +1414,14 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                 const SizedBox(height: 8),
                 TextField(
                   controller: extraReasonController,
-                  style: const TextStyle(fontSize: 13),
+                  style: TextStyle(fontSize: 13, color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
                   decoration: InputDecoration(
                     hintText: 'Reason (e.g. Makeup Lab, Extra Lecture)',
+                    hintStyle: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.normal,
+                      color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                    ),
                     filled: true,
                     fillColor: isDark ? AppColors.surfaceDark : const Color(0xFFF8FAFC),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),

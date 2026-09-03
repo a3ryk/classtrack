@@ -238,6 +238,11 @@ class _SubjectSlotsManagerDialogState extends ConsumerState<SubjectSlotsManagerD
                       style: const TextStyle(fontSize: 12),
                       decoration: InputDecoration(
                         hintText: 'Room / Lab (e.g. Lab 204)',
+                        hintStyle: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.normal,
+                          color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                        ),
                         filled: true,
                         fillColor: isDark ? AppColors.cardDark : Colors.white,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
