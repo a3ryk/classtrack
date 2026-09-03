@@ -214,7 +214,7 @@ class TodayClassCard extends ConsumerWidget {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            'College Holiday · Class suspended (No penalty)',
+                            'College Holiday · Class suspended',
                             style: TextStyle(
                               fontSize: 11.5,
                               fontWeight: FontWeight.w600,

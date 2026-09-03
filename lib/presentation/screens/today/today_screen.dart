@@ -351,69 +351,91 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
 
             const SizedBox(height: 20),
 
-            if (isSelectedDateHoliday)
-              Container(
-                margin: const EdgeInsets.only(bottom: 16),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF78350F).withValues(alpha: 0.25) : const Color(0xFFFEF3C7),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: isDark ? const Color(0xFFB45309).withValues(alpha: 0.45) : const Color(0xFFFDE68A),
-                    width: 0.9,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF92400E).withValues(alpha: 0.4) : const Color(0xFFFDE68A),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.beach_access_rounded,
-                        size: 24,
-                        color: Color(0xFFD97706),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            currentHoliday?.title.isNotEmpty == true ? currentHoliday!.title : 'College Holiday Declared',
-                            style: TextStyle(
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.w800,
-                              color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
+            // Smooth & Soothing Holiday Banner Animation
+            AnimatedSize(
+              duration: const Duration(milliseconds: 320),
+              curve: Curves.easeOutCubic,
+              child: isSelectedDateHoliday
+                  ? Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: TweenAnimationBuilder<double>(
+                        tween: Tween<double>(begin: 0.0, end: 1.0),
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOutCubic,
+                        builder: (context, opacity, child) {
+                          return Opacity(
+                            opacity: opacity,
+                            child: Transform.translate(
+                              offset: Offset(0, 6 * (1 - opacity)),
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF78350F).withValues(alpha: 0.25) : const Color(0xFFFEF3C7),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: isDark ? const Color(0xFFB45309).withValues(alpha: 0.45) : const Color(0xFFFDE68A),
+                              width: 0.9,
                             ),
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Classes are suspended for today. Attendance percentages are preserved with zero penalties.',
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              height: 1.3,
-                              color: isDark ? const Color(0xFFFCD34D) : const Color(0xFF92400E),
-                            ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: isDark ? const Color(0xFF92400E).withValues(alpha: 0.4) : const Color(0xFFFDE68A),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(
+                                  Icons.beach_access_rounded,
+                                  size: 24,
+                                  color: Color(0xFFD97706),
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      currentHoliday?.title.isNotEmpty == true ? currentHoliday!.title : 'College Holiday Declared',
+                                      style: TextStyle(
+                                        fontSize: 14.5,
+                                        fontWeight: FontWeight.w800,
+                                        color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Classes are suspended for today.',
+                                      style: TextStyle(
+                                        fontSize: 11.5,
+                                        height: 1.3,
+                                        color: isDark ? const Color(0xFFFCD34D) : const Color(0xFF92400E),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () async {
+                                  await ref.read(holidaysProvider.notifier).removeHolidayForDate(selectedDateIso);
+                                  if (context.mounted) {
+                                    AppToast.info(context, 'Holiday removed for $selectedDateIso');
+                                  }
+                                },
+                                child: const Text('Undo', style: TextStyle(color: Color(0xFFD97706), fontWeight: FontWeight.bold, fontSize: 12)),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
-                    ),
-                    TextButton(
-                      onPressed: () async {
-                        await ref.read(holidaysProvider.notifier).removeHolidayForDate(selectedDateIso);
-                        if (context.mounted) {
-                          AppToast.info(context, 'Holiday removed for $selectedDateIso');
-                        }
-                      },
-                      child: const Text('Undo', style: TextStyle(color: Color(0xFFD97706), fontWeight: FontWeight.bold, fontSize: 12)),
-                    ),
-                  ],
-                ),
-              ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
 
             // Section Title: Upcoming Classes
             Padding(

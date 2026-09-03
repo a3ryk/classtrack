@@ -261,19 +261,21 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Calendar',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                      letterSpacing: -0.8,
+                  Expanded(
+                    child: Text(
+                      'Calendar',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w800,
+                        color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                        letterSpacing: -0.8,
+                      ),
                     ),
                   ),
 
-                    Row(
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       // Instant "Today" Button (Shown when not currently on today)
                       if (!isToday)
@@ -288,6 +290,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
                                     Icons.today_rounded,
@@ -320,6 +323,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                             border: Border.all(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0), width: 0.8),
                           ),
                           child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
                                 _viewMode == CalendarViewMode.week
@@ -351,37 +355,44 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   // Month/Year clickable button with Dropdown chevron
-                  TapScaleContainer(
-                    onTap: () => _showMonthYearPickerModal(context),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-                      child: Row(
-                        children: [
-                          Text(
-                            monthYearTitle,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                              letterSpacing: -0.2,
+                  Expanded(
+                    child: TapScaleContainer(
+                      onTap: () => _showMonthYearPickerModal(context),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                monthYearTitle,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                  letterSpacing: -0.2,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 4),
-                          Icon(
-                            Icons.keyboard_arrow_down_rounded,
-                            size: 18,
-                            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                          ),
-                        ],
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              size: 18,
+                              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
 
                   // Left & Right Arrow Navigation
                   Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       TactileIconButton(
                         icon: Icons.chevron_left_rounded,
@@ -404,23 +415,16 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
               ),
             ),
 
-            const SizedBox(height: 6),
+            const SizedBox(height: 10),
 
-            // Animated Calendar Container (Week Strip vs Full Month Grid)
-            GestureDetector(
-              onHorizontalDragEnd: (details) {
-                if (details.primaryVelocity != null) {
-                  if (details.primaryVelocity! < -200) {
-                    _nextPeriod();
-                  } else if (details.primaryVelocity! > 200) {
-                    _previousPeriod();
-                  }
-                }
-              },
-              child: AnimatedSize(
-                duration: const Duration(milliseconds: 250),
-                curve: Curves.easeInOutCubic,
-                alignment: Alignment.topCenter,
+            // Week Strip / Month Grid with Smooth View Transition
+            AnimatedSize(
+              duration: const Duration(milliseconds: 280),
+              curve: Curves.easeOutCubic,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 220),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
                 child: _viewMode == CalendarViewMode.week
                     ? _buildWeekStrip(isDark, getSessionsForDay)
                     : _buildMonthGrid(isDark, getSessionsForDay),
@@ -429,49 +433,47 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
 
             const SizedBox(height: 14),
 
-            // Subtle Full-Width Divider Line
-            Divider(
-              height: 1,
-              thickness: 1,
-              color: isDark ? AppColors.borderDark : const Color(0xFFF1F5F9),
-            ),
-
-            const SizedBox(height: 14),
-
             // Selected Date & Attended Status Header
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        dayHeaderTitle,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                          letterSpacing: -0.2,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          dayHeaderTitle,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                            letterSpacing: -0.2,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                      Text(
-                        isSelectedDateHoliday
-                            ? 'Holiday • No attendance penalty'
-                            : (totalHeld > 0 ? 'Attended $presentCount of $totalHeld' : 'No classes'),
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: isSelectedDateHoliday
-                              ? const Color(0xFFD97706)
-                              : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                        Text(
+                          isSelectedDateHoliday
+                              ? 'Holiday'
+                              : (totalHeld > 0 ? 'Attended $presentCount of $totalHeld' : 'No classes'),
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w500,
+                            color: isSelectedDateHoliday
+                                ? const Color(0xFFD97706)
+                                : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 6),
                   if (!ref.watch(activeSemesterProvider).isUnset)
                     Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         if (isSelectedDateHoliday)
                           InkWell(
@@ -483,8 +485,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                             },
                             borderRadius: BorderRadius.circular(8),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                              margin: const EdgeInsets.only(right: 6),
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4.5),
+                              margin: const EdgeInsets.only(right: 5),
                               decoration: BoxDecoration(
                                 color: isDark ? const Color(0xFF78350F).withValues(alpha: 0.3) : const Color(0xFFFEF3C7),
                                 borderRadius: BorderRadius.circular(8),
@@ -494,13 +496,14 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                                 ),
                               ),
                               child: Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.close_rounded, size: 13, color: Color(0xFFD97706)),
-                                  const SizedBox(width: 3),
+                                  const Icon(Icons.close_rounded, size: 12, color: Color(0xFFD97706)),
+                                  const SizedBox(width: 2.5),
                                   Text(
-                                    'Remove Holiday',
+                                    'Remove',
                                     style: TextStyle(
-                                      fontSize: 11,
+                                      fontSize: 10.5,
                                       fontWeight: FontWeight.bold,
                                       color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
                                     ),
@@ -514,8 +517,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                             onTap: () => _showDeclareHolidayDialog(context, _selectedDate),
                             borderRadius: BorderRadius.circular(8),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                              margin: const EdgeInsets.only(right: 6),
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4.5),
+                              margin: const EdgeInsets.only(right: 5),
                               decoration: BoxDecoration(
                                 color: isDark ? const Color(0xFF78350F).withValues(alpha: 0.2) : const Color(0xFFFEF3C7),
                                 borderRadius: BorderRadius.circular(8),
@@ -525,13 +528,14 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                                 ),
                               ),
                               child: Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.beach_access_rounded, size: 13, color: Color(0xFFD97706)),
-                                  const SizedBox(width: 3),
+                                  const Icon(Icons.beach_access_rounded, size: 12, color: Color(0xFFD97706)),
+                                  const SizedBox(width: 2.5),
                                   Text(
                                     '+ Holiday',
                                     style: TextStyle(
-                                      fontSize: 11,
+                                      fontSize: 10.5,
                                       fontWeight: FontWeight.bold,
                                       color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
                                     ),
@@ -544,7 +548,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                           onTap: () => _showAddExtraClassDialog(context, selectedDateIso),
                           borderRadius: BorderRadius.circular(8),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4.5),
                             decoration: BoxDecoration(
                               color: isDark ? AppColors.pillDark : const Color(0xFFEEF2FF),
                               borderRadius: BorderRadius.circular(8),
@@ -554,17 +558,18 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                               ),
                             ),
                             child: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
                                   Icons.add_rounded,
-                                  size: 14,
+                                  size: 13,
                                   color: isDark ? AppColors.accentIndigoDark : AppColors.accentIndigoLight,
                                 ),
-                                const SizedBox(width: 3),
+                                const SizedBox(width: 2.5),
                                 Text(
                                   'Extra Class',
                                   style: TextStyle(
-                                    fontSize: 11,
+                                    fontSize: 10.5,
                                     fontWeight: FontWeight.bold,
                                     color: isDark ? AppColors.accentIndigoDark : AppColors.accentIndigoLight,
                                   ),
@@ -579,37 +584,57 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
               ),
             ),
 
-            if (isSelectedDateHoliday)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF78350F).withValues(alpha: 0.25) : const Color(0xFFFEF3C7),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: isDark ? const Color(0xFFB45309).withValues(alpha: 0.4) : const Color(0xFFFDE68A),
-                      width: 0.8,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.beach_access_rounded, size: 16, color: Color(0xFFD97706)),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          '${currentHoliday?.title.isNotEmpty == true ? currentHoliday!.title : "College Holiday"} · Classes suspended',
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
-                            color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
+            // Smooth & Soothing Holiday Banner in Calendar Screen
+            AnimatedSize(
+              duration: const Duration(milliseconds: 320),
+              curve: Curves.easeOutCubic,
+              child: isSelectedDateHoliday
+                  ? Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+                      child: TweenAnimationBuilder<double>(
+                        tween: Tween<double>(begin: 0.0, end: 1.0),
+                        duration: const Duration(milliseconds: 280),
+                        curve: Curves.easeOutCubic,
+                        builder: (context, opacity, child) {
+                          return Opacity(
+                            opacity: opacity,
+                            child: Transform.translate(
+                              offset: Offset(0, 4 * (1 - opacity)),
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF78350F).withValues(alpha: 0.25) : const Color(0xFFFEF3C7),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: isDark ? const Color(0xFFB45309).withValues(alpha: 0.4) : const Color(0xFFFDE68A),
+                              width: 0.8,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.beach_access_rounded, size: 16, color: Color(0xFFD97706)),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  '${currentHoliday?.title.isNotEmpty == true ? currentHoliday!.title : "College Holiday"} · Classes suspended',
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
 
             const SizedBox(height: 12),
 
@@ -860,15 +885,14 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
             }
           }
 
-          return InkWell(
-            onTap: () {
-              setState(() {
-                _selectedDate = date;
-              });
-            },
-            borderRadius: BorderRadius.circular(24),
-            child: SizedBox(
-              width: 44,
+          return Expanded(
+            child: InkWell(
+              onTap: () {
+                setState(() {
+                  _selectedDate = date;
+                });
+              },
+              borderRadius: BorderRadius.circular(24),
               child: Column(
                 children: [
                   Text(
@@ -883,8 +907,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     curve: Curves.easeOutBack,
-                    width: 38,
-                    height: 38,
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
                       color: isSelected
                           ? (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight)
@@ -895,7 +919,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                     child: Text(
                       '${date.day}',
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: isSelected
                             ? (isDark ? AppColors.bgDark : AppColors.surfaceLight)

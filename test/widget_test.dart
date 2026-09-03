@@ -30,6 +30,8 @@ import 'package:classtrack/presentation/screens/schedule/reschedule_session_scre
 import 'package:classtrack/presentation/screens/schedule/subject_room_manager_screen.dart';
 import 'package:classtrack/presentation/widgets/update_available_dialog.dart';
 import 'package:classtrack/presentation/widgets/declare_holiday_dialog.dart';
+import 'package:classtrack/presentation/screens/calendar/calendar_screen.dart';
+import 'package:classtrack/core/utils/date_formatter.dart';
 
 void main() {
   group('AttendanceMathService Tests', () {
@@ -1871,6 +1873,73 @@ void main() {
       await notifier.removeHolidayForDate('2026-09-05');
       final remainingHolidays = await db.getHolidays('sem_1');
       expect(remainingHolidays.isEmpty, isTrue);
+
+      await db.close();
+    });
+
+    testWidgets('CalendarScreen renders without overflow on 320px screen when holiday is active', (tester) async {
+      tester.view.physicalSize = const Size(320, 640);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final db = AppDatabase.inMemory();
+      final now = DateTime.now();
+      final nowIso = now.toIso8601String();
+      final todayDateIso = DateFormatter.toIsoDate(now);
+
+      await db.saveSemester(
+        SemesterData(
+          id: 'sem_1',
+          name: 'Semester 1',
+          startDate: '2026-01-01',
+          endDate: '2026-12-31',
+          defaultTargetPct: 75.0,
+          status: 'ACTIVE',
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        ),
+      );
+
+      await db.saveHoliday(
+        HolidayData(
+          id: 'hol_1',
+          semesterId: 'sem_1',
+          title: 'College Holiday',
+          startDate: todayDateIso,
+          endDate: todayDateIso,
+          category: 'HOLIDAY',
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        ),
+      );
+
+      final semNotifier = ActiveSemesterNotifier(db);
+      await semNotifier.loadFromDb();
+
+      final holidayNotifier = HolidaysNotifier(db, 'sem_1');
+      await holidayNotifier.loadFromDb();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+            activeSemesterProvider.overrideWith((ref) => semNotifier),
+            holidaysProvider.overrideWith((ref) => holidayNotifier),
+          ],
+          child: const MaterialApp(
+            home: CalendarScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Calendar'), findsOneWidget);
+      expect(find.text('Remove'), findsOneWidget);
+      expect(find.text('Extra Class'), findsOneWidget);
+      expect(find.text('College Holiday · Classes suspended'), findsOneWidget);
 
       await db.close();
     });
