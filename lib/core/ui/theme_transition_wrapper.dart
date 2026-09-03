@@ -19,6 +19,9 @@ class ThemeTransition {
     if (_state == state) _state = null;
   }
 
+  /// Returns true if a theme transition is actively capturing or animating
+  static bool get isAnimating => _state?.isAnimating ?? false;
+
   /// Triggers a circular radial wave theme change originating from [origin]
   static Future<void> switchTheme(
     BuildContext context,
@@ -29,6 +32,11 @@ class ThemeTransition {
     final state = _state;
     if (state == null) {
       await ref.read(themeModeProvider.notifier).setThemeMode(newMode);
+      return;
+    }
+
+    // Anti-spam lock guard: absorb any extra clicks while a transition is actively running
+    if (state.isAnimating) {
       return;
     }
 
@@ -53,6 +61,12 @@ class ThemeTransitionWrapperState extends ConsumerState<ThemeTransitionWrapper>
   late Animation<double> _animation;
   ui.Image? _capturedImage;
   Offset _origin = Offset.zero;
+  bool _isRevealingDark = true;
+  bool _isCapturing = false;
+  bool _isTransitionActive = false;
+
+  /// Returns true if a transition is in progress
+  bool get isAnimating => _isCapturing || _isTransitionActive || _animController.isAnimating;
 
   @override
   void initState() {
@@ -60,21 +74,29 @@ class ThemeTransitionWrapperState extends ConsumerState<ThemeTransitionWrapper>
     ThemeTransition._register(this);
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 380),
+      duration: const Duration(milliseconds: 850),
     );
     _animation = CurvedAnimation(
       parent: _animController,
-      curve: const Cubic(0.16, 1.0, 0.3, 1.0),
+      curve: Curves.easeInOutCubic,
     )..addStatusListener((status) {
-        if (status == AnimationStatus.completed) {
-          final old = _capturedImage;
-          setState(() {
-            _capturedImage = null;
-          });
-          old?.dispose();
-          _animController.reset();
+        if (status == AnimationStatus.completed || status == AnimationStatus.dismissed) {
+          _cleanupSnapshot();
         }
       });
+  }
+
+  void _cleanupSnapshot() {
+    _isCapturing = false;
+    _isTransitionActive = false;
+    final old = _capturedImage;
+    if (_capturedImage != null) {
+      setState(() {
+        _capturedImage = null;
+      });
+      old?.dispose();
+    }
+    _animController.reset();
   }
 
   @override
@@ -90,6 +112,8 @@ class ThemeTransitionWrapperState extends ConsumerState<ThemeTransitionWrapper>
     ThemeMode newMode, {
     Offset? origin,
   }) async {
+    if (isAnimating) return;
+
     try {
       final currentMode = ref.read(themeModeProvider);
       final platformBrightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
@@ -106,40 +130,52 @@ class ThemeTransitionWrapperState extends ConsumerState<ThemeTransitionWrapper>
         return;
       }
 
-      if (_animController.isAnimating || _capturedImage != null) {
-        _animController.stop();
-        final prev = _capturedImage;
-        _capturedImage = null;
-        prev?.dispose();
-      }
+      _isCapturing = true;
 
       final boundary = _boundaryKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
       if (boundary == null) {
+        _isCapturing = false;
         await ref.read(themeModeProvider.notifier).setThemeMode(newMode);
         return;
       }
 
       final size = MediaQuery.maybeOf(context)?.size ?? Size.zero;
-      final devicePixelRatio = MediaQuery.maybeOf(context)?.devicePixelRatio ?? 1.0;
+      final devicePixelRatio = MediaQuery.maybeOf(context)?.devicePixelRatio ??
+          WidgetsBinding.instance.platformDispatcher.views.first.devicePixelRatio;
       final defaultOrigin = Offset(size.width / 2, size.height / 2);
 
-      // Clamp snapshot pixel ratio to max 1.5 to guarantee instant snapshot capture (<4ms)
-      final snapRatio = math.min(devicePixelRatio, 1.5);
-      final image = await boundary.toImage(pixelRatio: snapRatio);
+      // Snapshot capture at true 1:1 devicePixelRatio for pixel-perfect raster alignment (zero shaking)
+      final image = await boundary.toImage(pixelRatio: devicePixelRatio);
       if (!mounted) {
         image.dispose();
+        _isCapturing = false;
         return;
       }
 
+      // Stage snapshot overlay immediately so the user sees a frozen frame with zero flash
       setState(() {
         _capturedImage = image;
         _origin = origin ?? defaultOrigin;
+        _isRevealingDark = newIsDark;
+        _isTransitionActive = true;
       });
 
-      // Update theme and kick off hardware-composited reveal animation
-      ref.read(themeModeProvider.notifier).setThemeMode(newMode);
-      _animController.forward(from: 0.0);
+      // Post-frame dispatch: Rebuild live tree invisibly behind snapshot before starting smooth wave
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) {
+          _cleanupSnapshot();
+          return;
+        }
+        await ref.read(themeModeProvider.notifier).setThemeMode(newMode);
+        if (mounted) {
+          _isCapturing = false;
+          _animController.forward(from: 0.0);
+        } else {
+          _cleanupSnapshot();
+        }
+      });
     } catch (_) {
+      _cleanupSnapshot();
       await ref.read(themeModeProvider.notifier).setThemeMode(newMode);
     }
   }
@@ -155,8 +191,8 @@ class ThemeTransitionWrapperState extends ConsumerState<ThemeTransitionWrapper>
           child: widget.child,
         ),
 
-        // Animated luxury radial cutout of previous theme snapshot
-        if (_capturedImage != null)
+        // Animated luxury radial cutout of previous theme snapshot (visible throughout staging and animation)
+        if (_capturedImage != null && _isTransitionActive)
           Positioned.fill(
             child: IgnorePointer(
               child: RepaintBoundary(
@@ -168,6 +204,7 @@ class ThemeTransitionWrapperState extends ConsumerState<ThemeTransitionWrapper>
                         image: _capturedImage!,
                         progress: _animation.value,
                         origin: _origin,
+                        isRevealingDark: _isRevealingDark,
                       ),
                     );
                   },
@@ -184,11 +221,13 @@ class _RadialRevealPainter extends CustomPainter {
   final ui.Image image;
   final double progress;
   final Offset origin;
+  final bool isRevealingDark;
 
   _RadialRevealPainter({
     required this.image,
     required this.progress,
     required this.origin,
+    required this.isRevealingDark,
   });
 
   @override
@@ -199,60 +238,52 @@ class _RadialRevealPainter extends CustomPainter {
     final maxDx = math.max(origin.dx, size.width - origin.dx);
     final maxDy = math.max(origin.dy, size.height - origin.dy);
     final maxRadius = math.sqrt(maxDx * maxDx + maxDy * maxDy) * 1.05;
-    final currentRadius = maxRadius * progress;
 
-    // Soft opacity falloff towards the final 12% of the transition
-    final double masterOpacity = progress > 0.88
-        ? (1.0 - (progress - 0.88) / 0.12).clamp(0.0, 1.0)
+    // Telegram Dual-Direction Geometry:
+    // 1. Light ➔ Dark (Push Outward): Expanding dark hole from 0 ➔ maxRadius
+    // 2. Dark ➔ Light (Pull Inward): Contracting dark circle from maxRadius ➔ 0
+    final double currentRadius = isRevealingDark
+        ? maxRadius * progress
+        : maxRadius * (1.0 - progress);
+
+    // Soft opacity falloff towards the final 10% of the transition for a seamless dissolve
+    final double masterOpacity = progress > 0.90
+        ? (1.0 - (progress - 0.90) / 0.10).clamp(0.0, 1.0)
         : 1.0;
 
     canvas.save();
 
-    // Clip: outer rectangle minus expanding circle at origin (evenOdd cutout)
-    final path = Path()
-      ..addRect(Rect.fromLTWH(0, 0, size.width, size.height))
-      ..addOval(Rect.fromCircle(center: origin, radius: currentRadius))
-      ..fillType = PathFillType.evenOdd;
+    final path = Path();
+    if (isRevealingDark) {
+      // Light ➔ Dark: Clip outer rectangle minus expanding circle at origin (evenOdd cutout)
+      path
+        ..addRect(Rect.fromLTWH(0, 0, size.width, size.height))
+        ..addOval(Rect.fromCircle(center: origin, radius: currentRadius))
+        ..fillType = PathFillType.evenOdd;
+    } else {
+      // Dark ➔ Light: Clip only inside the contracting dark circle (nonZero mask)
+      path
+        ..addOval(Rect.fromCircle(center: origin, radius: currentRadius))
+        ..fillType = PathFillType.nonZero;
+    }
 
     canvas.clipPath(path);
 
-    // Draw the captured old theme image over the non-revealed area with smooth opacity
+    // Draw the captured old theme image over the masked area with pristine 1:1 pixel fidelity
     final srcRect = Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble());
     final dstRect = Rect.fromLTWH(0, 0, size.width, size.height);
     final paint = Paint()
-      ..filterQuality = FilterQuality.low
+      ..filterQuality = FilterQuality.medium
       ..color = Colors.white.withValues(alpha: masterOpacity);
 
     canvas.drawImageRect(image, srcRect, dstRect, paint);
     canvas.restore();
-
-    // Hardware-accelerated multi-tier ambient aura along the expanding wave perimeter
-    if (currentRadius > 4 && currentRadius < maxRadius) {
-      // 1. Broad soft ambient luminance glow
-      final ambientGlow = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 6.0
-        ..color = const Color(0xFF6366F1).withValues(alpha: 0.25 * masterOpacity);
-      canvas.drawCircle(origin, currentRadius, ambientGlow);
-
-      // 2. Focused light wave shimmer
-      final shimmerGlow = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.5
-        ..color = Colors.white.withValues(alpha: 0.35 * masterOpacity);
-      canvas.drawCircle(origin, currentRadius, shimmerGlow);
-
-      // 3. Crisp luminous wave crest
-      final crestPaint = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.0
-        ..color = Colors.white.withValues(alpha: 0.65 * masterOpacity);
-      canvas.drawCircle(origin, currentRadius, crestPaint);
-    }
   }
 
   @override
   bool shouldRepaint(covariant _RadialRevealPainter oldDelegate) {
-    return oldDelegate.progress != progress || oldDelegate.image != image;
+    return oldDelegate.progress != progress ||
+        oldDelegate.image != image ||
+        oldDelegate.isRevealingDark != isRevealingDark;
   }
 }
