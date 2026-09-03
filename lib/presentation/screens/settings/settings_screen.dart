@@ -238,11 +238,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   },
                   onValueChanged: (ThemeMode? value) {
                     if (value != null && value != currentThemeMode) {
+                      if (ThemeTransition.isAnimating) return;
                       Offset? origin;
                       final box = _segmentedKey.currentContext?.findRenderObject() as RenderBox?;
                       if (box != null && box.hasSize) {
                         final pos = box.localToGlobal(Offset.zero);
-                        origin = Offset(pos.dx + box.size.width / 2, pos.dy + box.size.height / 2);
+                        final width = box.size.width;
+                        double fraction = 0.5;
+                        if (value == ThemeMode.system) {
+                          fraction = 1.0 / 6.0;
+                        } else if (value == ThemeMode.light) {
+                          fraction = 3.0 / 6.0;
+                        } else if (value == ThemeMode.dark) {
+                          fraction = 5.0 / 6.0;
+                        }
+                        origin = Offset(pos.dx + width * fraction, pos.dy + box.size.height / 2);
                       }
                       ThemeTransition.switchTheme(context, ref, value, origin: origin);
                     }
