@@ -477,6 +477,33 @@ void main() {
       expect(info.downloadUrl, equals('https://example.com/classtrack.apk'));
       expect(info.isMandatory, isFalse);
     });
+
+    test('AppReleaseInfo resolves appropriate APK asset when split-per-abi assets exist', () {
+      final githubReleaseJson = {
+        'tag_name': 'v1.0.0-alpha.5',
+        'body': '✨ Multi-room support',
+        'published_at': '2026-09-03T12:00:00Z',
+        'assets': [
+          {
+            'name': 'app-armeabi-v7a-release.apk',
+            'browser_download_url': 'https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.5/app-armeabi-v7a-release.apk',
+          },
+          {
+            'name': 'app-arm64-v8a-release.apk',
+            'browser_download_url': 'https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.5/app-arm64-v8a-release.apk',
+          },
+          {
+            'name': 'app-x86_64-release.apk',
+            'browser_download_url': 'https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.5/app-x86_64-release.apk',
+          },
+        ],
+      };
+
+      final info = AppReleaseInfo.fromGithubReleaseJson(githubReleaseJson);
+      expect(info.latestVersion, equals('1.0.0-alpha.5'));
+      expect(info.downloadUrl, isNotNull);
+      expect(info.downloadUrl!.endsWith('.apk'), isTrue);
+    });
   });
 
   group('BackupService Tests', () {

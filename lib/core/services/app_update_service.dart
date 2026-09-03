@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ffi';
 import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
@@ -81,18 +82,21 @@ class AppReleaseInfo {
     final htmlUrl = json['html_url']?.toString();
     final publishedAt = (json['published_at'] ?? '').toString();
 
-    // Check for APK in release assets
+    // Check for APK in release assets (supports universal and --split-per-abi releases)
     String? apkUrl;
     if (json['assets'] is List) {
       final assets = json['assets'] as List;
+      final List<Map<String, dynamic>> apkAssets = [];
       for (final asset in assets) {
         if (asset is Map<String, dynamic>) {
           final name = asset['name']?.toString().toLowerCase() ?? '';
           if (name.endsWith('.apk')) {
-            apkUrl = asset['browser_download_url']?.toString();
-            break;
+            apkAssets.add(asset);
           }
         }
+      }
+      if (apkAssets.isNotEmpty) {
+        apkUrl = _selectBestApkForDevice(apkAssets);
       }
     }
 
@@ -152,6 +156,62 @@ class AppReleaseInfo {
       isMandatory: isMandatory,
       warningMessage: extractedWarning?.isNotEmpty == true ? extractedWarning : null,
     );
+  }
+
+  /// Selects the optimal APK asset matching device architecture (supports split-per-abi & universal)
+  static String? _selectBestApkForDevice(List<Map<String, dynamic>> apkAssets) {
+    if (apkAssets.isEmpty) return null;
+    if (apkAssets.length == 1) {
+      return apkAssets.first['browser_download_url']?.toString();
+    }
+
+    String deviceAbi = '';
+    try {
+      final current = Abi.current();
+      if (current == Abi.androidArm64) {
+        deviceAbi = 'arm64';
+      } else if (current == Abi.androidArm) {
+        deviceAbi = 'arm';
+      } else if (current == Abi.androidX64) {
+        deviceAbi = 'x86_64';
+      }
+    } catch (_) {}
+
+    // 1. Exact ABI match (e.g. arm64-v8a, armeabi-v7a, x86_64)
+    if (deviceAbi == 'arm64') {
+      for (final a in apkAssets) {
+        final name = a['name']?.toString().toLowerCase() ?? '';
+        if (name.contains('arm64') || name.contains('v8a') || name.contains('aarch64')) {
+          return a['browser_download_url']?.toString();
+        }
+      }
+    } else if (deviceAbi == 'arm') {
+      for (final a in apkAssets) {
+        final name = a['name']?.toString().toLowerCase() ?? '';
+        if ((name.contains('arm') && !name.contains('arm64')) || name.contains('v7a') || name.contains('armeabi')) {
+          return a['browser_download_url']?.toString();
+        }
+      }
+    } else if (deviceAbi == 'x86_64') {
+      for (final a in apkAssets) {
+        final name = a['name']?.toString().toLowerCase() ?? '';
+        if (name.contains('x86_64') || name.contains('x64')) {
+          return a['browser_download_url']?.toString();
+        }
+      }
+    }
+
+    // 2. Look for universal APK
+    for (final a in apkAssets) {
+      final name = a['name']?.toString().toLowerCase() ?? '';
+      if (name.contains('universal') ||
+          (!name.contains('arm') && !name.contains('v8a') && !name.contains('v7a') && !name.contains('x86'))) {
+        return a['browser_download_url']?.toString();
+      }
+    }
+
+    // 3. Fallback to first available APK
+    return apkAssets.first['browser_download_url']?.toString();
   }
 }
 
