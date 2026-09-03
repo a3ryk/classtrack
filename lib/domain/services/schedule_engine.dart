@@ -157,14 +157,20 @@ class ScheduleResolutionEngine {
         continue;
       }
 
-      final String startTime = exception.actionType == 'MOVED' && exception.newStartTime != null
+      final isTimeMoved = (exception.actionType == 'MOVED' || exception.actionType == 'RESCHEDULED');
+      final String startTime = isTimeMoved && exception.newStartTime != null && exception.newStartTime!.isNotEmpty
           ? exception.newStartTime!
           : slot.startTime;
-      final String endTime = exception.actionType == 'MOVED' && exception.newEndTime != null
+      final String endTime = isTimeMoved && exception.newEndTime != null && exception.newEndTime!.isNotEmpty
           ? exception.newEndTime!
           : slot.endTime;
-      final String? room = exception.actionType == 'MOVED'
-          ? (exception.newRoom != null && exception.newRoom!.isNotEmpty ? exception.newRoom : null)
+
+      final isRoomException = (exception.actionType == 'MOVED' ||
+          exception.actionType == 'ROOM_CHANGED' ||
+          exception.actionType == 'RESCHEDULED');
+
+      final String? room = isRoomException && exception.newRoom != null
+          ? (exception.newRoom!.trim().isNotEmpty ? exception.newRoom!.trim() : null)
           : slot.room;
 
       final sessionId = 'session_${slot.id}_$dateString';

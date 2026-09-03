@@ -181,8 +181,10 @@ class _AddEditSlotDialogState extends ConsumerState<AddEditSlotDialog> {
           ? DateFormatter.toIsoDate(_customEndDate!)
           : null;
 
+      final targetSlotId = widget.existingSlot?.sourceRefId ?? widget.existingSlot?.id ?? UuidGenerator.generate();
+
       final slotData = TimetableSlotData(
-        id: widget.existingSlot?.id ?? UuidGenerator.generate(),
+        id: targetSlotId,
         semesterId: activeSem.id,
         subjectComponentId: targetSub.id,
         dayOfWeek: _selectedDay,
@@ -208,7 +210,8 @@ class _AddEditSlotDialogState extends ConsumerState<AddEditSlotDialog> {
 
   void _deleteSlot() {
     if (widget.existingSlot != null) {
-      ref.read(timetableSlotsProvider.notifier).deleteSlot(widget.existingSlot!.id);
+      final targetSlotId = widget.existingSlot!.sourceRefId ?? widget.existingSlot!.id;
+      ref.read(timetableSlotsProvider.notifier).deleteSlot(targetSlotId);
       Navigator.pop(context);
       AppToast.info(context, 'Deleted slot ${widget.existingSlot!.subjectName}');
     }
