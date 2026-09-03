@@ -61,8 +61,9 @@ class ThemeTransitionWrapperState extends ConsumerState<ThemeTransitionWrapper>
   bool _isCapturing = false;
   bool _isTransitionActive = false;
 
-  /// Returns true if a transition is in progress
-  bool get isAnimating => _isCapturing || _isTransitionActive || _animController.isAnimating;
+  /// Returns true if a transition is in progress and visually active
+  bool get isAnimating =>
+      _isCapturing || (_isTransitionActive && _animController.isAnimating && _animation.value < 0.88);
 
   @override
   void initState() {
@@ -76,7 +77,7 @@ class ThemeTransitionWrapperState extends ConsumerState<ThemeTransitionWrapper>
       parent: _animController,
       curve: Curves.easeInOutCubic,
     )..addStatusListener((status) {
-        if (status == AnimationStatus.completed || status == AnimationStatus.dismissed) {
+        if (status == AnimationStatus.completed) {
           _cleanupSnapshot();
         }
       });
@@ -109,6 +110,7 @@ class ThemeTransitionWrapperState extends ConsumerState<ThemeTransitionWrapper>
     Offset? origin,
   }) async {
     if (isAnimating) return;
+    _cleanupSnapshot();
 
     try {
       final currentMode = ref.read(themeModeProvider);

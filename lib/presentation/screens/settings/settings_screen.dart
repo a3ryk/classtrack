@@ -874,7 +874,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         builder: (segmentContext) {
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: () {
+            onTapDown: (_) {
+              if (ThemeTransition.isAnimating) return;
               if (mode != currentMode) {
                 Offset? center;
                 final box = segmentContext.findRenderObject() as RenderBox?;
