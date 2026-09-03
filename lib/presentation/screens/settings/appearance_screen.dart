@@ -323,6 +323,10 @@ class _AppearanceScreenState extends ConsumerState<AppearanceScreen> {
   }
 
   Widget _buildLivePreviewHero(OverallAttendanceStats stats, bool isDark) {
+    final double displayPercentage = stats.totalHeld == 0 ? 100.0 : stats.overallPercentage;
+    final double targetPercentage = stats.targetPercentage;
+    final bool isAboveTarget = displayPercentage >= targetPercentage;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -343,10 +347,10 @@ class _AppearanceScreenState extends ConsumerState<AppearanceScreen> {
           Row(
             children: [
               AttendanceRingWidget(
-                percentage: stats.overallPercentage,
-                targetPercentage: stats.targetPercentage,
+                percentage: displayPercentage,
+                targetPercentage: targetPercentage,
                 size: 64,
-                isDataEmpty: stats.totalHeld == 0,
+                isDataEmpty: false,
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -354,7 +358,7 @@ class _AppearanceScreenState extends ConsumerState<AppearanceScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${stats.overallPercentage.toStringAsFixed(1)}% Overall',
+                      '${displayPercentage.toStringAsFixed(1)}% Overall',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -363,13 +367,13 @@ class _AppearanceScreenState extends ConsumerState<AppearanceScreen> {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      stats.overallPercentage >= stats.targetPercentage
-                          ? '● Above ${stats.targetPercentage.toInt()}% target'
+                      isAboveTarget
+                          ? '● Above ${targetPercentage.toInt()}% target'
                           : '▲ Needs attendance catch-up',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: stats.overallPercentage >= stats.targetPercentage
+                        color: isAboveTarget
                             ? AppColors.presentGreen
                             : const Color(0xFFEF4444),
                       ),

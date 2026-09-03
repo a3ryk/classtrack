@@ -47,9 +47,11 @@ class AttendanceRingWidget extends StatelessWidget {
             ),
             child: Center(
               child: Text(
-                isDataEmpty ? '--%' : '${animValue.toStringAsFixed(1)}%',
+                isDataEmpty
+                    ? '--%'
+                    : (animValue >= 99.95 ? '100%' : '${animValue.toStringAsFixed(1)}%'),
                 style: TextStyle(
-                  fontSize: 15,
+                  fontSize: size <= 64 ? 13 : 15,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.5,
                   color: isDataEmpty
