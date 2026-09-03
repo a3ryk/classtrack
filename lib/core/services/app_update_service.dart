@@ -101,13 +101,21 @@ class AppReleaseInfo {
     }
 
     String minSupported = '1.0.0';
-    String? extractedWarning;
     bool isMandatory = false;
     final List<String> changelog = [];
+    final List<String> alertLines = [];
+    bool inAlertBlock = false;
 
     for (final rawLine in body.split('\n')) {
       final line = rawLine.trim();
-      if (line.isEmpty || line.startsWith('#')) continue;
+      if (line.isEmpty) {
+        inAlertBlock = false;
+        continue;
+      }
+      if (line.startsWith('#')) {
+        inAlertBlock = false;
+        continue;
+      }
 
       final cleanLine = line.replaceAll(RegExp(r'<!--|-->'), '').trim();
       final upper = cleanLine.toUpperCase();
@@ -117,9 +125,35 @@ class AppReleaseInfo {
         continue;
       }
 
-      if (line.contains('[!WARNING]') ||
-          line.contains('[!CAUTION]') ||
-          line.contains('⚠️') ||
+      // Check for GitHub Alert Callout Block (e.g. > [!WARNING], > [!CAUTION], > [!IMPORTANT], > [!NOTE])
+      if (upper.startsWith('> [!WARNING]') || upper.startsWith('> [!CAUTION]')) {
+        isMandatory = true;
+        inAlertBlock = true;
+        continue;
+      } else if (upper.startsWith('> [!IMPORTANT]') || upper.startsWith('> [!NOTE]')) {
+        inAlertBlock = true;
+        continue;
+      }
+
+      // If currently inside an alert blockquote, capture all subsequent `>` lines
+      if (inAlertBlock) {
+        if (cleanLine.startsWith('>')) {
+          final content = cleanLine
+              .replaceAll(RegExp(r'^>\s*'), '')
+              .replaceAll(RegExp(r'\*\*'), '')
+              .replaceAll(RegExp(r'^(Mandatory Update|Critical|Warning|Notice|Alert|Important):\s*', caseSensitive: false), '')
+              .trim();
+          if (content.isNotEmpty) {
+            alertLines.add(content);
+          }
+          continue;
+        } else {
+          inAlertBlock = false;
+        }
+      }
+
+      // Single-line alert checks (e.g. ⚠️ Warning message, MANDATORY: message)
+      if (line.contains('⚠️') ||
           line.contains('🚨') ||
           upper.startsWith('MANDATORY:') ||
           upper.startsWith('REQUIRED:') ||
@@ -127,22 +161,26 @@ class AppReleaseInfo {
           upper.startsWith('CRITICAL:') ||
           upper.startsWith('WARNING:')) {
         isMandatory = true;
-        extractedWarning = line
-            .replaceAll(RegExp(r'^(>\s*\[!(WARNING|CAUTION|IMPORTANT|NOTE)\]\s*|[⚠️🚨📌]\s*|(MANDATORY|REQUIRED|BREAKING|CRITICAL|WARNING|ALERT|NOTICE|NOTE):\s*)', caseSensitive: false), '')
+        final msg = line
+            .replaceAll(RegExp(r'^(>\s*|[⚠️🚨📌]\s*|(MANDATORY|REQUIRED|BREAKING|CRITICAL|WARNING|ALERT|NOTICE|NOTE):\s*)', caseSensitive: false), '')
+            .replaceAll(RegExp(r'\*\*'), '')
             .trim();
-      } else if (line.contains('[!IMPORTANT]') ||
-          line.contains('[!NOTE]') ||
-          line.contains('📌') ||
+        if (msg.isNotEmpty) alertLines.add(msg);
+      } else if (line.contains('📌') ||
           upper.startsWith('ALERT:') ||
           upper.startsWith('NOTICE:') ||
           upper.startsWith('NOTE:')) {
-        extractedWarning = line
-            .replaceAll(RegExp(r'^(>\s*\[!(WARNING|CAUTION|IMPORTANT|NOTE)\]\s*|[⚠️🚨📌]\s*|(MANDATORY|REQUIRED|BREAKING|CRITICAL|WARNING|ALERT|NOTICE|NOTE):\s*)', caseSensitive: false), '')
+        final msg = line
+            .replaceAll(RegExp(r'^(>\s*|[⚠️🚨📌]\s*|(MANDATORY|REQUIRED|BREAKING|CRITICAL|WARNING|ALERT|NOTICE|NOTE):\s*)', caseSensitive: false), '')
+            .replaceAll(RegExp(r'\*\*'), '')
             .trim();
+        if (msg.isNotEmpty) alertLines.add(msg);
       } else {
         changelog.add(line.replaceAll(RegExp(r'^[•\-\*]\s*'), '').trim());
       }
     }
+
+    final String? warningMessage = alertLines.isNotEmpty ? alertLines.join(' ') : null;
 
     return AppReleaseInfo(
       latestVersion: tagName,
@@ -154,7 +192,7 @@ class AppReleaseInfo {
       downloadUrl: apkUrl,
       releasePageUrl: htmlUrl,
       isMandatory: isMandatory,
-      warningMessage: extractedWarning?.isNotEmpty == true ? extractedWarning : null,
+      warningMessage: warningMessage,
     );
   }
 

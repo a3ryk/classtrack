@@ -284,7 +284,7 @@ class _UpdateScreenState extends State<UpdateScreen> {
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Text(
-                                    widget.releaseInfo.warningMessage ?? (isMandatory ? 'Required update to ensure database compatibility.' : 'Important notice for this release.'),
+                                    widget.releaseInfo.warningMessage ?? (isMandatory ? 'Mandatory update required for app stability and features.' : 'Important notice for this release.'),
                                     style: TextStyle(
                                       fontSize: 12.5,
                                       height: 1.4,

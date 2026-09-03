@@ -28,6 +28,7 @@ import 'package:classtrack/domain/entities/class_session_entity.dart';
 import 'package:classtrack/domain/entities/subject_entity.dart';
 import 'package:classtrack/presentation/screens/schedule/reschedule_session_screen.dart';
 import 'package:classtrack/presentation/screens/schedule/subject_room_manager_screen.dart';
+import 'package:classtrack/presentation/widgets/update_available_dialog.dart';
 
 void main() {
   group('AttendanceMathService Tests', () {
@@ -1219,17 +1220,56 @@ void main() {
       expect(info.changelog.length, equals(2));
     });
 
-    test('AppReleaseInfo GitHub Alert Parsing: Parses > [!WARNING] alerts properly', () {
+    test('AppReleaseInfo GitHub Alert Parsing: Parses multi-line > [!WARNING] alerts properly', () {
       final githubJson = {
-        'tag_name': 'v1.0.0-alpha.4',
-        'name': 'ClassTrack v1.0.0-alpha.4',
-        'body': '> [!WARNING] Critical update required.\n- Performance improvements\n<!-- MIN_VERSION: 1.0.0-alpha.4 -->',
+        'tag_name': 'v1.0.0-alpha.5',
+        'name': 'ClassTrack v1.0.0-alpha.5',
+        'body': '> [!WARNING]\n> **Mandatory Update**: Critical update required for multi-room schedule synchronization.\n\n### What\'s New\n- Feature 1\n<!-- MIN_VERSION: 1.0.0-alpha.5 -->',
       };
 
       final info = AppReleaseInfo.fromGithubReleaseJson(githubJson);
       expect(info.isMandatory, isTrue);
-      expect(info.warningMessage, equals('Critical update required.'));
-      expect(info.minSupportedVersion, equals('1.0.0-alpha.4'));
+      expect(info.warningMessage, equals('Critical update required for multi-room schedule synchronization.'));
+      expect(info.minSupportedVersion, equals('1.0.0-alpha.5'));
+      expect(info.changelog.contains('Feature 1'), isTrue);
+    });
+
+    testWidgets('UpdateAvailableDialog renders custom warning message correctly', (tester) async {
+      const releaseInfo = AppReleaseInfo(
+        latestVersion: '1.0.0-alpha.5',
+        buildNumber: 5,
+        minSupportedVersion: '1.0.0-alpha.5',
+        releaseDate: '2026-09-03',
+        releaseTitle: 'ClassTrack v1.0.0-alpha.5',
+        changelog: ['✨ Multi-room support'],
+        isMandatory: true,
+        warningMessage: 'Custom mandatory notice for multi-room sync.',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () => showDialog(
+                  context: context,
+                  builder: (_) => const UpdateAvailableDialog(
+                    releaseInfo: releaseInfo,
+                  ),
+                ),
+                child: const Text('Show Dialog'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Show Dialog'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Custom mandatory notice for multi-room sync.'), findsOneWidget);
+      expect(find.text('New version available!'), findsOneWidget);
+      expect(find.text('v1.0.0-alpha.5'), findsOneWidget);
     });
 
     test('AppReleaseNotes Registry: Returns release notes for installed version offline', () {

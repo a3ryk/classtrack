@@ -158,7 +158,10 @@ class UpdateAvailableDialog extends StatelessWidget {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Required update to ensure database compatibility.',
+                            releaseInfo.warningMessage ??
+                                (isMandatory
+                                    ? 'Mandatory update required for app stability and features.'
+                                    : 'Important notice for this release.'),
                             style: TextStyle(
                               fontSize: 11.5,
                               fontWeight: FontWeight.w600,
