@@ -519,25 +519,24 @@ class _AppearanceScreenState extends ConsumerState<AppearanceScreen> {
               );
             }
           },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
+          child: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: isDark ? AppColors.cardDark : Colors.white,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
                 color: isSelected ? AppColors.accentIndigoLight : (isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
-                width: isSelected ? 2.0 : 0.8,
+                width: 1.5,
               ),
-              boxShadow: isSelected
-                  ? [
-                      BoxShadow(
-                        color: AppColors.accentIndigoLight.withValues(alpha: 0.2),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ]
-                  : null,
+              boxShadow: [
+                BoxShadow(
+                  color: isSelected
+                      ? AppColors.accentIndigoLight.withValues(alpha: isDark ? 0.25 : 0.15)
+                      : Colors.black.withValues(alpha: isDark ? 0.15 : 0.03),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Column(
               children: [
@@ -624,7 +623,7 @@ class _AppearanceScreenState extends ConsumerState<AppearanceScreen> {
                       title,
                       style: TextStyle(
                         fontSize: 12,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                        fontWeight: FontWeight.w600,
                         color: isSelected
                             ? (isDark ? Colors.white : const Color(0xFF0F172A))
                             : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
