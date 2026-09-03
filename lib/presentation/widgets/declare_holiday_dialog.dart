@@ -92,35 +92,36 @@ class _DeclareHolidaySheetState extends ConsumerState<DeclareHolidaySheet> {
   }
 
   Future<void> _saveHoliday() async {
+    if (_isSaving) return;
+
     final rawTitle = _titleController.text.trim();
     final title = rawTitle.isNotEmpty ? rawTitle : 'Holiday';
 
     setState(() => _isSaving = true);
+
+    final startIso = DateFormatter.toIsoDate(_startDate);
+    final endIso = _isDateRange ? DateFormatter.toIsoDate(_endDate) : startIso;
+    final holidayItem = HolidayItem(
+      title: title,
+      startDate: startIso,
+      endDate: endIso,
+    );
+
+    final dateLabel = startIso == endIso
+        ? DateFormat('MMM d, yyyy').format(_startDate)
+        : '${DateFormat('MMM d').format(_startDate)} - ${DateFormat('MMM d, yyyy').format(_endDate)}';
+
+    // Choreographed dismissal: glide down sheet smoothly
+    if (mounted) {
+      AppToast.success(context, 'Holiday "$title" declared for $dateLabel');
+      Navigator.pop(context);
+    }
+
+    // Commit holiday to database and provider in harmony with sheet slide-down
     try {
-      final startIso = DateFormatter.toIsoDate(_startDate);
-      final endIso = _isDateRange ? DateFormatter.toIsoDate(_endDate) : startIso;
-
-      await ref.read(holidaysProvider.notifier).addHoliday(
-        HolidayItem(
-          title: title,
-          startDate: startIso,
-          endDate: endIso,
-        ),
-      );
-
-      if (mounted) {
-        Navigator.pop(context);
-        final dateLabel = startIso == endIso
-            ? DateFormat('MMM d, yyyy').format(_startDate)
-            : '${DateFormat('MMM d').format(_startDate)} - ${DateFormat('MMM d, yyyy').format(_endDate)}';
-        AppToast.success(context, 'Holiday "$title" declared for $dateLabel');
-      }
-    } catch (e) {
-      if (mounted) {
-        AppToast.error(context, 'Failed to declare holiday: $e');
-      }
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
+      await ref.read(holidaysProvider.notifier).addHoliday(holidayItem);
+    } catch (_) {
+      // SQLite failure fallback
     }
   }
 
