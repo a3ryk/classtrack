@@ -75,7 +75,9 @@ class _SubjectRoomManagerScreenState extends ConsumerState<SubjectRoomManagerScr
           _slotControllers[slot.id]!.text = text;
         }
       }
+      _bulkRoomController.clear();
     });
+    FocusScope.of(context).unfocus();
     AppToast.info(context, 'Applied to all ${slots.length} slots below. Tap Save to commit.');
   }
 

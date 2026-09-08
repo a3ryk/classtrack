@@ -34,6 +34,7 @@ import 'package:classtrack/presentation/widgets/university_selector_dialog.dart'
 import 'package:classtrack/presentation/screens/calendar/calendar_screen.dart';
 import 'package:classtrack/presentation/screens/settings/appearance_screen.dart';
 import 'package:classtrack/presentation/screens/attendance/attendance_screen.dart';
+import 'package:classtrack/presentation/screens/today/today_screen.dart';
 import 'package:classtrack/core/utils/date_formatter.dart';
 
 void main() {
@@ -1819,6 +1820,10 @@ void main() {
       saveRoomBtn = tester.widget<ElevatedButton>(find.widgetWithText(ElevatedButton, 'Save Room Changes'));
       expect(saveRoomBtn.onPressed, isNotNull);
 
+      // Verify quick apply input was cleared after applying
+      final bulkField = tester.widget<TextField>(find.widgetWithText(TextField, 'e.g. Room 405 or Lecture Hall A'));
+      expect(bulkField.controller?.text, isEmpty);
+
       await db.close();
     });
 
@@ -2189,9 +2194,12 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           databaseProvider.overrideWithValue(db),
+          appInitializationProvider.overrideWith((ref) => Future.value(true)),
         ],
       );
-      await container.read(appInitializationProvider.future);
+      await container.read(activeSemesterProvider.notifier).loadFromDb();
+      await container.read(subjectsProvider.notifier).loadFromDb();
+      await container.read(timetableSlotsProvider.notifier).loadFromDb();
 
       await tester.pumpWidget(
         UncontrolledProviderScope(
@@ -2210,6 +2218,52 @@ void main() {
       // Verify multi-room renders wrapped badge pills
       expect(find.text('Mon: Room 101'), findsOneWidget);
       expect(find.text('Fri: Lab 2'), findsOneWidget);
+
+      await db.close();
+    });
+
+    testWidgets('TodayScreen renders dynamic section titles and allows swipe navigation', (WidgetTester tester) async {
+      final db = AppDatabase.inMemory();
+      await db.seedInitialDataIfEmpty();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+            appInitializationProvider.overrideWith((ref) => Future.value(true)),
+            realtimeClockProvider.overrideWith((ref) => Stream.value(DateTime.now())),
+          ],
+          child: const MaterialApp(
+            home: TodayScreen(),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Verify dynamic section title for Today says "Today's Classes" (NOT static "Upcoming Classes")
+      expect(find.text("Today's Classes"), findsOneWidget);
+      expect(find.text('Upcoming Classes'), findsNothing);
+
+      // Today button should be hidden on today
+      expect(find.text('Today'), findsNothing);
+
+      // Perform a swipe left to navigate to tomorrow
+      await tester.fling(find.byType(PageView), const Offset(-400, 0), 1000);
+      await tester.pumpAndSettle();
+
+      // After swiping to tomorrow, section title should update to Tomorrow's Classes
+      expect(find.text("Tomorrow's Classes"), findsOneWidget);
+
+      // "Today" chip should now be visible in the header
+      expect(find.text('Today'), findsOneWidget);
+
+      // Tap "Today" chip to animate back to today
+      await tester.tap(find.text('Today'));
+      await tester.pumpAndSettle();
+
+      // After animating back, section title is "Today's Classes" again
+      expect(find.text("Today's Classes"), findsOneWidget);
 
       await db.close();
     });
