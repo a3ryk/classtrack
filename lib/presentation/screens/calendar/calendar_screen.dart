@@ -11,6 +11,7 @@ import '../../../domain/services/schedule_engine.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/edit_semester_dialog.dart';
 import '../../widgets/declare_holiday_dialog.dart';
+import '../../widgets/add_extra_class_sheet.dart';
 import '../schedule/add_edit_slot_screen.dart';
 import '../schedule/manage_subject_slots_screen.dart';
 import '../schedule/reschedule_session_screen.dart';
@@ -1450,164 +1451,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
     );
   }
 
-  void _showAddExtraClassDialog(BuildContext context, String dateIso) async {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final subjects = ref.read(subjectsProvider);
-
-    if (subjects.isEmpty) {
-      AppToast.error(context, 'Please add at least one subject first');
-      return;
-    }
-
-    String selectedSubjectId = subjects.first.id;
-    TimeOfDay extraStart = const TimeOfDay(hour: 10, minute: 0);
-    TimeOfDay extraEnd = const TimeOfDay(hour: 11, minute: 0);
-    final extraRoomController = TextEditingController();
-    final extraReasonController = TextEditingController();
-
-    await showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) {
-          return AlertDialog(
-            backgroundColor: isDark ? AppColors.cardDark : Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: Text('+ Extra Class on $dateIso'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'SELECT SUBJECT:',
-                  style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight),
-                ),
-                const SizedBox(height: 6),
-                DropdownButtonFormField<String>(
-                  initialValue: selectedSubjectId,
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: isDark ? AppColors.surfaceDark : const Color(0xFFF8FAFC),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  items: subjects.map((s) => DropdownMenuItem(value: s.id, child: Text(s.name, style: const TextStyle(fontSize: 13)))).toList(),
-                  onChanged: (v) {
-                    if (v != null) setDialogState(() => selectedSubjectId = v);
-                  },
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: () async {
-                          final p = await showTimePicker(context: ctx, initialTime: extraStart);
-                          if (p != null) setDialogState(() => extraStart = p);
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: isDark ? AppColors.surfaceDark : const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Start', style: TextStyle(fontSize: 10, color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight)),
-                              Text('${extraStart.hour.toString().padLeft(2, "0")}:${extraStart.minute.toString().padLeft(2, "0")}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: InkWell(
-                        onTap: () async {
-                          final p = await showTimePicker(context: ctx, initialTime: extraEnd);
-                          if (p != null) setDialogState(() => extraEnd = p);
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: isDark ? AppColors.surfaceDark : const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('End', style: TextStyle(fontSize: 10, color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight)),
-                              Text('${extraEnd.hour.toString().padLeft(2, "0")}:${extraEnd.minute.toString().padLeft(2, "0")}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: extraRoomController,
-                  style: TextStyle(fontSize: 13, color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
-                  decoration: InputDecoration(
-                    hintText: 'Room / Lab (Optional)',
-                    hintStyle: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.normal,
-                      color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
-                    ),
-                    filled: true,
-                    fillColor: isDark ? AppColors.surfaceDark : const Color(0xFFF8FAFC),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: extraReasonController,
-                  style: TextStyle(fontSize: 13, color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
-                  decoration: InputDecoration(
-                    hintText: 'Reason (e.g. Makeup Lab, Extra Lecture)',
-                    hintStyle: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.normal,
-                      color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
-                    ),
-                    filled: true,
-                    fillColor: isDark ? AppColors.surfaceDark : const Color(0xFFF8FAFC),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-              ElevatedButton(
-                onPressed: () async {
-                  final startStr = '${extraStart.hour.toString().padLeft(2, "0")}:${extraStart.minute.toString().padLeft(2, "0")}';
-                  final endStr = '${extraEnd.hour.toString().padLeft(2, "0")}:${extraEnd.minute.toString().padLeft(2, "0")}';
-                  await ref.read(extraClassesProvider.notifier).addExtraClass(
-                    subjectId: selectedSubjectId,
-                    classDate: dateIso,
-                    startTime: startStr,
-                    endTime: endStr,
-                    room: extraRoomController.text.trim().isNotEmpty ? extraRoomController.text.trim() : null,
-                    reason: extraReasonController.text.trim().isNotEmpty ? extraReasonController.text.trim() : null,
-                  );
-                  if (ctx.mounted) {
-                    Navigator.pop(ctx);
-                    AppToast.success(context, 'Added extra class on $dateIso');
-                  }
-                },
-                child: const Text('Add Class'),
-              ),
-            ],
-          );
-        },
-      ),
+  void _showAddExtraClassDialog(BuildContext context, String dateIso) {
+    AddExtraClassSheet.show(
+      context,
+      dateIso: dateIso,
+      initialDate: _selectedDate,
     );
   }
 

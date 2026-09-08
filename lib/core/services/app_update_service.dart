@@ -94,12 +94,43 @@ class AppReleaseInfo {
     );
   }
 
+  /// Decode basic HTML entities found in Atom feeds or web markdown (supports double-encoded entities)
+  static String _decodeHtmlEntities(String input) {
+    String prev = '';
+    String current = input;
+    int passes = 0;
+    while (prev != current && passes < 3) {
+      prev = current;
+      current = current
+          .replaceAll('&amp;', '&')
+          .replaceAll('&lt;', '<')
+          .replaceAll('&gt;', '>')
+          .replaceAll('&quot;', '"')
+          .replaceAll('&#39;', "'")
+          .replaceAll('&apos;', "'");
+      passes++;
+    }
+    return current;
+  }
+
   /// Parse from GitHub Releases API response (strictly published, non-draft releases)
   factory AppReleaseInfo.fromGithubReleaseJson(Map<String, dynamic> json) {
-    final tagName = (json['tag_name'] ?? '1.0.0').toString().replaceAll(RegExp(r'^[vV]'), '');
+    final rawTagName = (json['tag_name'] ?? '1.0.0').toString();
+    final tagName = rawTagName.replaceAll(RegExp(r'^[vV]'), '');
     final body = (json['body'] ?? '').toString();
     final htmlUrl = json['html_url']?.toString();
     final publishedAt = (json['published_at'] ?? '').toString();
+
+    // Parse true build number from tag (e.g. 1.0.0-alpha.7+7 -> 7, or alpha.7 -> 7)
+    int buildNumber = 1;
+    if (tagName.contains('+')) {
+      buildNumber = int.tryParse(tagName.split('+').last) ?? 1;
+    } else {
+      final match = RegExp(r'(?:alpha|beta|rc|\+)\.?(\d+)', caseSensitive: false).firstMatch(tagName);
+      if (match != null) {
+        buildNumber = int.tryParse(match.group(1)!) ?? 1;
+      }
+    }
 
     // Check for APK in release assets (supports universal and --split-per-abi releases)
     String? apkUrl;
@@ -150,17 +181,37 @@ class AppReleaseInfo {
       final cleanLine = line.replaceAll(RegExp(r'<!--|-->'), '').trim();
       final upper = cleanLine.toUpperCase();
 
+      // Skip markdown tables, horizontal rules, and link footnotes
+      if (cleanLine.startsWith('|') ||
+          cleanLine.startsWith('---') ||
+          cleanLine.startsWith('===') ||
+          cleanLine.startsWith('***') ||
+          cleanLine.startsWith('[Full Changelog') ||
+          cleanLine.startsWith('**Full Changelog') ||
+          upper.startsWith('### DOWNLOAD') ||
+          upper.startsWith('### ASSET')) {
+        continue;
+      }
+
       if (upper.startsWith('MIN_VERSION:') || upper.startsWith('MIN_SUPPORTED:')) {
         minSupported = cleanLine.split(':').last.trim().replaceAll(RegExp(r'^[vV]'), '');
         continue;
       }
 
+      if (upper.startsWith('BUILD_NUMBER:') || upper.startsWith('BUILD:')) {
+        final parsedBuild = int.tryParse(cleanLine.split(':').last.trim());
+        if (parsedBuild != null) buildNumber = parsedBuild;
+        continue;
+      }
+
       // Check for GitHub Alert Callout Block (e.g. > [!WARNING], > [!CAUTION], > [!IMPORTANT], > [!NOTE])
-      if (upper.startsWith('> [!WARNING]') || upper.startsWith('> [!CAUTION]')) {
+      if (upper.startsWith('> [!WARNING]') ||
+          upper.startsWith('> [!CAUTION]') ||
+          upper.startsWith('> [!IMPORTANT]')) {
         isMandatory = true;
         inAlertBlock = true;
         continue;
-      } else if (upper.startsWith('> [!IMPORTANT]') || upper.startsWith('> [!NOTE]')) {
+      } else if (upper.startsWith('> [!NOTE]') || upper.startsWith('> [!TIP]')) {
         inAlertBlock = true;
         continue;
       }
@@ -214,13 +265,124 @@ class AppReleaseInfo {
 
     return AppReleaseInfo(
       latestVersion: tagName,
-      buildNumber: 1,
+      buildNumber: buildNumber,
       minSupportedVersion: minSupported,
       releaseDate: publishedAt.isNotEmpty ? publishedAt.split('T').first : '',
       releaseTitle: (json['name'] ?? 'ClassTrack $tagName').toString(),
       changelog: changelog,
       downloadUrl: apkUrl,
       releasePageUrl: htmlUrl,
+      isMandatory: isMandatory,
+      warningMessage: warningMessage,
+      abiAssets: abiAssets,
+    );
+  }
+
+  /// Parse the latest release from GitHub's public releases Atom feed (zero rate-limits)
+  factory AppReleaseInfo.fromGithubAtomFeed(
+    String atomXml, {
+    String owner = UpdateConstants.defaultGithubOwner,
+    String repo = UpdateConstants.defaultGithubRepo,
+  }) {
+    final entryMatch = RegExp(r'<entry>(.*?)</entry>', dotAll: true).firstMatch(atomXml);
+    if (entryMatch == null) {
+      throw const FormatException('No entry found in Atom feed');
+    }
+    final entryContent = entryMatch.group(1)!;
+
+    // Extract tag from link or id
+    String tag = '';
+    final tagMatch = RegExp(r'/releases/tag/([^"<\s]+)').firstMatch(entryContent);
+    if (tagMatch != null) {
+      tag = tagMatch.group(1)!;
+    } else {
+      final idMatch = RegExp(r'<id>[^<]*/([^/<]+)</id>').firstMatch(entryContent);
+      if (idMatch != null) tag = idMatch.group(1)!;
+    }
+    final cleanVersion = tag.replaceAll(RegExp(r'^[vV]'), '');
+
+    // Title
+    String title = 'ClassTrack $cleanVersion';
+    final titleMatch = RegExp(r'<title>(.*?)</title>').firstMatch(entryContent);
+    if (titleMatch != null) {
+      title = _decodeHtmlEntities(titleMatch.group(1)!.trim());
+    }
+
+    // Published date
+    String publishedDate = '';
+    final updatedMatch = RegExp(r'<updated>(.*?)</updated>').firstMatch(entryContent);
+    if (updatedMatch != null) {
+      publishedDate = updatedMatch.group(1)!.split('T').first;
+    }
+
+    // Build number from tag
+    int buildNumber = 1;
+    if (cleanVersion.contains('+')) {
+      buildNumber = int.tryParse(cleanVersion.split('+').last) ?? 1;
+    } else {
+      final match = RegExp(r'(?:alpha|beta|rc|\+)\.?(\d+)', caseSensitive: false).firstMatch(cleanVersion);
+      if (match != null) {
+        buildNumber = int.tryParse(match.group(1)!) ?? 1;
+      }
+    }
+
+    // Parse HTML content
+    final contentMatch = RegExp(r'<content\s+type="html">(.*?)</content>', dotAll: true).firstMatch(entryContent);
+    final rawHtml = contentMatch != null ? _decodeHtmlEntities(contentMatch.group(1)!) : '';
+
+    bool isMandatory = false;
+    String? warningMessage;
+    final List<String> changelog = [];
+
+    if (rawHtml.isNotEmpty) {
+      if (rawHtml.contains('markdown-alert-important') ||
+          rawHtml.contains('markdown-alert-warning') ||
+          rawHtml.contains('markdown-alert-caution') ||
+          rawHtml.contains('Mandatory Update')) {
+        isMandatory = true;
+      }
+
+      final alertMatch = RegExp(
+        r'<div class="markdown-alert[^"]*">.*?<p>(?:<strong>.*?</strong>:?\s*)?(.*?)</p>',
+        dotAll: true,
+      ).firstMatch(rawHtml);
+      if (alertMatch != null) {
+        final alertText = _decodeHtmlEntities(alertMatch.group(1)!.replaceAll(RegExp(r'<[^>]*>'), '').trim());
+        if (alertText.isNotEmpty) {
+          warningMessage = alertText;
+        }
+      }
+
+      final liMatches = RegExp(r'<li>(.*?)</li>', dotAll: true).allMatches(rawHtml);
+      for (final m in liMatches) {
+        final itemText = _decodeHtmlEntities(m.group(1)!.replaceAll(RegExp(r'<[^>]*>'), '').trim());
+        if (itemText.isNotEmpty &&
+            !itemText.startsWith('|') &&
+            !itemText.startsWith('---') &&
+            !itemText.startsWith('Full Changelog')) {
+          changelog.add(itemText);
+        }
+      }
+    }
+
+    final rawTag = tag.isNotEmpty ? tag : 'v$cleanVersion';
+    final baseUrl = 'https://github.com/$owner/$repo/releases/download/$rawTag';
+    final Map<String, String> abiAssets = {
+      'arm64-v8a': '$baseUrl/app-arm64-v8a-release.apk',
+      'armeabi-v7a': '$baseUrl/app-armeabi-v7a-release.apk',
+      'x86_64': '$baseUrl/app-x86_64-release.apk',
+      'universal': '$baseUrl/ClassTrack-$rawTag.apk',
+    };
+
+    return AppReleaseInfo(
+      latestVersion: cleanVersion,
+      buildNumber: buildNumber,
+      minSupportedVersion: '1.0.0',
+      releaseDate: publishedDate,
+      releaseTitle: title,
+      changelog: changelog,
+      downloadUrl: _selectBestApkFromMap(abiAssets),
+      releasePageUrl: 'https://github.com/$owner/$repo/releases/tag/$rawTag',
       isMandatory: isMandatory,
       warningMessage: warningMessage,
       abiAssets: abiAssets,
@@ -488,21 +650,106 @@ class AppUpdateService {
     return null;
   }
 
-  /// Fetches latest published release.
-  /// Prioritizes GitHub Releases API to guarantee draft/unpublished releases are ignored.
-  /// Falls back to the raw version manifest if GitHub API is unreachable or rate-limited.
+  /// Fetches release info from GitHub's public releases Atom feed (has NO 60-req/hr rate limit)
+  static Future<AppReleaseInfo?> fetchGithubAtomFeed({
+    String owner = UpdateConstants.defaultGithubOwner,
+    String repo = UpdateConstants.defaultGithubRepo,
+    http.Client? client,
+  }) async {
+    final httpClient = client ?? http.Client();
+    final uri = Uri.parse('https://github.com/$owner/$repo/releases.atom');
+
+    try {
+      final response = await httpClient.get(
+        uri,
+        headers: {
+          'Accept': 'application/atom+xml, text/xml',
+          'User-Agent': 'ClassTrack-Updater/1.0',
+        },
+      ).timeout(UpdateConstants.requestTimeout);
+
+      if (response.statusCode == 200) {
+        final xml = utf8.decode(response.bodyBytes);
+        return AppReleaseInfo.fromGithubAtomFeed(xml, owner: owner, repo: repo);
+      }
+    } catch (e) {
+      debugPrint('[AppUpdateService] GitHub Atom feed check failed: $e');
+    } finally {
+      if (client == null) {
+        httpClient.close();
+      }
+    }
+    return null;
+  }
+
+  /// Fetches latest published release with multi-tier fallback:
+  /// 1. GitHub Releases API (guarantees published status and detailed asset lists).
+  /// 2. GitHub Releases Atom Feed (public, 0 rate limits, always contains latest published tag).
+  /// 3. Raw version manifest with cache-busting timestamp (CDN bypass).
   static Future<AppReleaseInfo?> fetchLatestRelease({
     String? customUrl,
     String owner = UpdateConstants.defaultGithubOwner,
     String repo = UpdateConstants.defaultGithubRepo,
     http.Client? client,
   }) async {
-    // 1. Primary: GitHub Releases API (draft-immune)
-    final githubRelease = await fetchGithubRelease(owner: owner, repo: repo, client: client);
-    if (githubRelease != null) return githubRelease;
+    // 1. Primary: GitHub Releases API
+    try {
+      final githubRelease = await fetchGithubRelease(owner: owner, repo: repo, client: client);
+      if (githubRelease != null) return githubRelease;
+    } catch (_) {}
 
-    // 2. Secondary fallback: Raw version manifest
-    return fetchReleaseInfo(customUrl: customUrl, client: client);
+    // 1b. Secondary fallback: GitHub Releases public Atom feed (rate-limit immune)
+    try {
+      final atomRelease = await fetchGithubAtomFeed(owner: owner, repo: repo, client: client);
+      if (atomRelease != null) return atomRelease;
+    } catch (_) {}
+
+    // 2. Tertiary fallback: Raw version manifest with cache-busting timestamp
+    final String cacheBustedUrl =
+        customUrl ?? '${UpdateConstants.defaultVersionCheckUrl}?t=${DateTime.now().millisecondsSinceEpoch}';
+    return fetchReleaseInfo(customUrl: cacheBustedUrl, client: client);
+  }
+
+  /// Resolves the optimal APK matching device hardware architecture from an ABI map
+  static Future<String?> resolveBestDownloadUrl(Map<String, String> abiAssets) async {
+    if (abiAssets.isEmpty) return null;
+
+    List<String> supportedAbis = [];
+    if (Platform.isAndroid) {
+      try {
+        supportedAbis = await getDeviceSupportedAbis();
+      } catch (_) {}
+    }
+
+    if (supportedAbis.isEmpty) {
+      try {
+        final current = Abi.current();
+        if (current == Abi.androidArm64) {
+          supportedAbis = ['arm64-v8a', 'armeabi-v7a'];
+        } else if (current == Abi.androidArm) {
+          supportedAbis = ['armeabi-v7a'];
+        } else if (current == Abi.androidX64) {
+          supportedAbis = ['x86_64', 'arm64-v8a'];
+        }
+      } catch (_) {}
+    }
+
+    for (final abi in supportedAbis) {
+      final norm = abi.toLowerCase();
+      if (norm.contains('arm64') || norm.contains('v8a')) {
+        if (abiAssets.containsKey('arm64-v8a')) return abiAssets['arm64-v8a'];
+      } else if (norm.contains('armeabi-v7a') || norm.contains('v7a') || (norm.contains('arm') && !norm.contains('64'))) {
+        if (abiAssets.containsKey('armeabi-v7a')) return abiAssets['armeabi-v7a'];
+      } else if (norm.contains('x86_64') || norm.contains('x64')) {
+        if (abiAssets.containsKey('x86_64')) return abiAssets['x86_64'];
+      }
+    }
+
+    if (abiAssets.containsKey('universal')) {
+      return abiAssets['universal'];
+    }
+
+    return abiAssets.values.firstOrNull;
   }
 
   /// Hybrid Release Notes Fetcher:
@@ -550,8 +797,9 @@ class AppUpdateService {
     return AppReleaseNotes.getForVersion(clean);
   }
 
-  /// Downloads an APK from [downloadUrl] to app cache with chunked streaming and progress reporting.
-  /// Once downloaded, verifies integrity and returns the saved File.
+  /// Downloads an APK from [downloadUrl] to app cache with chunked streaming,
+  /// automatic redirect following (essential for GitHub Release asset 302 redirects),
+  /// and real-time progress reporting.
   static Future<File?> downloadApk({
     required String downloadUrl,
     required void Function(int receivedBytes, int totalBytes, double progressPct) onProgress,
@@ -561,11 +809,30 @@ class AppUpdateService {
     final httpClient = client ?? http.Client();
 
     try {
-      final uri = Uri.parse(downloadUrl);
-      final request = http.Request('GET', uri);
-      request.headers['User-Agent'] = 'ClassTrack-Updater/1.0';
-      request.headers['Accept'] = '*/*';
-      final response = await httpClient.send(request);
+      Uri currentUri = Uri.parse(downloadUrl);
+      http.StreamedResponse response;
+      int redirectCount = 0;
+
+      // Follow HTTP 301/302/307/308 redirects (GitHub Releases redirect to AWS S3 CDN)
+      while (true) {
+        final request = http.Request('GET', currentUri);
+        request.headers['User-Agent'] = 'ClassTrack-Updater/1.0';
+        request.headers['Accept'] = '*/*';
+        response = await httpClient.send(request);
+
+        if (response.statusCode == 301 ||
+            response.statusCode == 302 ||
+            response.statusCode == 307 ||
+            response.statusCode == 308) {
+          final location = response.headers['location'];
+          if (location != null && redirectCount < 5) {
+            currentUri = Uri.parse(location);
+            redirectCount++;
+            continue;
+          }
+        }
+        break;
+      }
 
       if (response.statusCode != 200) {
         throw Exception('Download server returned HTTP ${response.statusCode}');
@@ -576,8 +843,16 @@ class AppUpdateService {
       final tempFile = File(p.join(tempDir.path, 'classtrack_update.apk.tmp'));
       final targetFile = File(p.join(tempDir.path, 'classtrack_update.apk'));
 
-      if (await tempFile.exists()) await tempFile.delete();
-      if (await targetFile.exists()) await targetFile.delete();
+      if (await tempFile.exists()) {
+        try {
+          await tempFile.delete();
+        } catch (_) {}
+      }
+      if (await targetFile.exists()) {
+        try {
+          await targetFile.delete();
+        } catch (_) {}
+      }
 
       final sink = tempFile.openWrite();
       int receivedBytes = 0;
@@ -592,8 +867,15 @@ class AppUpdateService {
       await sink.flush();
       await sink.close();
 
-      // Atomic rename once complete
-      await tempFile.rename(targetFile.path);
+      // Safe atomic rename or copy fallback
+      try {
+        await tempFile.rename(targetFile.path);
+      } catch (_) {
+        await tempFile.copy(targetFile.path);
+        try {
+          await tempFile.delete();
+        } catch (_) {}
+      }
       return targetFile;
     } catch (e) {
       debugPrint('[AppUpdateService] APK download failed: $e');

@@ -82,7 +82,12 @@ class AppUpdateNotifier extends StateNotifier<AppUpdateState> {
     state = state.copyWith(status: UpdateCheckStatus.checking, errorMessage: null);
 
     try {
-      // 1. Fetch release info (prioritizes GitHub API to get all assets & device ABI matching)
+      // Ensure PackageInfo is loaded if not already initialized
+      if (state.currentVersion == '1.0.0' && state.currentBuildNumber == '1') {
+        await _initPackageInfo();
+      }
+
+      // 1. Fetch release info (prioritizes GitHub API -> Atom Feed -> cache-busted version.json)
       final AppReleaseInfo? release = await AppUpdateService.fetchLatestRelease(customUrl: customManifestUrl);
 
       final currentVer = state.currentVersion;
@@ -99,6 +104,12 @@ class AppUpdateNotifier extends StateNotifier<AppUpdateState> {
           AppToast.error(context, 'Unable to check for updates. Please check your internet connection.');
         }
         return;
+      }
+
+      // Resolve the optimal download URL for this device's hardware architecture
+      String? matchedDownloadUrl = release.downloadUrl;
+      if (release.abiAssets.isNotEmpty) {
+        matchedDownloadUrl = await AppUpdateService.resolveBestDownloadUrl(release.abiAssets) ?? matchedDownloadUrl;
       }
 
       // 2. Evaluate if update is available
@@ -122,7 +133,7 @@ class AppUpdateNotifier extends StateNotifier<AppUpdateState> {
         releaseDate: release.releaseDate,
         releaseTitle: release.releaseTitle,
         changelog: release.changelog,
-        downloadUrl: release.downloadUrl,
+        downloadUrl: matchedDownloadUrl,
         releasePageUrl: release.releasePageUrl,
         isMandatory: isMandatory,
         warningMessage: release.warningMessage,
