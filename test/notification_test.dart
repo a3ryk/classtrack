@@ -121,6 +121,25 @@ void main() {
       expect(info.downloadUrl, isNotNull);
     });
 
+    test('NotificationService.resolveChannelId maps all sound and vibration combinations correctly', () {
+      expect(
+        NotificationService.resolveChannelId(sound: true, vibrate: true),
+        NotificationService.channelRemindersAll,
+      );
+      expect(
+        NotificationService.resolveChannelId(sound: true, vibrate: false),
+        NotificationService.channelRemindersSoundOnly,
+      );
+      expect(
+        NotificationService.resolveChannelId(sound: false, vibrate: true),
+        NotificationService.channelRemindersVibrateOnly,
+      );
+      expect(
+        NotificationService.resolveChannelId(sound: false, vibrate: false),
+        NotificationService.channelRemindersSilent,
+      );
+    });
+
     testWidgets('NotificationSettingsScreen renders all sections cleanly and opens timing sheet', (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
@@ -149,19 +168,36 @@ void main() {
       expect(find.text('Alerts & Testing'), findsOneWidget);
       expect(find.text('Send Test Notification'), findsOneWidget);
 
-      // Verify tapping timing opens timing sheet
+      // Verify no cluttered subtext exists on the screen
+      expect(find.text('Vibrate on class alerts'), findsNothing);
+      expect(find.text('Play default notification ringtone'), findsNothing);
+      expect(find.text('Prompts you to mark attendance'), findsNothing);
+      expect(find.text('Room and subject details before class starts'), findsNothing);
+
+      // Verify no footer card exists
+      expect(find.textContaining('battery'), findsNothing);
+      expect(find.textContaining('ClassTrack alerts you only'), findsNothing);
+
+      // Verify tapping timing opens tactile bottom sheet
       await tester.tap(find.text('Reminder Timing'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Class Start Reminder'), findsOneWidget);
-      expect(find.text('QUICK PRESETS'), findsOneWidget);
-      expect(find.text('CUSTOM MINUTES'), findsOneWidget);
+      expect(find.text('Start Reminder'), findsOneWidget);
+      expect(find.text('5 min before'), findsOneWidget);
+      expect(find.text('15m'), findsOneWidget);
+      expect(find.text('Save'), findsOneWidget);
 
-      // Tap a preset
-      await tester.tap(find.text('15m before'));
+      // Tap 15m preset
+      await tester.tap(find.text('15m'));
       await tester.pumpAndSettle();
 
-      // Verify sheet dismissed and updated
+      expect(find.text('15 min before'), findsOneWidget);
+
+      // Tap Save to dismiss and commit
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      // Verify sheet dismissed and updated value shown on tile
       expect(find.text('15m before'), findsOneWidget);
     });
   });

@@ -53,6 +53,11 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      transitionAnimationController: AnimationController(
+        vsync: Navigator.of(context),
+        duration: const Duration(milliseconds: 340),
+        reverseDuration: const Duration(milliseconds: 240),
+      ),
       builder: (sheetContext) => _ReminderTimingSheet(
         isStart: isStart,
         currentMinutes: currentMinutes,
@@ -125,7 +130,6 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                 children: [
                   _buildSwitchRow(
                     title: 'Class Reminders',
-                    subtitle: 'Alerts for upcoming classes and attendance',
                     value: prefs.enabled,
                     isDark: isDark,
                     onChanged: (val) {
@@ -136,7 +140,6 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                     Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
                     _buildSwitchRow(
                       title: 'Remind Before Class',
-                      subtitle: 'Room and subject details',
                       value: prefs.enableClassStart,
                       isDark: isDark,
                       onChanged: (val) {
@@ -165,7 +168,6 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                     Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
                     _buildSwitchRow(
                       title: 'Remind When Class Ends',
-                      subtitle: 'Prompts you to mark attendance',
                       value: prefs.enableClassEnd,
                       isDark: isDark,
                       onChanged: (val) {
@@ -194,7 +196,6 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                     Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
                     _buildSwitchRow(
                       title: 'Quick Attendance Buttons',
-                      subtitle: 'Mark Present, Absent, or Cancelled from notification',
                       value: prefs.enableQuickActions,
                       isDark: isDark,
                       onChanged: (val) {
@@ -222,7 +223,6 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                 children: [
                   _buildSwitchRow(
                     title: 'Vibration',
-                    subtitle: 'Vibrate on class alerts',
                     value: prefs.vibrate,
                     isDark: isDark,
                     onChanged: (val) {
@@ -232,7 +232,6 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                   Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
                   _buildSwitchRow(
                     title: 'Sound',
-                    subtitle: 'Play notification ringtone',
                     value: prefs.sound,
                     isDark: isDark,
                     onChanged: (val) {
@@ -244,32 +243,19 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                     onTap: () => _sendTestNotification(prefs),
                     borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
                       child: Row(
                         children: [
                           const Icon(Icons.bolt_rounded, size: 20, color: AppColors.accentBlue),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Send Test Notification',
-                                  style: TextStyle(
-                                    fontSize: 14.5,
-                                    fontWeight: FontWeight.w600,
-                                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Preview quick attendance buttons in notification tray',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                                  ),
-                                ),
-                              ],
+                            child: Text(
+                              'Send Test Notification',
+                              style: TextStyle(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                              ),
                             ),
                           ),
                           Icon(
@@ -283,34 +269,6 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                   ),
                 ],
               ),
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // GROUP 3: UNBOXED PUBLIC-FRIENDLY FOOTER CAPTION
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.battery_saver_rounded,
-                  size: 16,
-                  color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'ClassTrack alerts you only at scheduled class times and never stays running in the background, so your battery won\'t drain.',
-                    style: TextStyle(
-                      fontSize: 12,
-                      height: 1.4,
-                      color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
-                    ),
-                  ),
-                ),
-              ],
             ),
           ),
 
@@ -336,7 +294,6 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
 
   Widget _buildSwitchRow({
     required String title,
-    String? subtitle,
     required bool value,
     required bool isDark,
     required ValueChanged<bool> onChanged,
@@ -346,28 +303,13 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
       child: Row(
         children: [
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                  ),
-                ),
-                if (subtitle != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                    ),
-                  ),
-                ],
-              ],
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 14.5,
+                fontWeight: FontWeight.w600,
+                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -440,7 +382,7 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
   }
 }
 
-/// Clean modal bottom sheet for timing selection with quick presets & custom minutes
+/// Tactile modal bottom sheet for timing selection (Matching TargetPercentageSheet)
 class _ReminderTimingSheet extends StatefulWidget {
   final bool isStart;
   final int currentMinutes;
@@ -459,251 +401,204 @@ class _ReminderTimingSheet extends StatefulWidget {
 }
 
 class _ReminderTimingSheetState extends State<_ReminderTimingSheet> {
-  late final TextEditingController _customController;
-  late int _selectedMinutes;
-  String? _customError;
+  late double _selectedMinutes;
 
   List<int> get _presets => widget.isStart ? const [0, 5, 10, 15, 30] : const [0, 5, 10, 15];
 
   @override
   void initState() {
     super.initState();
-    _selectedMinutes = widget.currentMinutes;
-    final isPreset = _presets.contains(_selectedMinutes);
-    _customController = TextEditingController(
-      text: isPreset ? '' : _selectedMinutes.toString(),
-    );
+    _selectedMinutes = widget.currentMinutes.clamp(0, 60).toDouble();
   }
 
-  @override
-  void dispose() {
-    _customController.dispose();
-    super.dispose();
+  void _updateMinutes(double mins) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      _selectedMinutes = mins.clamp(0.0, 60.0);
+    });
   }
 
-  void _applyMinutes(int minutes) {
-    if (minutes < 0 || minutes > 120) {
-      setState(() {
-        _customError = 'Enter 0 to 120 mins';
-      });
-      return;
-    }
-    widget.onSelected(minutes);
+  void _save() {
+    widget.onSelected(_selectedMinutes.round());
     Navigator.pop(context);
+  }
+
+  String _formatHero(int mins) {
+    if (mins == 0) {
+      return widget.isStart ? 'At class start' : 'At class end';
+    }
+    return '$mins min before';
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = widget.isDark;
-    final bg = isDark ? AppColors.cardDark : Colors.white;
-    final borderColor = isDark ? AppColors.borderDark : const Color(0xFFE2E8F0);
+    final int currentInt = _selectedMinutes.round();
 
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
+    return Container(
+      padding: EdgeInsets.fromLTRB(20, 12, 20, MediaQuery.of(context).viewInsets.bottom + 24),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.cardDark : AppColors.cardLight,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+        border: Border.all(color: isDark ? AppColors.borderDark : AppColors.borderLight, width: 0.8),
       ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          border: Border.all(color: borderColor, width: 0.8),
-        ),
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 38,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                  borderRadius: BorderRadius.circular(2),
-                ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Drag handle
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const SizedBox(height: 16),
-            Text(
-              widget.isStart ? 'Class Start Reminder' : 'Class End Reminder',
+          ),
+          const SizedBox(height: 16),
+
+          // Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                widget.isStart ? 'Start Reminder' : 'End Reminder',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                ),
+              ),
+              IconButton(
+                icon: Icon(
+                  Icons.close_rounded,
+                  size: 20,
+                  color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                ),
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // Big Hero Text Display
+          Center(
+            child: Text(
+              _formatHero(currentInt),
               style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
+                fontSize: 32,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.5,
                 color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              widget.isStart
-                  ? 'How long before class begins should ClassTrack notify you?'
-                  : 'How long before or when class ends should you be prompted?',
-              style: TextStyle(
-                fontSize: 13,
-                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-              ),
-            ),
-            const SizedBox(height: 18),
-            Text(
-              'QUICK PRESETS',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.5,
-                color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _presets.map((mins) {
-                final isSelected = _selectedMinutes == mins;
-                final label = mins == 0
-                    ? (widget.isStart ? 'At start' : 'At class end')
-                    : '${mins}m before';
+          ),
+          const SizedBox(height: 16),
 
-                return InkWell(
-                  onTap: () {
-                    setState(() {
-                      _selectedMinutes = mins;
-                      _customController.clear();
-                      _customError = null;
-                    });
-                    _applyMinutes(mins);
-                  },
-                  borderRadius: BorderRadius.circular(8),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          // Quick Preset Pills
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: _presets.map((preset) {
+              final isSel = currentInt == preset;
+              final label = preset == 0
+                  ? (widget.isStart ? 'At start' : 'At end')
+                  : '${preset}m';
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: InkWell(
+                  onTap: () => _updateMinutes(preset.toDouble()),
+                  borderRadius: BorderRadius.circular(6),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: isSelected
-                          ? AppColors.accentBlue
-                          : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: isSelected
-                            ? AppColors.accentBlue
-                            : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-                        width: 0.8,
-                      ),
+                      color: isSel
+                          ? (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight)
+                          : (isDark ? AppColors.pillDark : const Color(0xFFF1F5F9)),
+                      borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
                       label,
                       style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                        color: isSelected
-                            ? Colors.white
+                        fontSize: 12,
+                        fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
+                        color: isSel
+                            ? (isDark ? AppColors.bgDark : AppColors.surfaceLight)
                             : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
                       ),
                     ),
                   ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'CUSTOM MINUTES',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.5,
-                color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 20),
+
+          // Slider with Steppers Row
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.remove_rounded, size: 20),
+                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                onPressed: currentInt > 0 ? () => _updateMinutes(_selectedMinutes - 1) : null,
+              ),
+              Expanded(
+                child: SliderTheme(
+                  data: SliderThemeData(
+                    trackHeight: 4,
+                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
+                    activeTrackColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                    inactiveTrackColor: isDark ? AppColors.pillDark : const Color(0xFFE2E8F0),
+                    thumbColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                    overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                  ),
+                  child: Slider(
+                    value: _selectedMinutes,
+                    min: 0.0,
+                    max: 60.0,
+                    divisions: 60,
+                    onChanged: _updateMinutes,
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.add_rounded, size: 20),
+                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                onPressed: currentInt < 60 ? () => _updateMinutes(_selectedMinutes + 1) : null,
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // Save Action
+          SizedBox(
+            width: double.infinity,
+            height: 44,
+            child: ElevatedButton(
+              onPressed: _save,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                foregroundColor: isDark ? AppColors.bgDark : AppColors.surfaceLight,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                'Save',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
-            const SizedBox(height: 10),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        height: 44,
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: _customError != null
-                                ? AppColors.absentRed
-                                : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
-                            width: 1,
-                          ),
-                        ),
-                        alignment: Alignment.center,
-                        child: TextField(
-                          controller: _customController,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                            LengthLimitingTextInputFormatter(3),
-                          ],
-                          decoration: const InputDecoration(
-                            hintText: 'e.g. 7 or 25',
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                          ),
-                          onChanged: (_) {
-                            if (_customError != null) {
-                              setState(() => _customError = null);
-                            }
-                          },
-                        ),
-                      ),
-                      if (_customError != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          _customError!,
-                          style: const TextStyle(fontSize: 11, color: AppColors.absentRed),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 10),
-                SizedBox(
-                  height: 44,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      final text = _customController.text.trim();
-                      if (text.isEmpty) {
-                        setState(() => _customError = 'Enter minutes');
-                        return;
-                      }
-                      final parsed = int.tryParse(text);
-                      if (parsed == null || parsed < 0 || parsed > 120) {
-                        setState(() => _customError = '0 to 120 mins only');
-                        return;
-                      }
-                      _applyMinutes(parsed);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.accentBlue,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 18),
-                    ),
-                    child: const Text(
-                      'Apply',
-                      style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

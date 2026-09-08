@@ -94,6 +94,20 @@ class NotificationService {
   static const String classRemindersChannelId = 'classtrack_class_reminders';
   static const String classRemindersChannelName = 'Class Reminders & Attendance';
 
+  // Dedicated sound & vibration channels for Android 8+
+  static const String channelRemindersAll = 'classtrack_reminders_all';
+  static const String channelRemindersSoundOnly = 'classtrack_reminders_sound';
+  static const String channelRemindersVibrateOnly = 'classtrack_reminders_vibrate';
+  static const String channelRemindersSilent = 'classtrack_reminders_silent';
+
+  /// Resolves the exact system notification channel based on user sound & vibrate preferences
+  static String resolveChannelId({required bool sound, required bool vibrate}) {
+    if (sound && vibrate) return channelRemindersAll;
+    if (sound && !vibrate) return channelRemindersSoundOnly;
+    if (!sound && vibrate) return channelRemindersVibrateOnly;
+    return channelRemindersSilent;
+  }
+
   // Notification Action IDs
   static const String actionPresent = 'ATTENDANCE_PRESENT';
   static const String actionAbsent = 'ATTENDANCE_ABSENT';
@@ -194,14 +208,41 @@ class NotificationService {
           playSound: true,
         ));
 
-        // 5. Class Reminders & Quick Attendance Channel
+        // 5. Class Reminders Channels (Sound & Vibrate matrix for Android 8+)
         await androidImpl?.createNotificationChannel(const AndroidNotificationChannel(
-          classRemindersChannelId,
-          classRemindersChannelName,
-          description: 'Notifications before class starts and when class ends with quick attendance actions',
+          channelRemindersAll,
+          'Class Reminders (Sound & Vibrate)',
+          description: 'Notifications with sound and vibration',
           importance: Importance.high,
           playSound: true,
           enableVibration: true,
+        ));
+
+        await androidImpl?.createNotificationChannel(const AndroidNotificationChannel(
+          channelRemindersSoundOnly,
+          'Class Reminders (Sound Only)',
+          description: 'Notifications with sound only',
+          importance: Importance.high,
+          playSound: true,
+          enableVibration: false,
+        ));
+
+        await androidImpl?.createNotificationChannel(const AndroidNotificationChannel(
+          channelRemindersVibrateOnly,
+          'Class Reminders (Vibrate Only)',
+          description: 'Notifications with vibration only',
+          importance: Importance.high,
+          playSound: false,
+          enableVibration: true,
+        ));
+
+        await androidImpl?.createNotificationChannel(const AndroidNotificationChannel(
+          channelRemindersSilent,
+          'Class Reminders (Silent)',
+          description: 'Silent notifications without sound or vibration',
+          importance: Importance.low,
+          playSound: false,
+          enableVibration: false,
         ));
       }
 
@@ -252,14 +293,16 @@ class NotificationService {
             ]
           : const <AndroidNotificationAction>[];
 
+      final channelId = resolveChannelId(sound: sound, vibrate: vibrate);
       final androidDetails = AndroidNotificationDetails(
-        classRemindersChannelId,
+        channelId,
         classRemindersChannelName,
         channelDescription: 'Class reminders and quick attendance actions',
-        importance: Importance.high,
-        priority: Priority.high,
+        importance: (sound || vibrate) ? Importance.high : Importance.low,
+        priority: (sound || vibrate) ? Priority.high : Priority.low,
         playSound: sound,
         enableVibration: vibrate,
+        vibrationPattern: vibrate ? null : Int64List.fromList([0]),
         actions: actions,
       );
 
@@ -301,6 +344,15 @@ class NotificationService {
     if (!Platform.isAndroid && !Platform.isIOS) return;
     await init();
 
+    if (Platform.isAndroid) {
+      try {
+        final status = await Permission.notification.status;
+        if (!status.isGranted) {
+          await Permission.notification.request();
+        }
+      } catch (_) {}
+    }
+
     try {
       final actions = withQuickActions
           ? const [
@@ -325,14 +377,16 @@ class NotificationService {
             ]
           : const <AndroidNotificationAction>[];
 
+      final channelId = resolveChannelId(sound: sound, vibrate: vibrate);
       final androidDetails = AndroidNotificationDetails(
-        classRemindersChannelId,
+        channelId,
         classRemindersChannelName,
         channelDescription: 'Class reminders and quick attendance actions',
-        importance: Importance.high,
-        priority: Priority.high,
+        importance: (sound || vibrate) ? Importance.high : Importance.low,
+        priority: (sound || vibrate) ? Priority.high : Priority.low,
         playSound: sound,
         enableVibration: vibrate,
+        vibrationPattern: vibrate ? null : Int64List.fromList([0]),
         actions: actions,
       );
 
