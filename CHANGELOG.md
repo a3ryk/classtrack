@@ -5,6 +5,23 @@ All notable changes to **ClassTrack** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-alpha.8] - 2026-09-09
+
+### ✨ Features & Architecture
+- **Multi-Tier GitHub Releases Priority**: In-app updater checks published GitHub Releases first (Tier 1 GitHub API &rarr; Tier 1b Rate-Limit-Free Atom Feed &rarr; Tier 2 Cache-Busted manifest).
+- **Native Hardware ABI Architecture Detection**: Automatically resolves device architecture via `Build.SUPPORTED_ABIS` (`arm64-v8a`, `armeabi-v7a`, `x86_64`) to download exact matching APKs instead of oversized universal packages.
+- **Redirect-Aware Asset Downloader**: Follows HTTP 301/302/307/308 redirects up to 5 hops, properly handling GitHub Release asset downloads that redirect to AWS S3 pre-signed CDN URLs.
+- **Fluid Extra Class Tactile Bottom Sheet**: Replaced clunky `AlertDialog` popup with an interactive 320ms bottom slider sheet with side-by-side time pickers and immediate database commit.
+- **On-The-Fly In-Sheet Subject Creation**: Students can create, categorize (`MAJOR`, `MINOR`, `AEC`, etc.), and color-code new subjects directly in the sheet without leaving the calendar screen.
+- **Modern Subject Selector & Modal Picker**: Replaced standard Flutter `DropdownButton` menu with an interactive subject card and dedicated modal picker sheet with live search, category badges, active checkmarks, and single `+ Add New Subject` action.
+- **Storage & Notification Permissions Enforcement**: Enforced runtime storage permission checks across all restore entry points (Settings and Onboarding) and runtime notification permission checks when enabling reminder switches or sending test alerts.
+
+### 🧩 Bug Fixes & Stability
+- **Eliminated Java 8 Compiler Warnings**: Configured `-Xlint:-options` across all Gradle subprojects to eliminate obsolete source/target 8 warnings from third-party plugins.
+- **Android Manifest Install Location**: Added `android:installLocation="auto"` to resolve device storage constraints during installation.
+- **Clock Icon Uniformity**: Harmonized Start and End time picker icons to use consistent `Icons.access_time_rounded`.
+- **Eliminated Duplicate Plus Icons**: Removed redundant plus prefixes in buttons and menus (`+  + New Subject`).
+
 ---
 
 ## [1.0.0-alpha.7] - 2026-09-09

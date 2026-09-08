@@ -4,9 +4,26 @@ import '../services/app_update_service.dart';
 class AppReleaseNotes {
   AppReleaseNotes._();
 
-  static const String currentVersion = '1.0.0-alpha.7';
+  static const String currentVersion = '1.0.0-alpha.8';
 
   static final Map<String, AppReleaseInfo> _releases = {
+    '1.0.0-alpha.8': const AppReleaseInfo(
+      latestVersion: '1.0.0-alpha.8',
+      buildNumber: 8,
+      minSupportedVersion: '1.0.0-alpha.8',
+      releaseDate: 'September 2026',
+      releaseTitle: 'ClassTrack v1.0.0-alpha.8 (GitHub Releases Engine, Calendar Slider & Subject Picker)',
+      changelog: [
+        '✨ Multi-Tier GitHub Releases Priority: In-app updater checks published GitHub Releases first with rate-limit-free Atom feed fallback and hardware ABI detection (ARM64, ARMv7, x86_64, Universal)',
+        '✨ Fluid Extra Class Bottom Sheet: Replaced awkward dialog popup with a tactile 320ms bottom slider sheet with side-by-side time pickers and immediate database commit',
+        '✨ Direct In-Sheet Subject Creation: Create, categorize, and color-code brand new subjects on-the-fly directly inside the extra class bottom sheet',
+        '✨ Redesigned Subject Selector & Modal Picker: Replaced clunky native dropdown menu with a sleek selector card and modal sheet with search and active checkmarks',
+        '✨ Storage & Notification Permission Guards: Enforced automatic storage permission checks on backup restore (Settings & Onboarding) and runtime notification checks on reminder switches',
+        '🧩 Eliminated Java 8 obsolete compiler warnings and added automatic install location support',
+      ],
+      isMandatory: true,
+      warningMessage: 'Mandatory update required for GitHub Releases updater pipeline, calendar extra class slider, and permission reliability.',
+    ),
     '1.0.0-alpha.7': const AppReleaseInfo(
       latestVersion: '1.0.0-alpha.7',
       buildNumber: 7,
