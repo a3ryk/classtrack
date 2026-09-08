@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:drift/drift.dart' as drift;
 import '../../../core/constants/app_colors.dart';
 import '../../../core/ui/app_toast.dart';
 import '../../../core/utils/date_formatter.dart';
@@ -50,6 +49,10 @@ class _SubjectRoomManagerScreenState extends ConsumerState<SubjectRoomManagerScr
   }
 
   bool _hasChanges(List<TimetableSlotItem> subjectSlots) {
+    final bulkText = _bulkRoomController.text.trim();
+    final initialBulk = (widget.initialRoom ?? '').trim();
+    if (bulkText.isNotEmpty && bulkText != initialBulk) return true;
+
     for (final slot in subjectSlots) {
       final initial = (slot.room ?? '').trim();
       final current = _slotControllers[slot.id]?.text.trim() ?? '';
@@ -78,26 +81,26 @@ class _SubjectRoomManagerScreenState extends ConsumerState<SubjectRoomManagerScr
 
   Future<void> _saveAllRooms(List<TimetableSlotItem> slots) async {
     setState(() => _isSaving = true);
-    final db = ref.read(databaseProvider);
-    final activeSem = ref.read(activeSemesterProvider);
 
     try {
-      final dbSlots = await db.getTimetableSlots(activeSem.id);
-      final dbSlotMap = {for (final s in dbSlots) s.id: s};
+      final bulkText = _bulkRoomController.text.trim();
+      final Map<String, String?> updates = {};
 
       for (final slot in slots) {
-        final dbSlot = dbSlotMap[slot.id];
-        if (dbSlot == null) continue;
         final c = _slotControllers[slot.id];
-        final newRoom = c != null ? c.text.trim() : (slot.room ?? '');
-        final updated = dbSlot.copyWith(
-          room: drift.Value(newRoom.isNotEmpty ? newRoom : null),
-          updatedAt: DateTime.now().toIso8601String(),
-        );
-        await db.saveTimetableSlot(updated);
+        String roomValue;
+        if (c != null && c.text.trim().isNotEmpty) {
+          roomValue = c.text.trim();
+        } else if (bulkText.isNotEmpty) {
+          roomValue = bulkText;
+        } else {
+          roomValue = (c != null) ? c.text.trim() : (slot.room ?? '').trim();
+        }
+        updates[slot.id] = roomValue.isNotEmpty ? roomValue : null;
       }
 
-      await ref.read(timetableSlotsProvider.notifier).loadFromDb();
+      await ref.read(timetableSlotsProvider.notifier).updateSlotRooms(updates);
+      ref.invalidate(resolvedDayScheduleProvider);
 
       if (mounted) {
         Navigator.pop(context);
@@ -401,10 +404,10 @@ class _SubjectRoomManagerScreenState extends ConsumerState<SubjectRoomManagerScr
                                 ),
                                 const SizedBox(width: 8),
                                 Expanded(
-                                  child: Text(
-                                    '$dayName • ${DateFormatter.formatTime12h(slot.startTime)} - ${DateFormatter.formatTime12h(slot.endTime)}',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                    child: Text(
+                                      '${DateFormatter.formatTime12h(slot.startTime)} – ${DateFormatter.formatTime12h(slot.endTime)}',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
                                       fontSize: 12.5,
                                       fontWeight: FontWeight.w700,

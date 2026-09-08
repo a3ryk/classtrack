@@ -6,6 +6,7 @@ import '../../../domain/entities/attendance_stats.dart';
 import '../../../domain/services/attendance_math.dart';
 import '../../providers/app_state_provider.dart';
 import '../schedule/add_edit_subject_screen.dart';
+import '../schedule/subject_room_manager_screen.dart';
 import '../../widgets/welcome_setup_card.dart';
 
 class AttendanceScreen extends ConsumerStatefulWidget {
@@ -189,6 +190,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final overallStats = ref.watch(overallStatsProvider);
     final subjects = ref.watch(subjectsProvider);
+    final allSlots = ref.watch(timetableSlotsProvider);
 
     final bool hasHeldClasses = subjects.isNotEmpty && overallStats.subjectStats.any((s) => s.totalHeld > 0);
 
@@ -318,27 +320,37 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                 (s) => s.id == stat.subjectId,
                 orElse: () => subjects.first,
               );
-              final allSlots = ref.watch(timetableSlotsProvider);
               final subSlots = allSlots.where((s) => s.subjectComponentId == stat.subjectId).toList();
 
-              String? roomSummary;
+              String? uniformRoomText;
+              final List<_RoomBadgeInfo> roomBadges = [];
+
               if (subSlots.isNotEmpty) {
                 final Map<String, List<String>> roomDays = {};
                 const dayAbbrs = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
                 for (final slot in subSlots) {
-                  final roomName = (slot.room != null && slot.room!.trim().isNotEmpty)
-                      ? (slot.room!.toLowerCase().contains('room') || slot.room!.toLowerCase().contains('lab')
-                          ? slot.room!.trim()
-                          : 'Room ${slot.room!.trim()}')
+                  final rawRoom = slot.room?.trim();
+                  final roomName = (rawRoom != null && rawRoom.isNotEmpty)
+                      ? (rawRoom.toLowerCase().contains('room') || rawRoom.toLowerCase().contains('lab')
+                          ? rawRoom
+                          : 'Room $rawRoom')
                       : 'No Room Set';
                   final dayStr = (slot.dayOfWeek >= 1 && slot.dayOfWeek <= 7)
                       ? dayAbbrs[slot.dayOfWeek - 1]
                       : 'Day ${slot.dayOfWeek}';
                   roomDays.putIfAbsent(roomName, () => []).add(dayStr);
                 }
-                roomSummary = roomDays.entries
-                    .map((e) => '${e.key} (${e.value.join(", ")})')
-                    .join('  •  ');
+
+                if (roomDays.length == 1) {
+                  uniformRoomText = roomDays.keys.first;
+                } else if (roomDays.length > 1) {
+                  for (final entry in roomDays.entries) {
+                    roomBadges.add(_RoomBadgeInfo(
+                      roomName: entry.key,
+                      days: entry.value,
+                    ));
+                  }
+                }
               }
 
               return Padding(
@@ -413,29 +425,77 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                           letterSpacing: -0.2,
                         ),
                       ),
-                      if (roomSummary != null && roomSummary.isNotEmpty) ...[
-                        const SizedBox(height: 3),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.meeting_room_outlined,
-                              size: 13,
-                              color: isDark ? AppColors.accentIndigoDark : AppColors.accentIndigoLight,
-                            ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                roomSummary,
-                                style: TextStyle(
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w500,
-                                  color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                      if (uniformRoomText != null || roomBadges.isNotEmpty) ...[
+                        const SizedBox(height: 5),
+                        InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => SubjectRoomManagerScreen(subject: matchingSub),
                               ),
-                            ),
-                          ],
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(6),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 2),
+                            child: uniformRoomText != null
+                                ? Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.meeting_room_outlined,
+                                        size: 13,
+                                        color: isDark ? AppColors.accentIndigoDark : AppColors.accentIndigoLight,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Flexible(
+                                        child: Text(
+                                          uniformRoomText,
+                                          style: TextStyle(
+                                            fontSize: 11.5,
+                                            fontWeight: FontWeight.w500,
+                                            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : Wrap(
+                                    spacing: 6,
+                                    runSpacing: 4,
+                                    crossAxisAlignment: WrapCrossAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.meeting_room_outlined,
+                                        size: 13,
+                                        color: isDark ? AppColors.accentIndigoDark : AppColors.accentIndigoLight,
+                                      ),
+                                      for (final badge in roomBadges)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                                          decoration: BoxDecoration(
+                                            color: isDark ? AppColors.surfaceDark : const Color(0xFFF1F5F9),
+                                            borderRadius: BorderRadius.circular(6),
+                                            border: Border.all(
+                                              color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
+                                              width: 0.8,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            '${badge.days.join(", ")}: ${badge.roomName}',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                              color: isDark ? AppColors.textSecondaryDark : const Color(0xFF475569),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                          ),
                         ),
                       ],
                       const SizedBox(height: 10),
@@ -487,4 +547,10 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       ),
     );
   }
+}
+
+class _RoomBadgeInfo {
+  final String roomName;
+  final List<String> days;
+  const _RoomBadgeInfo({required this.roomName, required this.days});
 }

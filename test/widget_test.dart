@@ -33,6 +33,7 @@ import 'package:classtrack/presentation/widgets/declare_holiday_dialog.dart';
 import 'package:classtrack/presentation/widgets/university_selector_dialog.dart';
 import 'package:classtrack/presentation/screens/calendar/calendar_screen.dart';
 import 'package:classtrack/presentation/screens/settings/appearance_screen.dart';
+import 'package:classtrack/presentation/screens/attendance/attendance_screen.dart';
 import 'package:classtrack/core/utils/date_formatter.dart';
 
 void main() {
@@ -2074,6 +2075,141 @@ void main() {
       expect(find.text('DISPLAY OPTIONS'), findsOneWidget);
       expect(find.text('Pure OLED Black'), findsOneWidget);
       expect(find.text('Match Device Appearance'), findsOneWidget);
+
+      await db.close();
+    });
+
+    testWidgets('AttendanceScreen renders uniform room cleanly and multi-room in wrapped badges', (tester) async {
+      final db = AppDatabase.inMemory();
+      final nowIso = DateTime.now().toIso8601String();
+
+      await db.saveSemester(
+        SemesterData(
+          id: 'sem_1',
+          name: 'Semester 1',
+          startDate: '2026-08-01',
+          endDate: '2026-12-31',
+          defaultTargetPct: 75.0,
+          status: 'ACTIVE',
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        ),
+      );
+
+      // Subject 1: Multi-room (Mon in Room 101, Fri in Lab 2)
+      await db.saveSubject(
+        SubjectData(
+          id: 'sub_1',
+          semesterId: 'sem_1',
+          name: 'Operating Systems',
+          code: 'CS201',
+          category: 'Theory',
+          credits: 4,
+          targetAttendancePct: 75.0,
+          baselineHeld: 0,
+          baselineAttended: 0,
+          isArchived: false,
+          colorHex: '#10B981',
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        ),
+      );
+      await db.saveTimetableSlot(
+        TimetableSlotData(
+          id: 'slot_1',
+          semesterId: 'sem_1',
+          subjectComponentId: 'sub_1',
+          dayOfWeek: 1,
+          startTime: '10:00',
+          endTime: '11:00',
+          room: 'Room 101',
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        ),
+      );
+      await db.saveTimetableSlot(
+        TimetableSlotData(
+          id: 'slot_2',
+          semesterId: 'sem_1',
+          subjectComponentId: 'sub_1',
+          dayOfWeek: 5,
+          startTime: '14:00',
+          endTime: '16:00',
+          room: 'Lab 2',
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        ),
+      );
+
+      // Subject 2: Uniform room (Tue & Thu in Room 302)
+      await db.saveSubject(
+        SubjectData(
+          id: 'sub_2',
+          semesterId: 'sem_1',
+          name: 'Database Systems',
+          code: 'CS202',
+          category: 'Theory',
+          credits: 4,
+          targetAttendancePct: 75.0,
+          baselineHeld: 0,
+          baselineAttended: 0,
+          isArchived: false,
+          colorHex: '#3B82F6',
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        ),
+      );
+      await db.saveTimetableSlot(
+        TimetableSlotData(
+          id: 'slot_3',
+          semesterId: 'sem_1',
+          subjectComponentId: 'sub_2',
+          dayOfWeek: 2,
+          startTime: '09:00',
+          endTime: '10:00',
+          room: 'Room 302',
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        ),
+      );
+      await db.saveTimetableSlot(
+        TimetableSlotData(
+          id: 'slot_4',
+          semesterId: 'sem_1',
+          subjectComponentId: 'sub_2',
+          dayOfWeek: 4,
+          startTime: '09:00',
+          endTime: '10:00',
+          room: 'Room 302',
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        ),
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWithValue(db),
+        ],
+      );
+      await container.read(appInitializationProvider.future);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
+            home: AttendanceScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Verify uniform room renders cleanly without day listing
+      expect(find.text('Room 302'), findsOneWidget);
+      expect(find.text('Tue, Thu: Room 302'), findsNothing);
+
+      // Verify multi-room renders wrapped badge pills
+      expect(find.text('Mon: Room 101'), findsOneWidget);
+      expect(find.text('Fri: Lab 2'), findsOneWidget);
 
       await db.close();
     });

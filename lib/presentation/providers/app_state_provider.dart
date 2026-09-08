@@ -686,6 +686,22 @@ class TimetableSlotsNotifier extends StateNotifier<List<TimetableSlotItem>> {
     await loadFromDb();
   }
 
+  Future<void> updateSlotRooms(Map<String, String?> slotRooms) async {
+    final nowIso = DateTime.now().toIso8601String();
+    for (final entry in slotRooms.entries) {
+      final slotId = entry.key;
+      final rawRoom = entry.value?.trim();
+      final room = rawRoom != null && rawRoom.isNotEmpty ? rawRoom : null;
+      await (db.update(db.timetableSlots)..where((t) => t.id.equals(slotId))).write(
+        TimetableSlotsCompanion(
+          room: Value(room),
+          updatedAt: Value(nowIso),
+        ),
+      );
+    }
+    await loadFromDb();
+  }
+
   Future<void> deleteSlotsForSubject(String subjectId) async {
     final existingSlots = await db.getTimetableSlots(semesterId);
     final subjectSlots = existingSlots.where((s) => s.subjectComponentId == subjectId).toList();
