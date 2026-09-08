@@ -1,6 +1,70 @@
+import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:timezone/data/latest_all.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
+import '../../data/database/app_database.dart';
+
+/// Top-level background notification response handler
+/// Executed by OS BroadcastReceiver when app is in background or completely terminated
+@pragma('vm:entry-point')
+void notificationTapBackground(NotificationResponse response) async {
+  await _processNotificationAction(response);
+}
+
+/// Foreground or app-launch notification response handler
+void notificationTapForeground(NotificationResponse response) async {
+  await _processNotificationAction(response);
+}
+
+Future<void> _processNotificationAction(NotificationResponse response) async {
+  final actionId = response.actionId;
+  final payloadStr = response.payload;
+  if (actionId == null || payloadStr == null || payloadStr.isEmpty) return;
+
+  try {
+    final Map<String, dynamic> data = jsonDecode(payloadStr) as Map<String, dynamic>;
+    final String? sessionId = data['sessionId'] as String?;
+    final String? slotId = data['slotId'] as String?;
+    final String? subjectId = data['subjectId'] as String?;
+    final String? sessionDate = data['sessionDate'] as String?;
+
+    if (sessionId == null || sessionId.isEmpty) return;
+
+    String? outcome;
+    if (actionId == NotificationService.actionPresent) {
+      outcome = 'PRESENT';
+    } else if (actionId == NotificationService.actionAbsent) {
+      outcome = 'ABSENT';
+    } else if (actionId == NotificationService.actionCancelled) {
+      outcome = 'CANCELLED';
+    }
+
+    if (outcome != null) {
+      final db = AppDatabase.production();
+      final nowIso = DateTime.now().toIso8601String();
+      final record = AttendanceRecordData(
+        id: sessionId,
+        classSessionId: sessionId,
+        slotId: slotId,
+        subjectId: subjectId,
+        sessionDate: sessionDate,
+        outcome: outcome,
+        markedAt: nowIso,
+        notes: 'Marked via notification action ($outcome)',
+        syncVersion: 1,
+        createdAt: nowIso,
+        updatedAt: nowIso,
+      );
+      await db.saveAttendanceRecord(record);
+      await db.close();
+    }
+  } catch (e) {
+    debugPrint('Error handling notification background action: $e');
+  }
+}
 
 class NotificationService {
   NotificationService._();
@@ -27,13 +91,39 @@ class NotificationService {
   static const String updateChannelId = 'classtrack_updates';
   static const String updateChannelName = 'App Updates';
 
+  static const String classRemindersChannelId = 'classtrack_class_reminders';
+  static const String classRemindersChannelName = 'Class Reminders & Attendance';
+
+  // Notification Action IDs
+  static const String actionPresent = 'ATTENDANCE_PRESENT';
+  static const String actionAbsent = 'ATTENDANCE_ABSENT';
+  static const String actionCancelled = 'ATTENDANCE_CANCELLED';
+
   /// Sanitizes text ensuring zero em-dashes or en-dashes
   static String sanitizeText(String input) {
     return input.replaceAll('—', '-').replaceAll('–', '-');
   }
 
+  void _initTimezones() {
+    try {
+      tz.initializeTimeZones();
+      final now = DateTime.now();
+      final offsetMs = now.timeZoneOffset.inMilliseconds;
+      for (final loc in tz.timeZoneDatabase.locations.values) {
+        if (loc.currentTimeZone.offset == offsetMs) {
+          tz.setLocalLocation(loc);
+          break;
+        }
+      }
+    } catch (e) {
+      debugPrint('Timezone initialization note: $e');
+    }
+  }
+
   Future<void> init() async {
     if (_isInitialized) return;
+
+    _initTimezones();
 
     const androidInit = AndroidInitializationSettings('@mipmap/launcher_icon');
     const darwinInit = DarwinInitializationSettings(
@@ -49,10 +139,13 @@ class NotificationService {
     );
 
     try {
-      await _notificationsPlugin.initialize(settings: initSettings);
+      await _notificationsPlugin.initialize(
+        settings: initSettings,
+        onDidReceiveNotificationResponse: notificationTapForeground,
+        onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
+      );
 
       if (Platform.isAndroid) {
-        // Request notification and storage permissions on launch
         try {
           await [
             Permission.notification,
@@ -63,6 +156,7 @@ class NotificationService {
         final androidImpl = _notificationsPlugin
             .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
         await androidImpl?.requestNotificationsPermission();
+        await androidImpl?.requestExactAlarmsPermission();
 
         // 1. Export Channel
         await androidImpl?.createNotificationChannel(const AndroidNotificationChannel(
@@ -99,12 +193,182 @@ class NotificationService {
           importance: Importance.high,
           playSound: true,
         ));
+
+        // 5. Class Reminders & Quick Attendance Channel
+        await androidImpl?.createNotificationChannel(const AndroidNotificationChannel(
+          classRemindersChannelId,
+          classRemindersChannelName,
+          description: 'Notifications before class starts and when class ends with quick attendance actions',
+          importance: Importance.high,
+          playSound: true,
+          enableVibration: true,
+        ));
       }
 
       _isInitialized = true;
     } catch (_) {
       // Graceful fallback for platforms without native notification permissions
     }
+  }
+
+  /// Schedules a future class notification using exact alarm
+  Future<void> scheduleClassNotification({
+    required int id,
+    required String title,
+    required String body,
+    required DateTime scheduledTime,
+    required String payload,
+    bool withQuickActions = true,
+    bool sound = true,
+    bool vibrate = true,
+  }) async {
+    if (!Platform.isAndroid && !Platform.isIOS) return;
+    await init();
+
+    if (scheduledTime.isBefore(DateTime.now())) return;
+
+    try {
+      final tzTime = tz.TZDateTime.from(scheduledTime, tz.local);
+      final actions = withQuickActions
+          ? const [
+              AndroidNotificationAction(
+                actionPresent,
+                'Present',
+                showsUserInterface: false,
+                cancelNotification: true,
+              ),
+              AndroidNotificationAction(
+                actionAbsent,
+                'Absent',
+                showsUserInterface: false,
+                cancelNotification: true,
+              ),
+              AndroidNotificationAction(
+                actionCancelled,
+                'Cancelled',
+                showsUserInterface: false,
+                cancelNotification: true,
+              ),
+            ]
+          : const <AndroidNotificationAction>[];
+
+      final androidDetails = AndroidNotificationDetails(
+        classRemindersChannelId,
+        classRemindersChannelName,
+        channelDescription: 'Class reminders and quick attendance actions',
+        importance: Importance.high,
+        priority: Priority.high,
+        playSound: sound,
+        enableVibration: vibrate,
+        actions: actions,
+      );
+
+      const darwinDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      );
+
+      final details = NotificationDetails(
+        android: androidDetails,
+        iOS: darwinDetails,
+      );
+
+      await _notificationsPlugin.zonedSchedule(
+        id: id,
+        title: sanitizeText(title),
+        body: sanitizeText(body),
+        scheduledDate: tzTime,
+        notificationDetails: details,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        payload: payload,
+      );
+    } catch (e) {
+      debugPrint('Failed to schedule class notification: $e');
+    }
+  }
+
+  /// Shows an instant notification (e.g. for testing from Notification Settings)
+  Future<void> showImmediateClassNotification({
+    required int id,
+    required String title,
+    required String body,
+    required String payload,
+    bool withQuickActions = true,
+    bool sound = true,
+    bool vibrate = true,
+  }) async {
+    if (!Platform.isAndroid && !Platform.isIOS) return;
+    await init();
+
+    try {
+      final actions = withQuickActions
+          ? const [
+              AndroidNotificationAction(
+                actionPresent,
+                'Present',
+                showsUserInterface: false,
+                cancelNotification: true,
+              ),
+              AndroidNotificationAction(
+                actionAbsent,
+                'Absent',
+                showsUserInterface: false,
+                cancelNotification: true,
+              ),
+              AndroidNotificationAction(
+                actionCancelled,
+                'Cancelled',
+                showsUserInterface: false,
+                cancelNotification: true,
+              ),
+            ]
+          : const <AndroidNotificationAction>[];
+
+      final androidDetails = AndroidNotificationDetails(
+        classRemindersChannelId,
+        classRemindersChannelName,
+        channelDescription: 'Class reminders and quick attendance actions',
+        importance: Importance.high,
+        priority: Priority.high,
+        playSound: sound,
+        enableVibration: vibrate,
+        actions: actions,
+      );
+
+      const darwinDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      );
+
+      final details = NotificationDetails(
+        android: androidDetails,
+        iOS: darwinDetails,
+      );
+
+      await _notificationsPlugin.show(
+        id: id,
+        title: sanitizeText(title),
+        body: sanitizeText(body),
+        notificationDetails: details,
+        payload: payload,
+      );
+    } catch (e) {
+      debugPrint('Failed to show immediate class notification: $e');
+    }
+  }
+
+  Future<void> cancelNotification(int id) async {
+    try {
+      await _notificationsPlugin.cancel(id: id);
+    } catch (_) {}
+  }
+
+  Future<void> cancelAllNotifications() async {
+    try {
+      await _notificationsPlugin.cancelAll();
+    } catch (_) {}
   }
 
   Future<void> showExportProgressNotification({

@@ -14,6 +14,8 @@ import '../../domain/services/schedule_engine.dart';
 import '../../core/utils/date_formatter.dart';
 import '../../core/utils/uuid_generator.dart';
 import '../../core/services/notification_service.dart';
+import '../../domain/entities/notification_preferences_entity.dart';
+import '../../domain/services/class_notification_scheduler.dart';
 import 'backup_provider.dart';
 import 'theme_provider.dart';
 
@@ -51,6 +53,8 @@ final appInitializationProvider = FutureProvider<bool>((ref) async {
   await ref.read(backupProvider.notifier).loadSettingsAndBackups();
   await ref.read(backupProvider.notifier).checkAndRunAutoBackup(db);
   await NotificationService.instance.init();
+  await ref.read(notificationPreferencesProvider.notifier).loadFromDb();
+  await ref.read(notificationPreferencesProvider.notifier).resyncScheduledNotifications();
 
   return true;
 });
@@ -448,6 +452,63 @@ class DeveloperModeNotifier extends StateNotifier<bool> {
   Future<void> toggle(bool value) async {
     state = value;
     await db.setSetting('developer_mode_enabled', value.toString());
+  }
+}
+
+// ==========================================
+// 8.4. NOTIFICATION PREFERENCES PROVIDER
+// ==========================================
+final notificationPreferencesProvider =
+    StateNotifierProvider<NotificationPreferencesNotifier, NotificationPreferencesEntity>((ref) {
+  final db = ref.watch(databaseProvider);
+  return NotificationPreferencesNotifier(db, ref);
+});
+
+class NotificationPreferencesNotifier extends StateNotifier<NotificationPreferencesEntity> {
+  final AppDatabase db;
+  final Ref ref;
+
+  NotificationPreferencesNotifier(this.db, this.ref)
+      : super(const NotificationPreferencesEntity());
+
+  Future<void> loadFromDb() async {
+    final val = await db.getSetting('notification_preferences');
+    if (!mounted) return;
+    if (val != null && val.isNotEmpty) {
+      try {
+        final map = jsonDecode(val) as Map<String, dynamic>;
+        state = NotificationPreferencesEntity.fromJson(map);
+      } catch (_) {}
+    }
+  }
+
+  Future<void> updatePreferences(NotificationPreferencesEntity newPrefs) async {
+    state = newPrefs;
+    await db.setSetting('notification_preferences', jsonEncode(newPrefs.toJson()));
+    await resyncScheduledNotifications();
+  }
+
+  Future<void> resyncScheduledNotifications() async {
+    try {
+      final scheduler = ClassNotificationScheduler();
+      if (!state.enabled) {
+        await scheduler.cancelAll();
+        return;
+      }
+      final now = DateTime.now();
+      final List<ClassSessionEntity> upcoming = [];
+      for (int i = 0; i < 7; i++) {
+        final targetDate = now.add(Duration(days: i));
+        final daySessions = ref.read(resolvedDayScheduleProvider(targetDate));
+        upcoming.addAll(daySessions);
+      }
+      await scheduler.scheduleSessions(
+        sessions: upcoming,
+        preferences: state,
+      );
+    } catch (e) {
+      // Graceful capture
+    }
   }
 }
 

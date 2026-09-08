@@ -82,11 +82,8 @@ class AppUpdateNotifier extends StateNotifier<AppUpdateState> {
     state = state.copyWith(status: UpdateCheckStatus.checking, errorMessage: null);
 
     try {
-      // 1. Fetch release info from primary manifest URL
-      AppReleaseInfo? release = await AppUpdateService.fetchReleaseInfo(customUrl: customManifestUrl);
-
-      // 2. Fallback to GitHub Releases API if primary manifest returns null
-      release ??= await AppUpdateService.fetchGithubRelease();
+      // 1. Fetch release info (prioritizes GitHub API to get all assets & device ABI matching)
+      final AppReleaseInfo? release = await AppUpdateService.fetchLatestRelease(customUrl: customManifestUrl);
 
       final currentVer = state.currentVersion;
       final currentBuild = int.tryParse(state.currentBuildNumber) ?? 1;
@@ -104,7 +101,7 @@ class AppUpdateNotifier extends StateNotifier<AppUpdateState> {
         return;
       }
 
-      // 3. Evaluate if update is available
+      // 2. Evaluate if update is available
       final updateAvailable = AppUpdateService.isUpdateAvailable(
         currentVersion: currentVer,
         remoteVersion: release.latestVersion,
@@ -128,6 +125,8 @@ class AppUpdateNotifier extends StateNotifier<AppUpdateState> {
         downloadUrl: release.downloadUrl,
         releasePageUrl: release.releasePageUrl,
         isMandatory: isMandatory,
+        warningMessage: release.warningMessage,
+        abiAssets: release.abiAssets,
       );
 
       if (updateAvailable) {

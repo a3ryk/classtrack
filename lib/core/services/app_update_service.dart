@@ -7,7 +7,6 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
-import 'package:permission_handler/permission_handler.dart';
 import '../constants/app_release_notes.dart';
 import '../constants/update_constants.dart';
 
@@ -23,6 +22,7 @@ class AppReleaseInfo {
   final String? releasePageUrl;
   final bool isMandatory;
   final String? warningMessage;
+  final Map<String, String> abiAssets;
 
   const AppReleaseInfo({
     required this.latestVersion,
@@ -35,6 +35,7 @@ class AppReleaseInfo {
     this.releasePageUrl,
     this.isMandatory = false,
     this.warningMessage,
+    this.abiAssets = const {},
   });
 
   /// Parse from standard ClassTrack version.json format
@@ -59,6 +60,23 @@ class AppReleaseInfo {
         json['notice']?.toString().trim() ??
         json['alert']?.toString().trim();
 
+    final Map<String, String> abiAssets = {};
+    if (json['abi_assets'] is Map) {
+      (json['abi_assets'] as Map).forEach((k, v) {
+        if (k != null && v != null) {
+          abiAssets[k.toString()] = v.toString();
+        }
+      });
+    }
+
+    String? downloadUrl = json['download_url']?.toString().trim() ?? json['apk_url']?.toString().trim();
+    if (abiAssets.isNotEmpty) {
+      final bestUrl = _selectBestApkFromMap(abiAssets);
+      if (bestUrl != null) {
+        downloadUrl = bestUrl;
+      }
+    }
+
     return AppReleaseInfo(
       latestVersion: (json['latest_version'] ?? json['version'] ?? '1.0.0').toString().trim(),
       buildNumber: json['build_number'] is int
@@ -68,10 +86,11 @@ class AppReleaseInfo {
       releaseDate: (json['release_date'] ?? json['date'] ?? '').toString().trim(),
       releaseTitle: (json['release_title'] ?? json['title'] ?? 'New Update Available').toString().trim(),
       changelog: parsedChangelog,
-      downloadUrl: json['download_url']?.toString().trim() ?? json['apk_url']?.toString().trim(),
+      downloadUrl: downloadUrl,
       releasePageUrl: json['release_page_url']?.toString().trim() ?? json['page_url']?.toString().trim() ?? json['play_store_url']?.toString().trim(),
       isMandatory: json['is_mandatory'] == true || json['mandatory'] == true,
       warningMessage: customWarning?.isNotEmpty == true ? customWarning : null,
+      abiAssets: abiAssets,
     );
   }
 
@@ -84,14 +103,25 @@ class AppReleaseInfo {
 
     // Check for APK in release assets (supports universal and --split-per-abi releases)
     String? apkUrl;
+    final Map<String, String> abiAssets = {};
     if (json['assets'] is List) {
       final assets = json['assets'] as List;
       final List<Map<String, dynamic>> apkAssets = [];
       for (final asset in assets) {
         if (asset is Map<String, dynamic>) {
           final name = asset['name']?.toString().toLowerCase() ?? '';
-          if (name.endsWith('.apk')) {
+          final url = asset['browser_download_url']?.toString();
+          if (name.endsWith('.apk') && url != null) {
             apkAssets.add(asset);
+            if (name.contains('arm64') || name.contains('v8a')) {
+              abiAssets['arm64-v8a'] = url;
+            } else if (name.contains('armeabi') || name.contains('v7a')) {
+              abiAssets['armeabi-v7a'] = url;
+            } else if (name.contains('x86_64') || name.contains('x64')) {
+              abiAssets['x86_64'] = url;
+            } else {
+              abiAssets['universal'] = url;
+            }
           }
         }
       }
@@ -193,7 +223,35 @@ class AppReleaseInfo {
       releasePageUrl: htmlUrl,
       isMandatory: isMandatory,
       warningMessage: warningMessage,
+      abiAssets: abiAssets,
     );
+  }
+
+  /// Selects the optimal APK matching device architecture from an ABI map
+  static String? _selectBestApkFromMap(Map<String, String> abiMap) {
+    if (abiMap.isEmpty) return null;
+    String deviceAbi = '';
+    try {
+      final current = Abi.current();
+      if (current == Abi.androidArm64) {
+        deviceAbi = 'arm64';
+      } else if (current == Abi.androidArm) {
+        deviceAbi = 'arm';
+      } else if (current == Abi.androidX64) {
+        deviceAbi = 'x86_64';
+      }
+    } catch (_) {}
+
+    if (deviceAbi == 'arm64' && abiMap.containsKey('arm64-v8a')) {
+      return abiMap['arm64-v8a'];
+    }
+    if (deviceAbi == 'arm' && abiMap.containsKey('armeabi-v7a')) {
+      return abiMap['armeabi-v7a'];
+    }
+    if (deviceAbi == 'x86_64' && abiMap.containsKey('x86_64')) {
+      return abiMap['x86_64'];
+    }
+    return abiMap['universal'] ?? abiMap.values.firstOrNull;
   }
 
   /// Selects the optimal APK asset matching device architecture (supports split-per-abi & universal)
@@ -387,14 +445,15 @@ class AppUpdateService {
     return null;
   }
 
-  /// Fallback: Fetches release directly from GitHub Releases API
+  /// Fetches release directly from GitHub Releases API (supports pre-releases like alpha/beta)
   static Future<AppReleaseInfo?> fetchGithubRelease({
     String owner = UpdateConstants.defaultGithubOwner,
     String repo = UpdateConstants.defaultGithubRepo,
     http.Client? client,
   }) async {
     final httpClient = client ?? http.Client();
-    final uri = Uri.parse('https://api.github.com/repos/$owner/$repo/releases/latest');
+    // Query /releases to include pre-releases (which GitHub /releases/latest excludes with 404)
+    final uri = Uri.parse('https://api.github.com/repos/$owner/$repo/releases');
 
     try {
       final response = await httpClient.get(
@@ -407,12 +466,20 @@ class AppUpdateService {
 
       if (response.statusCode == 200) {
         final decoded = json.decode(utf8.decode(response.bodyBytes));
-        if (decoded is Map<String, dynamic>) {
+        if (decoded is List && decoded.isNotEmpty) {
+          final firstPublished = decoded.firstWhere(
+            (r) => r is Map<String, dynamic> && r['draft'] != true,
+            orElse: () => null,
+          );
+          if (firstPublished is Map<String, dynamic>) {
+            return AppReleaseInfo.fromGithubReleaseJson(firstPublished);
+          }
+        } else if (decoded is Map<String, dynamic>) {
           return AppReleaseInfo.fromGithubReleaseJson(decoded);
         }
       }
     } catch (e) {
-      debugPrint('[AppUpdateService] GitHub fallback release check failed: $e');
+      debugPrint('[AppUpdateService] GitHub releases check failed: $e');
     } finally {
       if (client == null) {
         httpClient.close();
@@ -496,6 +563,8 @@ class AppUpdateService {
     try {
       final uri = Uri.parse(downloadUrl);
       final request = http.Request('GET', uri);
+      request.headers['User-Agent'] = 'ClassTrack-Updater/1.0';
+      request.headers['Accept'] = '*/*';
       final response = await httpClient.send(request);
 
       if (response.statusCode != 200) {
@@ -537,20 +606,38 @@ class AppUpdateService {
   static const MethodChannel _installerChannel =
       MethodChannel('com.classtrack.app/package_installer');
 
+  /// Queries Android device's hardware supported ABIs in preference order
+  static Future<List<String>> getDeviceSupportedAbis() async {
+    if (Platform.isAndroid) {
+      try {
+        final List<dynamic>? abis = await _installerChannel.invokeMethod<List<dynamic>>('getSupportedAbis');
+        if (abis != null && abis.isNotEmpty) {
+          return abis.map((e) => e.toString().toLowerCase()).toList();
+        }
+      } catch (_) {}
+    }
+
+    try {
+      final current = Abi.current();
+      if (current == Abi.androidArm64) return ['arm64-v8a', 'armeabi-v7a'];
+      if (current == Abi.androidArm) return ['armeabi-v7a'];
+      if (current == Abi.androidX64) return ['x86_64'];
+    } catch (_) {}
+
+    return ['arm64-v8a', 'universal'];
+  }
+
   /// Triggers package installer on Android for downloaded APK file using native FileProvider
   static Future<bool> installApk(File apkFile) async {
     if (!Platform.isAndroid) return false;
     try {
       if (!await apkFile.exists()) return false;
 
-      // Check / request install unknown apps permission
-      final status = await Permission.requestInstallPackages.status;
-      if (status.isDenied) {
-        final req = await Permission.requestInstallPackages.request();
-        if (!req.isGranted) {
-          await openAppSettings();
-          return false;
-        }
+      // Check install unknown apps permission via native channel
+      final bool? canInstall = await _installerChannel.invokeMethod<bool>('canRequestPackageInstalls');
+      if (canInstall == false) {
+        await _installerChannel.invokeMethod('openInstallPermissionSettings');
+        return false;
       }
 
       // Invoke native PackageInstaller with FileProvider content URI

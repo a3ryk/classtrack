@@ -131,8 +131,10 @@ class _UpdateScreenState extends State<UpdateScreen> {
             _isDownloading = false;
             _downloadedApkFile = apkFile;
           });
-          AppToast.success(context, 'Download complete! Opening package installer...');
-          await AppUpdateService.installApk(apkFile);
+          final installed = await AppUpdateService.installApk(apkFile);
+          if (!installed && mounted) {
+            AppToast.info(context, 'Please allow "Install unknown apps" in Settings to update.');
+          }
         }
       } catch (e) {
         if (mounted) {
@@ -254,6 +256,38 @@ class _UpdateScreenState extends State<UpdateScreen> {
                             color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                           ),
                         ),
+                        if (!widget.isWhatsNewMode && Platform.isAndroid && downloadUrl.toLowerCase().endsWith('.apk')) ...[
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: brandBlue.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: brandBlue.withValues(alpha: 0.25), width: 0.8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.memory_rounded, size: 15, color: brandBlue),
+                                const SizedBox(width: 6),
+                                Text(
+                                  downloadUrl.contains('arm64-v8a')
+                                      ? 'Device-Optimized: ARM64 package'
+                                      : (downloadUrl.contains('armeabi-v7a')
+                                          ? 'Device-Optimized: ARM 32-bit package'
+                                          : (downloadUrl.contains('x86_64')
+                                              ? 'Device-Optimized: x86_64 package'
+                                              : 'Universal APK package')),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: brandBlue,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 16),
                         if (isMandatory || (widget.releaseInfo.warningMessage != null && widget.releaseInfo.warningMessage!.isNotEmpty)) ...[
                           Container(

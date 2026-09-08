@@ -17,6 +17,7 @@ import 'about_screen.dart';
 import 'appearance_screen.dart';
 import 'backup_restore_screen.dart';
 import 'developer_tools_screen.dart';
+import 'notification_settings_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -26,8 +27,6 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  bool _notificationsEnabled = true;
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -204,18 +203,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                   Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
                   _buildTile(
-                    title: 'Notifications',
+                    title: 'Notifications & Reminders',
+                    subtitle: 'Class alerts & quick attendance actions',
                     isDark: isDark,
-                    trailing: Switch(
-                      value: _notificationsEnabled,
-                      activeThumbColor: AppColors.presentGreen,
-                      onChanged: (val) {
-                        setState(() {
-                          _notificationsEnabled = val;
-                        });
-                        AppToast.info(context, 'Notifications ${val ? "enabled" : "disabled"}');
-                      },
-                    ),
+                    trailing: _buildChevronIcon(isDark),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const NotificationSettingsScreen()),
+                      );
+                    },
                   ),
                   Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
                   _buildTile(
