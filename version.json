@@ -1,26 +1,25 @@
 {
-  "latest_version": "1.0.0-alpha.8",
-  "build_number": 8,
-  "min_supported_version": "1.0.0-alpha.8",
+  "latest_version": "1.0.0-alpha.9",
+  "build_number": 9,
+  "min_supported_version": "1.0.0-alpha.9",
   "release_date": "2026-09-09",
-  "release_title": "ClassTrack v1.0.0-alpha.8 (GitHub Releases Engine, Calendar Slider & Subject Picker)",
+  "release_title": "ClassTrack v1.0.0-alpha.9 (Extra Class Management & Fluid Animations)",
   "changelog": [
-    "✨ Multi-Tier GitHub Releases Priority: In-app updater checks published GitHub Releases first with rate-limit-free Atom feed fallback and hardware ABI detection (ARM64, ARMv7, x86_64, Universal)",
-    "✨ Fluid Extra Class Bottom Sheet: Replaced awkward dialog popup with a tactile 320ms bottom slider sheet with side-by-side time pickers and immediate database commit",
-    "✨ Direct In-Sheet Subject Creation: Create, categorize, and color-code brand new subjects on-the-fly directly inside the extra class bottom sheet",
-    "✨ Redesigned Subject Selector & Modal Picker: Replaced clunky native dropdown menu with a sleek selector card and modal sheet with search and active checkmarks",
-    "✨ Storage & Notification Permission Guards: Enforced automatic storage permission checks on backup restore (Settings & Onboarding) and runtime notification checks on reminder switches",
-    "🧩 Eliminated Java 8 obsolete compiler warnings and added automatic install location support"
+    "✨ Zero-Drop Changelog Parsing: In-app updater preserves complete release notes with bullet formatting and bold title recognition across GitHub API, Atom feed, and local manifest",
+    "✨ Full Extra Class Management: Edit schedule timings, rooms, notes, or delete one-off extra classes directly from Today & Calendar screens with instant database and UI sync",
+    "✨ Fluid Notification Settings: Optimized switch toggle animations with RepaintBoundary isolation and fixed timing slider dismiss jitter with post-frame navigation delay",
+    "✨ Unified Design System: Cohesive delete confirmations, adaptive bottom sheets, and frictionless touch feedback across all screens",
+    "🧩 Standardized GitHub Release guidelines to ensure consistent changelog parsing and asset distribution"
   ],
-  "download_url": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.8/ClassTrack-v1.0.0-alpha.8.apk",
+  "download_url": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.9/ClassTrack-v1.0.0-alpha.9.apk",
   "abi_assets": {
-    "arm64-v8a": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.8/app-arm64-v8a-release.apk",
-    "armeabi-v7a": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.8/app-armeabi-v7a-release.apk",
-    "x86_64": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.8/app-x86_64-release.apk",
-    "universal": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.8/ClassTrack-v1.0.0-alpha.8.apk"
+    "arm64-v8a": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.9/app-arm64-v8a-release.apk",
+    "armeabi-v7a": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.9/app-armeabi-v7a-release.apk",
+    "x86_64": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.9/app-x86_64-release.apk",
+    "universal": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.9/ClassTrack-v1.0.0-alpha.9.apk"
   },
-  "release_page_url": "https://github.com/a3ryk/classtrack/releases/tag/v1.0.0-alpha.8",
+  "release_page_url": "https://github.com/a3ryk/classtrack/releases/tag/v1.0.0-alpha.9",
   "is_mandatory": true,
-  "warning_message": "Mandatory update required for GitHub Releases updater pipeline, calendar extra class slider, and permission reliability."
+  "warning_message": "Mandatory update required for extra class editing & deletion, zero-drop release notes rendering, and notification UI smoothness."
 }
 

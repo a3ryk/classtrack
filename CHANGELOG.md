@@ -5,6 +5,20 @@ All notable changes to **ClassTrack** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-alpha.9] - 2026-09-09
+
+### ✨ Features & Architecture
+- **Zero-Drop Changelog Parsing**: In-app updater and update dialogs now parse and render 100% of release notes from GitHub API, Atom feeds, and manifest sources without dropping bullet items, with robust support for bold title prefixes (`- **Title**: Description`).
+- **Extra Class Edit & Deletion**: Complete lifecycle management for extra classes on Today and Calendar views, enabling students to edit timings, rooms, and notes, or delete one-off sessions with instant database commit and visual sync.
+- **Fluid Notification Settings & Slider Dismissal**: Encapsulated stateful switch tiles in `RepaintBoundary` for zero frame drops, and added micro-frame choreography to the reminder slider sheet to eliminate close jitter.
+- **GitHub Release Publishing Guidelines**: Established project standards (`docs/RELEASE_GUIDELINES.md`) governing release title structure, git tag naming, asset naming, and markdown conventions.
+
+### 🧩 Bug Fixes & Stability
+- **Extra Class Card Actions**: Added contextual Edit and Delete actions with custom confirmation sheets across Today screen and Calendar schedules.
+- **Changelog Rendering Fidelity**: Fixed issue where structured release notes would appear truncated or miss key feature items in the updater dialog.
+
+---
+
 ## [1.0.0-alpha.8] - 2026-09-09
 
 ### ✨ Features & Architecture

@@ -4,9 +4,25 @@ import '../services/app_update_service.dart';
 class AppReleaseNotes {
   AppReleaseNotes._();
 
-  static const String currentVersion = '1.0.0-alpha.8';
+  static const String currentVersion = '1.0.0-alpha.9';
 
   static final Map<String, AppReleaseInfo> _releases = {
+    '1.0.0-alpha.9': const AppReleaseInfo(
+      latestVersion: '1.0.0-alpha.9',
+      buildNumber: 9,
+      minSupportedVersion: '1.0.0-alpha.9',
+      releaseDate: 'September 2026',
+      releaseTitle: 'ClassTrack v1.0.0-alpha.9 (Extra Class Management & Fluid Animations)',
+      changelog: [
+        '✨ Zero-Drop Changelog Parsing: In-app updater preserves complete release notes with bullet formatting and bold title recognition across GitHub API, Atom feed, and local manifest',
+        '✨ Full Extra Class Management: Edit schedule timings, rooms, notes, or delete one-off extra classes directly from Today & Calendar screens with instant database and UI sync',
+        '✨ Fluid Notification Settings: Optimized switch toggle animations with RepaintBoundary isolation and fixed timing slider dismiss jitter with post-frame navigation delay',
+        '✨ Unified Design System: Cohesive delete confirmations, adaptive bottom sheets, and frictionless touch feedback across all screens',
+        '🧩 Standardized GitHub Release guidelines to ensure consistent changelog parsing and asset distribution',
+      ],
+      isMandatory: true,
+      warningMessage: 'Mandatory update required for extra class editing & deletion, zero-drop release notes rendering, and notification UI smoothness.',
+    ),
     '1.0.0-alpha.8': const AppReleaseInfo(
       latestVersion: '1.0.0-alpha.8',
       buildNumber: 8,
