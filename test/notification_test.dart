@@ -199,6 +199,24 @@ void main() {
 
       // Verify sheet dismissed and updated value shown on tile
       expect(find.text('15m before'), findsOneWidget);
+
+      // Verify tapping info button in top right opens "Did You Know?" battery bottom sheet
+      expect(find.byIcon(Icons.info_outline_rounded), findsOneWidget);
+      await tester.tap(find.byIcon(Icons.info_outline_rounded));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Did You Know?'), findsOneWidget);
+      expect(find.text('100% Battery Friendly'), findsOneWidget);
+      expect(find.text('Exact Scheduled Alarms'), findsOneWidget);
+      expect(find.text('Never Runs in the Background'), findsOneWidget);
+      expect(find.text('Zero Idle CPU Usage'), findsOneWidget);
+      expect(find.text('Got It'), findsOneWidget);
+
+      // Tap "Got It" to dismiss
+      await tester.tap(find.text('Got It'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Did You Know?'), findsNothing);
     });
   });
 }

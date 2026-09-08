@@ -42,6 +42,24 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
     }
   }
 
+  void _openBatteryInfoSheet({
+    required BuildContext context,
+    required bool isDark,
+  }) {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      transitionAnimationController: AnimationController(
+        vsync: Navigator.of(context),
+        duration: const Duration(milliseconds: 340),
+        reverseDuration: const Duration(milliseconds: 240),
+      ),
+      builder: (sheetContext) => _BatteryInfoSheet(isDark: isDark),
+    );
+  }
+
   void _openTimingSheet({
     required BuildContext context,
     required bool isStart,
@@ -112,6 +130,21 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
           ),
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(
+              Icons.info_outline_rounded,
+              size: 22,
+              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+            ),
+            tooltip: 'Battery Info',
+            onPressed: () => _openBatteryInfoSheet(
+              context: context,
+              isDark: isDark,
+            ),
+          ),
+          const SizedBox(width: 6),
+        ],
       ),
       body: ListView(
         physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
@@ -600,6 +633,221 @@ class _ReminderTimingSheetState extends State<_ReminderTimingSheet> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Tactile bottom sheet explaining battery efficiency and zero-drain architecture
+class _BatteryInfoSheet extends StatelessWidget {
+  final bool isDark;
+
+  const _BatteryInfoSheet({required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.fromLTRB(20, 12, 20, MediaQuery.of(context).viewInsets.bottom + 24),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.cardDark : AppColors.cardLight,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+        border: Border.all(color: isDark ? AppColors.borderDark : AppColors.borderLight, width: 0.8),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Drag handle
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Header with Badge and Close button
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.presentGreen.withValues(alpha: 0.15) : const Color(0xFFE8F5E9),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isDark ? AppColors.presentGreen.withValues(alpha: 0.3) : const Color(0xFFA5D6A7),
+                    width: 0.8,
+                  ),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.bolt_rounded,
+                      size: 14,
+                      color: AppColors.presentGreen,
+                    ),
+                    SizedBox(width: 4),
+                    Text(
+                      '100% Battery Friendly',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.presentGreen,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: Icon(
+                  Icons.close_rounded,
+                  size: 20,
+                  color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                ),
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Title & Headline
+          Text(
+            'Did You Know?',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.4,
+              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Class reminders consume 0% extra battery throughout your day.',
+            style: TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w500,
+              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // 3 Feature points
+          _buildFeaturePoint(
+            icon: Icons.alarm_on_rounded,
+            iconColor: AppColors.presentGreen,
+            iconBg: isDark ? AppColors.presentGreen.withValues(alpha: 0.12) : const Color(0xFFE8F5E9),
+            title: 'Exact Scheduled Alarms',
+            description: 'The operating system wakes ClassTrack only at your class time to post the alert, then goes right back to sleep.',
+            isDark: isDark,
+          ),
+          const SizedBox(height: 14),
+          _buildFeaturePoint(
+            icon: Icons.power_off_rounded,
+            iconColor: AppColors.accentBlue,
+            iconBg: isDark ? AppColors.accentBlue.withValues(alpha: 0.12) : const Color(0xFFEFF6FF),
+            title: 'Never Runs in the Background',
+            description: 'No background services, persistent workers, or location checks. When you close the app, it stays completely inactive.',
+            isDark: isDark,
+          ),
+          const SizedBox(height: 14),
+          _buildFeaturePoint(
+            icon: Icons.battery_saver_rounded,
+            iconColor: const Color(0xFFF59E0B),
+            iconBg: isDark ? const Color(0xFFF59E0B).withValues(alpha: 0.12) : const Color(0xFFFEF3C7),
+            title: 'Zero Idle CPU Usage',
+            description: 'You get 100% on-time attendance reminders without any noticeable impact on battery life.',
+            isDark: isDark,
+          ),
+          const SizedBox(height: 24),
+
+          // "Got It" Button
+          SizedBox(
+            width: double.infinity,
+            height: 44,
+            child: ElevatedButton(
+              onPressed: () {
+                HapticFeedback.selectionClick();
+                Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                foregroundColor: isDark ? AppColors.bgDark : AppColors.surfaceLight,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                'Got It',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeaturePoint({
+    required IconData icon,
+    required Color iconColor,
+    required Color iconBg,
+    required String title,
+    required String description,
+    required bool isDark,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: iconBg,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 20, color: iconColor),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                description,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w400,
+                  color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                  height: 1.35,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
