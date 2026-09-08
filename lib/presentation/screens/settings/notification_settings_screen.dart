@@ -669,39 +669,17 @@ class _BatteryInfoSheet extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Header with Badge and Close button
+          // Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.presentGreen.withValues(alpha: 0.15) : const Color(0xFFE8F5E9),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: isDark ? AppColors.presentGreen.withValues(alpha: 0.3) : const Color(0xFFA5D6A7),
-                    width: 0.8,
-                  ),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.bolt_rounded,
-                      size: 14,
-                      color: AppColors.presentGreen,
-                    ),
-                    SizedBox(width: 4),
-                    Text(
-                      '100% Battery Friendly',
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.presentGreen,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                  ],
+              Text(
+                'Did You Know?',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.3,
+                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                 ),
               ),
               IconButton(
@@ -717,19 +695,40 @@ class _BatteryInfoSheet extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
-          // Title & Headline
-          Text(
-            'Did You Know?',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.4,
-              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+          // Clean subtle pill badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(
+                color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                width: 0.8,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.bolt_rounded,
+                  size: 14,
+                  color: AppColors.accentBlue,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '100% Battery Friendly',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 10),
           Text(
             'Class reminders consume 0% extra battery throughout your day.',
             style: TextStyle(
@@ -744,8 +743,8 @@ class _BatteryInfoSheet extends StatelessWidget {
           // 3 Feature points
           _buildFeaturePoint(
             icon: Icons.alarm_on_rounded,
-            iconColor: AppColors.presentGreen,
-            iconBg: isDark ? AppColors.presentGreen.withValues(alpha: 0.12) : const Color(0xFFE8F5E9),
+            iconColor: AppColors.accentBlue,
+            iconBg: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
             title: 'Exact Scheduled Alarms',
             description: 'The operating system wakes ClassTrack only at your class time to post the alert, then goes right back to sleep.',
             isDark: isDark,
@@ -754,7 +753,7 @@ class _BatteryInfoSheet extends StatelessWidget {
           _buildFeaturePoint(
             icon: Icons.power_off_rounded,
             iconColor: AppColors.accentBlue,
-            iconBg: isDark ? AppColors.accentBlue.withValues(alpha: 0.12) : const Color(0xFFEFF6FF),
+            iconBg: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
             title: 'Never Runs in the Background',
             description: 'No background services, persistent workers, or location checks. When you close the app, it stays completely inactive.',
             isDark: isDark,
@@ -762,8 +761,8 @@ class _BatteryInfoSheet extends StatelessWidget {
           const SizedBox(height: 14),
           _buildFeaturePoint(
             icon: Icons.battery_saver_rounded,
-            iconColor: const Color(0xFFF59E0B),
-            iconBg: isDark ? const Color(0xFFF59E0B).withValues(alpha: 0.12) : const Color(0xFFFEF3C7),
+            iconColor: AppColors.accentBlue,
+            iconBg: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
             title: 'Zero Idle CPU Usage',
             description: 'You get 100% on-time attendance reminders without any noticeable impact on battery life.',
             isDark: isDark,
@@ -818,6 +817,10 @@ class _BatteryInfoSheet extends StatelessWidget {
           decoration: BoxDecoration(
             color: iconBg,
             borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+              width: 0.8,
+            ),
           ),
           child: Icon(icon, size: 20, color: iconColor),
         ),
