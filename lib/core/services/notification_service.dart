@@ -118,6 +118,25 @@ class NotificationService {
     return input.replaceAll('—', '-').replaceAll('–', '-');
   }
 
+  /// Checks and requests runtime notification permission (POST_NOTIFICATIONS on Android 13+)
+  static Future<bool> checkAndRequestNotificationPermission() async {
+    if (kIsWeb) return true;
+    if (!Platform.isAndroid && !Platform.isIOS) return true;
+
+    try {
+      if (Platform.isAndroid || Platform.isIOS) {
+        var status = await Permission.notification.status;
+        if (!status.isGranted) {
+          status = await Permission.notification.request();
+        }
+        return status.isGranted;
+      }
+    } catch (_) {
+      return true;
+    }
+    return true;
+  }
+
   void _initTimezones() {
     try {
       tz.initializeTimeZones();

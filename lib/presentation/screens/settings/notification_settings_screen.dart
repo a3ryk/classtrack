@@ -17,6 +17,14 @@ class NotificationSettingsScreen extends ConsumerStatefulWidget {
 
 class _NotificationSettingsScreenState extends ConsumerState<NotificationSettingsScreen> {
   Future<void> _sendTestNotification(NotificationPreferencesEntity prefs) async {
+    final hasPerm = await NotificationService.checkAndRequestNotificationPermission();
+    if (!hasPerm) {
+      if (mounted) {
+        AppToast.error(context, 'Notification permission is required to display notifications.');
+      }
+      return;
+    }
+
     final now = DateTime.now();
     final testDate = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     final payload = jsonEncode({
@@ -165,17 +173,35 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                     title: 'Class Reminders',
                     value: prefs.enabled,
                     isDark: isDark,
-                    onChanged: (val) {
+                    onChanged: (val) async {
+                      if (val) {
+                        final hasPerm = await NotificationService.checkAndRequestNotificationPermission();
+                        if (!hasPerm) {
+                          if (context.mounted) {
+                            AppToast.error(context, 'Notification permission is required to receive class reminders.');
+                          }
+                          return;
+                        }
+                      }
                       notifier.updatePreferences(prefs.copyWith(enabled: val));
                     },
                   ),
                   if (prefs.enabled) ...[
                     Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
                     _buildSwitchRow(
-                      title: 'Remind Before Class',
+                       title: 'Remind Before Class',
                       value: prefs.enableClassStart,
                       isDark: isDark,
-                      onChanged: (val) {
+                      onChanged: (val) async {
+                        if (val) {
+                          final hasPerm = await NotificationService.checkAndRequestNotificationPermission();
+                          if (!hasPerm) {
+                            if (context.mounted) {
+                              AppToast.error(context, 'Notification permission is required to receive class reminders.');
+                            }
+                            return;
+                          }
+                        }
                         notifier.updatePreferences(prefs.copyWith(enableClassStart: val));
                       },
                     ),
@@ -203,7 +229,16 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                       title: 'Remind When Class Ends',
                       value: prefs.enableClassEnd,
                       isDark: isDark,
-                      onChanged: (val) {
+                      onChanged: (val) async {
+                        if (val) {
+                          final hasPerm = await NotificationService.checkAndRequestNotificationPermission();
+                          if (!hasPerm) {
+                            if (context.mounted) {
+                              AppToast.error(context, 'Notification permission is required to receive class reminders.');
+                            }
+                            return;
+                          }
+                        }
                         notifier.updatePreferences(prefs.copyWith(enableClassEnd: val));
                       },
                     ),

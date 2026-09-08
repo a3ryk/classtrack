@@ -329,6 +329,15 @@ class BackupNotifier extends StateNotifier<BackupState> {
 
   /// Restore strictly from user-picked .ctbackup file
   Future<bool> restoreBackupFromFile(BuildContext context) async {
+    // Check & request storage permission (same as Backup Now)
+    final hasPermission = await BackupService.checkAndRequestStoragePermission();
+    if (!hasPermission) {
+      if (context.mounted) {
+        AppToast.error(context, 'Storage permission is required to restore backup files.');
+      }
+      return false;
+    }
+
     try {
       FilePickerResult? result;
       try {
@@ -368,6 +377,15 @@ class BackupNotifier extends StateNotifier<BackupState> {
 
   /// Restores a specific File with confirmation preview dialog
   Future<bool> restoreSpecificBackupFile(File file, BuildContext context) async {
+    // Check & request storage permission before reading the file
+    final hasPermission = await BackupService.checkAndRequestStoragePermission();
+    if (!hasPermission) {
+      if (context.mounted) {
+        AppToast.error(context, 'Storage permission is required to restore backup files.');
+      }
+      return false;
+    }
+
     try {
       if (!await file.exists()) {
         if (context.mounted) {
