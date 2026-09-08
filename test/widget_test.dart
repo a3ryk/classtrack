@@ -2245,6 +2245,13 @@ void main() {
       expect(find.text("Today's Classes"), findsOneWidget);
       expect(find.text('Upcoming Classes'), findsNothing);
 
+      // Verify headline title is strictly anchored to left margin (20px) without centering
+      final todayHeadlineFinder = find.byWidgetPredicate(
+        (w) => w is Text && (w.data?.endsWith('today') ?? false) && w.style?.fontSize == 26,
+      );
+      expect(todayHeadlineFinder, findsOneWidget);
+      expect(tester.getTopLeft(todayHeadlineFinder).dx, equals(20.0));
+
       // Today button should be hidden on today
       expect(find.text('Today'), findsNothing);
 
@@ -2254,6 +2261,13 @@ void main() {
 
       // After swiping to tomorrow, section title should update to Tomorrow's Classes
       expect(find.text("Tomorrow's Classes"), findsOneWidget);
+
+      // Headline title on tomorrow is also strictly anchored to left margin (20px)
+      final tomorrowHeadlineFinder = find.byWidgetPredicate(
+        (w) => w is Text && (w.data?.endsWith('tomorrow') ?? false) && w.style?.fontSize == 26,
+      );
+      expect(tomorrowHeadlineFinder, findsOneWidget);
+      expect(tester.getTopLeft(tomorrowHeadlineFinder).dx, equals(20.0));
 
       // "Today" chip should now be visible in the header
       expect(find.text('Today'), findsOneWidget);

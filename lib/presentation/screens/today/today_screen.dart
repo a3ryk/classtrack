@@ -120,20 +120,19 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
     final today = DateUtils.dateOnly(DateTime.now());
     final target = DateUtils.dateOnly(date);
     final diffDays = target.difference(today).inDays;
-    final dayName = DateFormat('EEEE').format(date);
 
     if (isHoliday) {
       if (diffDays == 0) return 'Holiday Today';
       if (diffDays == 1) return 'Holiday Tomorrow';
       if (diffDays == -1) return 'Holiday Yesterday';
-      return 'Holiday on $dayName';
+      return 'College Holiday';
     }
 
     final String plural = classCount == 1 ? '' : 'es';
-    if (diffDays == 0) return '$classCount class$plural today';
-    if (diffDays == 1) return '$classCount class$plural tomorrow';
-    if (diffDays == -1) return '$classCount class$plural yesterday';
-    return '$classCount class$plural on $dayName';
+    if (diffDays == 0) return classCount == 0 ? 'No classes today' : '$classCount class$plural today';
+    if (diffDays == 1) return classCount == 0 ? 'No classes tomorrow' : '$classCount class$plural tomorrow';
+    if (diffDays == -1) return classCount == 0 ? 'No classes yesterday' : '$classCount class$plural yesterday';
+    return classCount == 0 ? 'No classes scheduled' : '$classCount class$plural scheduled';
   }
 
   @override
@@ -156,47 +155,54 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Top App Bar / Fixed Header Row
+            // Top App Bar / Fixed Header
             Padding(
-              padding: const EdgeInsets.only(left: 20, right: 20, top: 16, bottom: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
+              padding: const EdgeInsets.only(left: 20, right: 20, top: 14, bottom: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: InkWell(
-                      onTap: _pickDate,
-                      borderRadius: BorderRadius.circular(8),
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 260),
-                        transitionBuilder: (child, animation) {
-                          return FadeTransition(
-                            opacity: animation,
-                            child: SlideTransition(
-                              position: Tween<Offset>(
-                                begin: const Offset(0, 0.12),
-                                end: Offset.zero,
-                              ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
-                              child: child,
+                  // Row 1: Date Chip Selector on left, Action buttons on right
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Date Selector Chip (Tap to pick date)
+                      InkWell(
+                        onTap: _pickDate,
+                        borderRadius: BorderRadius.circular(8),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 260),
+                            layoutBuilder: (child, list) => Stack(
+                              alignment: Alignment.centerLeft,
+                              children: [...list, if (child != null) child],
                             ),
-                          );
-                        },
-                        child: Column(
-                          key: ValueKey(selectedDateIso),
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
+                            transitionBuilder: (child, animation) {
+                              return FadeTransition(
+                                opacity: animation,
+                                child: SlideTransition(
+                                  position: Tween<Offset>(
+                                    begin: const Offset(0, 0.15),
+                                    end: Offset.zero,
+                                  ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+                                  child: child,
+                                ),
+                              );
+                            },
+                            child: Row(
+                              key: ValueKey(selectedDateIso),
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
                                   DateFormatter.formatHeaderDate(_selectedDate),
                                   style: TextStyle(
-                                    fontSize: 13,
+                                    fontSize: 13.5,
                                     fontWeight: FontWeight.w600,
                                     color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                                   ),
                                 ),
-                                const SizedBox(width: 2),
+                                const SizedBox(width: 3),
                                 Icon(
                                   Icons.keyboard_arrow_down_rounded,
                                   size: 18,
@@ -204,98 +210,139 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              countTitle,
-                              style: TextStyle(
-                                fontSize: 26,
-                                fontWeight: FontWeight.w800,
-                                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                                letterSpacing: -0.6,
-                              ),
+                          ),
+                        ),
+                      ),
+
+                      // Actions: [Today Pill] [Holiday] [Settings]
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          AnimatedSize(
+                            duration: const Duration(milliseconds: 260),
+                            curve: Curves.easeOutCubic,
+                            child: !isToday
+                                ? Padding(
+                                    padding: const EdgeInsets.only(right: 8),
+                                    child: InkWell(
+                                      onTap: _goToToday,
+                                      borderRadius: BorderRadius.circular(20),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                        decoration: BoxDecoration(
+                                          color: isDark ? AppColors.pillDark : const Color(0xFFF1F5F9),
+                                          borderRadius: BorderRadius.circular(20),
+                                          border: Border.all(
+                                            color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
+                                            width: 0.8,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.today_rounded,
+                                              size: 14,
+                                              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              'Today',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                : const SizedBox.shrink(),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: TactileIconButton(
+                              icon: isSelectedDateHoliday ? Icons.beach_access_rounded : Icons.beach_access_outlined,
+                              iconSize: 18,
+                              size: 38,
+                              backgroundColor: isSelectedDateHoliday
+                                  ? (isDark ? const Color(0xFF78350F).withValues(alpha: 0.4) : const Color(0xFFFEF3C7))
+                                  : (isDark ? AppColors.cardDark : Colors.white),
+                              borderColor: isSelectedDateHoliday
+                                  ? (isDark ? const Color(0xFFB45309).withValues(alpha: 0.5) : const Color(0xFFFDE68A))
+                                  : (isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
+                              iconColor: isSelectedDateHoliday
+                                  ? const Color(0xFFD97706)
+                                  : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
+                              onTap: () {
+                                if (isSelectedDateHoliday) {
+                                  ref.read(holidaysProvider.notifier).removeHolidayForDate(selectedDateIso);
+                                  AppToast.info(context, 'Holiday removed for $selectedDateIso');
+                                } else {
+                                  DeclareHolidaySheet.show(context, initialDate: _selectedDate);
+                                }
+                              },
                             ),
-                          ],
+                          ),
+                          TactileIconButton(
+                            icon: Icons.settings_outlined,
+                            iconSize: 19,
+                            size: 38,
+                            backgroundColor: isDark ? AppColors.cardDark : Colors.white,
+                            borderColor: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
+                            iconColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 2),
+
+                  // Row 2: Full-width Headline Title with smooth crossfade, strictly left-aligned
+                  InkWell(
+                    onTap: _pickDate,
+                    borderRadius: BorderRadius.circular(8),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 260),
+                      layoutBuilder: (child, list) => Stack(
+                        alignment: Alignment.centerLeft,
+                        children: [...list, if (child != null) child],
+                      ),
+                      transitionBuilder: (child, animation) {
+                        return FadeTransition(
+                          opacity: animation,
+                          child: SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(0, 0.12),
+                              end: Offset.zero,
+                            ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: Container(
+                        key: ValueKey(countTitle + selectedDateIso),
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          countTitle,
+                          style: TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w800,
+                            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                            letterSpacing: -0.6,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-
-                  // Top Right: Date navigation, Today Chip & Settings Button
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      AnimatedSize(
-                        duration: const Duration(milliseconds: 260),
-                        curve: Curves.easeOutCubic,
-                        child: !isToday
-                            ? Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: InkWell(
-                                  onTap: _goToToday,
-                                  borderRadius: BorderRadius.circular(20),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: isDark ? AppColors.pillDark : const Color(0xFFF1F5F9),
-                                      borderRadius: BorderRadius.circular(20),
-                                      border: Border.all(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0), width: 0.8),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(Icons.today_rounded, size: 14, color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'Today',
-                                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              )
-                            : const SizedBox.shrink(),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: TactileIconButton(
-                          icon: isSelectedDateHoliday ? Icons.beach_access_rounded : Icons.beach_access_outlined,
-                          iconSize: 18,
-                          size: 38,
-                          backgroundColor: isSelectedDateHoliday
-                              ? (isDark ? const Color(0xFF78350F).withValues(alpha: 0.4) : const Color(0xFFFEF3C7))
-                              : (isDark ? AppColors.cardDark : Colors.white),
-                          borderColor: isSelectedDateHoliday
-                              ? (isDark ? const Color(0xFFB45309).withValues(alpha: 0.5) : const Color(0xFFFDE68A))
-                              : (isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
-                          iconColor: isSelectedDateHoliday
-                              ? const Color(0xFFD97706)
-                              : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
-                          onTap: () {
-                            if (isSelectedDateHoliday) {
-                              ref.read(holidaysProvider.notifier).removeHolidayForDate(selectedDateIso);
-                              AppToast.info(context, 'Holiday removed for $selectedDateIso');
-                            } else {
-                              DeclareHolidaySheet.show(context, initialDate: _selectedDate);
-                            }
-                          },
-                        ),
-                      ),
-                      TactileIconButton(
-                        icon: Icons.settings_outlined,
-                        iconSize: 19,
-                        size: 38,
-                        backgroundColor: isDark ? AppColors.cardDark : Colors.white,
-                        borderColor: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
-                        iconColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const SettingsScreen()),
-                          );
-                        },
-                      ),
-                    ],
                   ),
                 ],
               ),
