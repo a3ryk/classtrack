@@ -121,7 +121,7 @@ void main() {
       expect(info.downloadUrl, isNotNull);
     });
 
-    testWidgets('NotificationSettingsScreen renders all sections cleanly', (tester) async {
+    testWidgets('NotificationSettingsScreen renders all sections cleanly and opens timing sheet', (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -138,14 +138,31 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Notifications & Reminders'), findsOneWidget);
-      expect(find.text('Enable Reminders'), findsOneWidget);
-      expect(find.text('Class Start Reminders'), findsOneWidget);
-      expect(find.text('Remind Before Class Starts'), findsOneWidget);
-      expect(find.text('Class End & Quick Attendance'), findsOneWidget);
-      expect(find.text('Quick Attendance Actions'), findsOneWidget);
-      expect(find.text('Zero Battery Drain Architecture'), findsOneWidget);
-      expect(find.text('Send Test Reminder Now'), findsOneWidget);
+      // Single word title
+      expect(find.text('Notifications'), findsOneWidget);
+      expect(find.text('Class Reminders'), findsNWidgets(2)); // Header & switch title
+      expect(find.text('Remind Before Class'), findsOneWidget);
+      expect(find.text('Reminder Timing'), findsOneWidget);
+      expect(find.text('Remind When Class Ends'), findsOneWidget);
+      expect(find.text('End Reminder Timing'), findsOneWidget);
+      expect(find.text('Quick Attendance Buttons'), findsOneWidget);
+      expect(find.text('Alerts & Testing'), findsOneWidget);
+      expect(find.text('Send Test Notification'), findsOneWidget);
+
+      // Verify tapping timing opens timing sheet
+      await tester.tap(find.text('Reminder Timing'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Class Start Reminder'), findsOneWidget);
+      expect(find.text('QUICK PRESETS'), findsOneWidget);
+      expect(find.text('CUSTOM MINUTES'), findsOneWidget);
+
+      // Tap a preset
+      await tester.tap(find.text('15m before'));
+      await tester.pumpAndSettle();
+
+      // Verify sheet dismissed and updated
+      expect(find.text('15m before'), findsOneWidget);
     });
   });
 }

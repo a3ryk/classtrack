@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/notification_service.dart';
@@ -15,9 +16,6 @@ class NotificationSettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _NotificationSettingsScreenState extends ConsumerState<NotificationSettingsScreen> {
-  static const List<int> _startLeadOptions = [0, 5, 10, 15, 30];
-  static const List<int> _endLeadOptions = [0, 5, 10];
-
   Future<void> _sendTestNotification(NotificationPreferencesEntity prefs) async {
     final now = DateTime.now();
     final testDate = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
@@ -42,6 +40,26 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
     if (mounted) {
       AppToast.success(context, 'Test notification sent! Check your notification shade.');
     }
+  }
+
+  void _openTimingSheet({
+    required BuildContext context,
+    required bool isStart,
+    required int currentMinutes,
+    required bool isDark,
+    required ValueChanged<int> onSelected,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => _ReminderTimingSheet(
+        isStart: isStart,
+        currentMinutes: currentMinutes,
+        isDark: isDark,
+        onSelected: onSelected,
+      ),
+    );
   }
 
   @override
@@ -81,7 +99,7 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
           ),
         ),
         title: Text(
-          'Notifications & Reminders',
+          'Notifications',
           style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w700,
@@ -94,8 +112,8 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
         physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         children: [
-          // 1. MASTER TOGGLE
-          _buildSectionHeader('General', isDark),
+          // GROUP 1: CLASS REMINDERS
+          _buildSectionHeader('Class Reminders', isDark),
           RepaintBoundary(
             child: Container(
               decoration: BoxDecoration(
@@ -103,35 +121,22 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: groupBorder, width: 0.8),
               ),
-              child: _buildSwitchTile(
-                title: 'Enable Reminders',
-                subtitle: 'Automated class alerts and notification panel attendance',
-                value: prefs.enabled,
-                isDark: isDark,
-                onChanged: (val) {
-                  notifier.updatePreferences(prefs.copyWith(enabled: val));
-                },
-              ),
-            ),
-          ),
-
-          if (prefs.enabled) ...[
-            const SizedBox(height: 20),
-
-            // 2. CLASS START REMINDERS
-            _buildSectionHeader('Class Start Reminders', isDark),
-            RepaintBoundary(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: groupBg,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: groupBorder, width: 0.8),
-                ),
-                child: Column(
-                  children: [
-                    _buildSwitchTile(
-                      title: 'Remind Before Class Starts',
-                      subtitle: 'Alert with room number and subject details',
+              child: Column(
+                children: [
+                  _buildSwitchRow(
+                    title: 'Class Reminders',
+                    subtitle: 'Alerts for upcoming classes and attendance',
+                    value: prefs.enabled,
+                    isDark: isDark,
+                    onChanged: (val) {
+                      notifier.updatePreferences(prefs.copyWith(enabled: val));
+                    },
+                  ),
+                  if (prefs.enabled) ...[
+                    Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
+                    _buildSwitchRow(
+                      title: 'Remind Before Class',
+                      subtitle: 'Room and subject details',
                       value: prefs.enableClassStart,
                       isDark: isDark,
                       onChanged: (val) {
@@ -140,61 +145,27 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                     ),
                     if (prefs.enableClassStart) ...[
                       Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Reminder Lead Time',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: _startLeadOptions.map((minutes) {
-                                final isSelected = prefs.startLeadMinutes == minutes;
-                                final label = minutes == 0 ? 'At start' : '${minutes}m before';
-                                return _buildChoiceChip(
-                                  label: label,
-                                  isSelected: isSelected,
-                                  isDark: isDark,
-                                  onTap: () {
-                                    notifier.updatePreferences(prefs.copyWith(startLeadMinutes: minutes));
-                                  },
-                                );
-                              }).toList(),
-                            ),
-                          ],
+                      _buildValueRow(
+                        title: 'Reminder Timing',
+                        value: prefs.startLeadMinutes == 0
+                            ? 'At start'
+                            : '${prefs.startLeadMinutes}m before',
+                        isDark: isDark,
+                        onTap: () => _openTimingSheet(
+                          context: context,
+                          isStart: true,
+                          currentMinutes: prefs.startLeadMinutes,
+                          isDark: isDark,
+                          onSelected: (mins) {
+                            notifier.updatePreferences(prefs.copyWith(startLeadMinutes: mins));
+                          },
                         ),
                       ),
                     ],
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // 3. CLASS END & QUICK ATTENDANCE
-            _buildSectionHeader('Class End & Quick Attendance', isDark),
-            RepaintBoundary(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: groupBg,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: groupBorder, width: 0.8),
-                ),
-                child: Column(
-                  children: [
-                    _buildSwitchTile(
+                    Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
+                    _buildSwitchRow(
                       title: 'Remind When Class Ends',
-                      subtitle: 'Prompts you to mark attendance promptly',
+                      subtitle: 'Prompts you to mark attendance',
                       value: prefs.enableClassEnd,
                       isDark: isDark,
                       onChanged: (val) {
@@ -203,44 +174,27 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                     ),
                     if (prefs.enableClassEnd) ...[
                       Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'End Reminder Timing',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: _endLeadOptions.map((minutes) {
-                                final isSelected = prefs.endLeadMinutes == minutes;
-                                final label = minutes == 0 ? 'At class end' : '${minutes}m before end';
-                                return _buildChoiceChip(
-                                  label: label,
-                                  isSelected: isSelected,
-                                  isDark: isDark,
-                                  onTap: () {
-                                    notifier.updatePreferences(prefs.copyWith(endLeadMinutes: minutes));
-                                  },
-                                );
-                              }).toList(),
-                            ),
-                          ],
+                      _buildValueRow(
+                        title: 'End Reminder Timing',
+                        value: prefs.endLeadMinutes == 0
+                            ? 'At class end'
+                            : '${prefs.endLeadMinutes}m before end',
+                        isDark: isDark,
+                        onTap: () => _openTimingSheet(
+                          context: context,
+                          isStart: false,
+                          currentMinutes: prefs.endLeadMinutes,
+                          isDark: isDark,
+                          onSelected: (mins) {
+                            notifier.updatePreferences(prefs.copyWith(endLeadMinutes: mins));
+                          },
                         ),
                       ),
                     ],
                     Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
-                    _buildSwitchTile(
-                      title: 'Quick Attendance Actions',
-                      subtitle: 'Present, Absent, and Cancelled buttons directly on the notification panel',
+                    _buildSwitchRow(
+                      title: 'Quick Attendance Buttons',
+                      subtitle: 'Mark Present, Absent, or Cancelled from notification',
                       value: prefs.enableQuickActions,
                       isDark: isDark,
                       onChanged: (val) {
@@ -248,157 +202,117 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                       },
                     ),
                   ],
-                ),
+                ],
               ),
             ),
+          ),
 
-            const SizedBox(height: 20),
+          const SizedBox(height: 20),
 
-            // 4. SOUND & VIBRATION
-            _buildSectionHeader('Alert Preferences', isDark),
-            RepaintBoundary(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: groupBg,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: groupBorder, width: 0.8),
-                ),
-                child: Column(
-                  children: [
-                    _buildSwitchTile(
-                      title: 'Vibration',
-                      subtitle: 'Vibrate on class alerts',
-                      value: prefs.vibrate,
-                      isDark: isDark,
-                      onChanged: (val) {
-                        notifier.updatePreferences(prefs.copyWith(vibrate: val));
-                      },
-                    ),
-                    Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
-                    _buildSwitchTile(
-                      title: 'Sound',
-                      subtitle: 'Play default notification ringtone',
-                      value: prefs.sound,
-                      isDark: isDark,
-                      onChanged: (val) {
-                        notifier.updatePreferences(prefs.copyWith(sound: val));
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // 5. TEST NOTIFICATION BUTTON
-            RepaintBoundary(
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: groupBg,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: groupBorder, width: 0.8),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.bolt_rounded, size: 20, color: AppColors.accentBlue),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Test Notification Panel',
-                          style: TextStyle(
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.w700,
-                            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Preview how quick attendance buttons appear in your notification shade and verify that instant background marking works smoothly.',
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        height: 1.4,
-                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 44,
-                      child: ElevatedButton.icon(
-                        onPressed: () => _sendTestNotification(prefs),
-                        icon: const Icon(Icons.notifications_active_rounded, size: 18),
-                        label: const Text(
-                          'Send Test Reminder Now',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.accentBlue,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // 6. ZERO BATTERY DRAIN INFO CALLOUT
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          // GROUP 2: ALERTS & TESTING
+          _buildSectionHeader('Alerts & Testing', isDark),
+          RepaintBoundary(
+            child: Container(
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-                  width: 0.8,
-                ),
+                color: groupBg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: groupBorder, width: 0.8),
               ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Column(
                 children: [
-                  const Icon(Icons.battery_charging_full_rounded, size: 18, color: AppColors.presentGreen),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Zero Battery Drain Architecture',
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w700,
-                            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                  _buildSwitchRow(
+                    title: 'Vibration',
+                    subtitle: 'Vibrate on class alerts',
+                    value: prefs.vibrate,
+                    isDark: isDark,
+                    onChanged: (val) {
+                      notifier.updatePreferences(prefs.copyWith(vibrate: val));
+                    },
+                  ),
+                  Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
+                  _buildSwitchRow(
+                    title: 'Sound',
+                    subtitle: 'Play notification ringtone',
+                    value: prefs.sound,
+                    isDark: isDark,
+                    onChanged: (val) {
+                      notifier.updatePreferences(prefs.copyWith(sound: val));
+                    },
+                  ),
+                  Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
+                  InkWell(
+                    onTap: () => _sendTestNotification(prefs),
+                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.bolt_rounded, size: 20, color: AppColors.accentBlue),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Send Test Notification',
+                                  style: TextStyle(
+                                    fontSize: 14.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Preview quick attendance buttons in notification tray',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          'ClassTrack uses native OS exact alarms scheduled in the Android kernel. The app does NOT run persistent foreground services and uses 0% CPU and 0% battery while closed.',
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            height: 1.4,
-                            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            size: 20,
+                            color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-          ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // GROUP 3: UNBOXED PUBLIC-FRIENDLY FOOTER CAPTION
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.battery_saver_rounded,
+                  size: 16,
+                  color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'ClassTrack alerts you only at scheduled class times and never stays running in the background, so your battery won\'t drain.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      height: 1.4,
+                      color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
 
           const SizedBox(height: 32),
         ],
@@ -420,7 +334,7 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
     );
   }
 
-  Widget _buildSwitchTile({
+  Widget _buildSwitchRow({
     required String title,
     String? subtitle,
     required bool value,
@@ -444,7 +358,7 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                   ),
                 ),
                 if (subtitle != null) ...[
-                  const SizedBox(height: 3),
+                  const SizedBox(height: 2),
                   Text(
                     subtitle,
                     style: TextStyle(
@@ -467,39 +381,328 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
     );
   }
 
-  Widget _buildChoiceChip({
-    required String label,
-    required bool isSelected,
+  Widget _buildValueRow({
+    required String title,
+    required String value,
     required bool isDark,
     required VoidCallback onTap,
   }) {
-    final activeBg = isDark ? AppColors.accentBlue.withValues(alpha: 0.25) : const Color(0xFFEFF6FF);
-    final activeBorder = AppColors.accentBlue;
-    final inactiveBg = isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC);
-    final inactiveBorder = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
-
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: BoxDecoration(
-          color: isSelected ? activeBg : inactiveBg,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSelected ? activeBorder : inactiveBorder,
-            width: isSelected ? 1.4 : 0.8,
-          ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                ),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                  width: 0.8,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.accentBlue,
+                    ),
+                  ),
+                  const SizedBox(width: 3),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 16,
+                    color: AppColors.accentBlue,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12.5,
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            color: isSelected
-                ? AppColors.accentBlue
-                : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
-          ),
+      ),
+    );
+  }
+}
+
+/// Clean modal bottom sheet for timing selection with quick presets & custom minutes
+class _ReminderTimingSheet extends StatefulWidget {
+  final bool isStart;
+  final int currentMinutes;
+  final bool isDark;
+  final ValueChanged<int> onSelected;
+
+  const _ReminderTimingSheet({
+    required this.isStart,
+    required this.currentMinutes,
+    required this.isDark,
+    required this.onSelected,
+  });
+
+  @override
+  State<_ReminderTimingSheet> createState() => _ReminderTimingSheetState();
+}
+
+class _ReminderTimingSheetState extends State<_ReminderTimingSheet> {
+  late final TextEditingController _customController;
+  late int _selectedMinutes;
+  String? _customError;
+
+  List<int> get _presets => widget.isStart ? const [0, 5, 10, 15, 30] : const [0, 5, 10, 15];
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedMinutes = widget.currentMinutes;
+    final isPreset = _presets.contains(_selectedMinutes);
+    _customController = TextEditingController(
+      text: isPreset ? '' : _selectedMinutes.toString(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _customController.dispose();
+    super.dispose();
+  }
+
+  void _applyMinutes(int minutes) {
+    if (minutes < 0 || minutes > 120) {
+      setState(() {
+        _customError = 'Enter 0 to 120 mins';
+      });
+      return;
+    }
+    widget.onSelected(minutes);
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = widget.isDark;
+    final bg = isDark ? AppColors.cardDark : Colors.white;
+    final borderColor = isDark ? AppColors.borderDark : const Color(0xFFE2E8F0);
+
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          border: Border.all(color: borderColor, width: 0.8),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 38,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              widget.isStart ? 'Class Start Reminder' : 'Class End Reminder',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              widget.isStart
+                  ? 'How long before class begins should ClassTrack notify you?'
+                  : 'How long before or when class ends should you be prompted?',
+              style: TextStyle(
+                fontSize: 13,
+                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'QUICK PRESETS',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.5,
+                color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _presets.map((mins) {
+                final isSelected = _selectedMinutes == mins;
+                final label = mins == 0
+                    ? (widget.isStart ? 'At start' : 'At class end')
+                    : '${mins}m before';
+
+                return InkWell(
+                  onTap: () {
+                    setState(() {
+                      _selectedMinutes = mins;
+                      _customController.clear();
+                      _customError = null;
+                    });
+                    _applyMinutes(mins);
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppColors.accentBlue
+                          : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isSelected
+                            ? AppColors.accentBlue
+                            : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                        width: 0.8,
+                      ),
+                    ),
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                        color: isSelected
+                            ? Colors.white
+                            : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'CUSTOM MINUTES',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.5,
+                color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        height: 44,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: _customError != null
+                                ? AppColors.absentRed
+                                : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                            width: 1,
+                          ),
+                        ),
+                        alignment: Alignment.center,
+                        child: TextField(
+                          controller: _customController,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(3),
+                          ],
+                          decoration: const InputDecoration(
+                            hintText: 'e.g. 7 or 25',
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                          ),
+                          onChanged: (_) {
+                            if (_customError != null) {
+                              setState(() => _customError = null);
+                            }
+                          },
+                        ),
+                      ),
+                      if (_customError != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          _customError!,
+                          style: const TextStyle(fontSize: 11, color: AppColors.absentRed),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                SizedBox(
+                  height: 44,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      final text = _customController.text.trim();
+                      if (text.isEmpty) {
+                        setState(() => _customError = 'Enter minutes');
+                        return;
+                      }
+                      final parsed = int.tryParse(text);
+                      if (parsed == null || parsed < 0 || parsed > 120) {
+                        setState(() => _customError = '0 to 120 mins only');
+                        return;
+                      }
+                      _applyMinutes(parsed);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.accentBlue,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                    ),
+                    child: const Text(
+                      'Apply',
+                      style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
