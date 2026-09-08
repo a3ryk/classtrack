@@ -75,20 +75,24 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
     required bool isDark,
     required ValueChanged<int> onSelected,
   }) {
+    HapticFeedback.lightImpact();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      transitionAnimationController: AnimationController(
-        vsync: Navigator.of(context),
-        duration: const Duration(milliseconds: 340),
-        reverseDuration: const Duration(milliseconds: 240),
+      sheetAnimationStyle: AnimationStyle(
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+        duration: const Duration(milliseconds: 280),
+        reverseDuration: const Duration(milliseconds: 220),
       ),
-      builder: (sheetContext) => _ReminderTimingSheet(
-        isStart: isStart,
-        currentMinutes: currentMinutes,
-        isDark: isDark,
-        onSelected: onSelected,
+      builder: (sheetContext) => RepaintBoundary(
+        child: _ReminderTimingSheet(
+          isStart: isStart,
+          currentMinutes: currentMinutes,
+          isDark: isDark,
+          onSelected: onSelected,
+        ),
       ),
     );
   }
@@ -174,16 +178,19 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                     value: prefs.enabled,
                     isDark: isDark,
                     onChanged: (val) async {
-                      if (val) {
-                        final hasPerm = await NotificationService.checkAndRequestNotificationPermission();
-                        if (!hasPerm) {
-                          if (context.mounted) {
-                            AppToast.error(context, 'Notification permission is required to receive class reminders.');
-                          }
-                          return;
+                      if (!val) {
+                        notifier.updatePreferences(prefs.copyWith(enabled: false));
+                        return;
+                      }
+                      // Optimistically flip immediately for 60fps tactile feel
+                      notifier.updatePreferences(prefs.copyWith(enabled: true));
+                      final hasPerm = await NotificationService.checkAndRequestNotificationPermission();
+                      if (!hasPerm) {
+                        notifier.updatePreferences(prefs.copyWith(enabled: false));
+                        if (context.mounted) {
+                          AppToast.error(context, 'Notification permission is required to receive class reminders.');
                         }
                       }
-                      notifier.updatePreferences(prefs.copyWith(enabled: val));
                     },
                   ),
                   if (prefs.enabled) ...[
@@ -192,16 +199,7 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                        title: 'Remind Before Class',
                       value: prefs.enableClassStart,
                       isDark: isDark,
-                      onChanged: (val) async {
-                        if (val) {
-                          final hasPerm = await NotificationService.checkAndRequestNotificationPermission();
-                          if (!hasPerm) {
-                            if (context.mounted) {
-                              AppToast.error(context, 'Notification permission is required to receive class reminders.');
-                            }
-                            return;
-                          }
-                        }
+                      onChanged: (val) {
                         notifier.updatePreferences(prefs.copyWith(enableClassStart: val));
                       },
                     ),
@@ -229,16 +227,7 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                       title: 'Remind When Class Ends',
                       value: prefs.enableClassEnd,
                       isDark: isDark,
-                      onChanged: (val) async {
-                        if (val) {
-                          final hasPerm = await NotificationService.checkAndRequestNotificationPermission();
-                          if (!hasPerm) {
-                            if (context.mounted) {
-                              AppToast.error(context, 'Notification permission is required to receive class reminders.');
-                            }
-                            return;
-                          }
-                        }
+                      onChanged: (val) {
                         notifier.updatePreferences(prefs.copyWith(enableClassEnd: val));
                       },
                     ),
@@ -487,8 +476,12 @@ class _ReminderTimingSheetState extends State<_ReminderTimingSheet> {
   }
 
   void _save() {
-    widget.onSelected(_selectedMinutes.round());
+    HapticFeedback.lightImpact();
+    final selected = _selectedMinutes.round();
     Navigator.pop(context);
+    Future.delayed(const Duration(milliseconds: 220), () {
+      widget.onSelected(selected);
+    });
   }
 
   String _formatHero(int mins) {

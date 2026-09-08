@@ -14,17 +14,35 @@ import '../providers/app_state_provider.dart';
 class AddExtraClassSheet extends ConsumerStatefulWidget {
   final String dateIso;
   final DateTime? initialDate;
+  final String? editExtraId;
+  final String? initialSubjectId;
+  final TimeOfDay? initialStartTime;
+  final TimeOfDay? initialEndTime;
+  final String? initialRoom;
+  final String? initialReason;
 
   const AddExtraClassSheet({
     super.key,
     required this.dateIso,
     this.initialDate,
+    this.editExtraId,
+    this.initialSubjectId,
+    this.initialStartTime,
+    this.initialEndTime,
+    this.initialRoom,
+    this.initialReason,
   });
 
   static Future<void> show(
     BuildContext context, {
     required String dateIso,
     DateTime? initialDate,
+    String? editExtraId,
+    String? initialSubjectId,
+    TimeOfDay? initialStartTime,
+    TimeOfDay? initialEndTime,
+    String? initialRoom,
+    String? initialReason,
   }) {
     HapticFeedback.lightImpact();
     return showModalBottomSheet(
@@ -40,6 +58,12 @@ class AddExtraClassSheet extends ConsumerStatefulWidget {
         child: AddExtraClassSheet(
           dateIso: dateIso,
           initialDate: initialDate,
+          editExtraId: editExtraId,
+          initialSubjectId: initialSubjectId,
+          initialStartTime: initialStartTime,
+          initialEndTime: initialEndTime,
+          initialRoom: initialRoom,
+          initialReason: initialReason,
         ),
       ),
     );
@@ -91,8 +115,24 @@ class _AddExtraClassSheetState extends ConsumerState<AddExtraClassSheet> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialRoom != null) {
+      _roomController.text = widget.initialRoom!;
+    }
+    if (widget.initialReason != null) {
+      _reasonController.text = widget.initialReason!;
+    }
+    if (widget.initialStartTime != null) {
+      _startTime = widget.initialStartTime!;
+    }
+    if (widget.initialEndTime != null) {
+      _endTime = widget.initialEndTime!;
+    }
+
     final subjects = ref.read(subjectsProvider);
-    if (subjects.isNotEmpty) {
+    if (widget.initialSubjectId != null && subjects.any((s) => s.id == widget.initialSubjectId)) {
+      _selectedSubjectId = widget.initialSubjectId;
+      _isNewSubject = false;
+    } else if (subjects.isNotEmpty) {
       _selectedSubjectId = subjects.first.id;
       _isNewSubject = false;
     } else {
@@ -238,23 +278,86 @@ class _AddExtraClassSheetState extends ConsumerState<AddExtraClassSheet> {
     final reasonStr = _reasonController.text.trim();
 
     try {
-      await ref.read(extraClassesProvider.notifier).addExtraClass(
-        subjectId: subjectIdToUse,
-        classDate: widget.dateIso,
-        startTime: startStr,
-        endTime: endStr,
-        room: roomStr.isNotEmpty ? roomStr : null,
-        reason: reasonStr.isNotEmpty ? reasonStr : null,
-      );
-
-      if (mounted) {
-        AppToast.success(context, 'Added Extra Class for $subjectNameToUse');
-        Navigator.pop(context);
+      if (widget.editExtraId != null) {
+        await ref.read(extraClassesProvider.notifier).updateExtraClass(
+          id: widget.editExtraId!,
+          subjectId: subjectIdToUse,
+          classDate: widget.dateIso,
+          startTime: startStr,
+          endTime: endStr,
+          room: roomStr.isNotEmpty ? roomStr : null,
+          reason: reasonStr.isNotEmpty ? reasonStr : null,
+        );
+        if (mounted) {
+          AppToast.success(context, 'Updated Extra Class for $subjectNameToUse');
+          Navigator.pop(context);
+        }
+      } else {
+        await ref.read(extraClassesProvider.notifier).addExtraClass(
+          subjectId: subjectIdToUse,
+          classDate: widget.dateIso,
+          startTime: startStr,
+          endTime: endStr,
+          room: roomStr.isNotEmpty ? roomStr : null,
+          reason: reasonStr.isNotEmpty ? reasonStr : null,
+        );
+        if (mounted) {
+          AppToast.success(context, 'Added Extra Class for $subjectNameToUse');
+          Navigator.pop(context);
+        }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isSaving = false);
         AppToast.error(context, 'Failed to save extra class: $e');
+      }
+    }
+  }
+
+  Future<void> _deleteExtraClass() async {
+    if (widget.editExtraId == null || _isSaving) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        return AlertDialog(
+          backgroundColor: isDark ? AppColors.cardDark : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Delete Extra Class?', style: TextStyle(fontWeight: FontWeight.w700)),
+          content: const Text(
+            'Are you sure you want to delete this extra class? This will also remove any attendance recorded for it.',
+            style: TextStyle(fontSize: 14),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: FilledButton.styleFrom(backgroundColor: AppColors.absentRed),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm == true && mounted) {
+      setState(() => _isSaving = true);
+      HapticFeedback.mediumImpact();
+      try {
+        await ref.read(extraClassesProvider.notifier).deleteExtraClass(widget.editExtraId!);
+        if (mounted) {
+          AppToast.info(context, 'Extra class deleted');
+          Navigator.pop(context);
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() => _isSaving = false);
+          AppToast.error(context, 'Failed to delete extra class: $e');
+        }
       }
     }
   }
@@ -626,7 +729,7 @@ class _AddExtraClassSheetState extends ConsumerState<AddExtraClassSheet> {
                     ),
                     alignment: Alignment.center,
                     child: Icon(
-                      Icons.more_time_rounded,
+                      widget.editExtraId != null ? Icons.edit_calendar_rounded : Icons.more_time_rounded,
                       color: subjectColor,
                       size: 24,
                     ),
@@ -637,7 +740,7 @@ class _AddExtraClassSheetState extends ConsumerState<AddExtraClassSheet> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Add Extra Class',
+                          widget.editExtraId != null ? 'Edit Extra Class' : 'Add Extra Class',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
@@ -657,6 +760,12 @@ class _AddExtraClassSheetState extends ConsumerState<AddExtraClassSheet> {
                       ],
                     ),
                   ),
+                  if (widget.editExtraId != null)
+                    IconButton(
+                      tooltip: 'Delete Extra Class',
+                      icon: const Icon(Icons.delete_outline_rounded, color: AppColors.absentRed),
+                      onPressed: _isSaving ? null : _deleteExtraClass,
+                    ),
                 ],
               ),
 
@@ -1298,9 +1407,9 @@ class _AddExtraClassSheetState extends ConsumerState<AddExtraClassSheet> {
                                 color: Colors.white,
                               ),
                             )
-                          : const Text(
-                              'Add Extra Class',
-                              style: TextStyle(
+                          : Text(
+                              widget.editExtraId != null ? 'Save Changes' : 'Add Extra Class',
+                              style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
                               ),

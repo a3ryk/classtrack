@@ -47,17 +47,25 @@ class UpdateAvailableDialog extends StatelessWidget {
     // Separate changelog into categories if possible
     final features = <String>[];
     final fixes = <String>[];
-    final general = <String>[];
+    final improvements = <String>[];
 
     for (final item in releaseInfo.changelog) {
-      final lower = item.toLowerCase();
-      if (lower.contains('fix') || lower.contains('bug') || item.startsWith('🧩')) {
-        fixes.add(item.replaceAll(RegExp(r'^(🧩|\-|\*|•)\s*'), ''));
-      } else if (lower.contains('feat') || lower.contains('add') || item.startsWith('✨')) {
-        features.add(item.replaceAll(RegExp(r'^(✨|\-|\*|•)\s*'), ''));
+      final trimmed = item.trim();
+      if (trimmed.isEmpty) continue;
+      final lower = trimmed.toLowerCase();
+      if (trimmed.startsWith('🧩') || lower.contains('fix') || lower.contains('bug') || lower.startsWith('fixed')) {
+        fixes.add(trimmed);
+      } else if (trimmed.startsWith('✨') || lower.contains('feat') || lower.contains('add')) {
+        features.add(trimmed);
       } else {
-        general.add(item.replaceAll(RegExp(r'^(\-|\*|•)\s*'), ''));
+        improvements.add(trimmed);
       }
+    }
+
+    // Zero-drop guarantee: if features is empty but improvements exist, merge to features
+    if (features.isEmpty && improvements.isNotEmpty) {
+      features.addAll(improvements);
+      improvements.clear();
     }
 
     return PopScope(
@@ -204,10 +212,10 @@ class UpdateAvailableDialog extends StatelessWidget {
                           ...fixes.map((item) => _buildBulletItem(item, isDark)),
                           const SizedBox(height: 12),
                         ],
-                        if (general.isNotEmpty && features.isEmpty && fixes.isEmpty) ...[
-                          _buildCategoryHeader('⚡ Improvements', isDark),
+                        if (improvements.isNotEmpty) ...[
+                          _buildCategoryHeader('⚡ Other Enhancements', isDark),
                           const SizedBox(height: 6),
-                          ...general.map((item) => _buildBulletItem(item, isDark)),
+                          ...improvements.map((item) => _buildBulletItem(item, isDark)),
                           const SizedBox(height: 12),
                         ],
                         if (releaseInfo.changelog.isEmpty)
@@ -325,7 +333,26 @@ class UpdateAvailableDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildBulletItem(String text, bool isDark) {
+  Widget _buildBulletItem(String rawText, bool isDark) {
+    // Strip leading emojis or bullet markers
+    String text = rawText.replaceAll(RegExp(r'^(✨|🧩|⚡|🛠️|[•\-\*])\s*'), '').trim();
+
+    // Parse bold title if formatted as **Title**: Description or Title: Description
+    String? title;
+    String description = text;
+
+    final boldMatch = RegExp(r'^\*\*(.*?)\*\*:\s*(.*)$').firstMatch(text);
+    if (boldMatch != null) {
+      title = boldMatch.group(1);
+      description = boldMatch.group(2) ?? '';
+    } else {
+      final colonIdx = text.indexOf(': ');
+      if (colonIdx > 0 && colonIdx < 50 && !text.substring(0, colonIdx).contains('.')) {
+        title = text.substring(0, colonIdx).replaceAll('**', '').trim();
+        description = text.substring(colonIdx + 2).trim();
+      }
+    }
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 5, left: 2),
       child: Row(
@@ -340,14 +367,34 @@ class UpdateAvailableDialog extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                fontSize: 12.5,
-                height: 1.35,
-                color: isDark ? AppColors.textSecondaryDark : const Color(0xFF334155),
-              ),
-            ),
+            child: title != null
+                ? RichText(
+                    text: TextSpan(
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        height: 1.35,
+                        color: isDark ? AppColors.textSecondaryDark : const Color(0xFF334155),
+                      ),
+                      children: [
+                        TextSpan(
+                          text: '$title: ',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                          ),
+                        ),
+                        TextSpan(text: description.replaceAll('**', '')),
+                      ],
+                    ),
+                  )
+                : Text(
+                    text.replaceAll('**', ''),
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      height: 1.35,
+                      color: isDark ? AppColors.textSecondaryDark : const Color(0xFF334155),
+                    ),
+                  ),
           ),
         ],
       ),

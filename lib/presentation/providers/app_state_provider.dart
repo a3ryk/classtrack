@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -467,9 +468,16 @@ final notificationPreferencesProvider =
 class NotificationPreferencesNotifier extends StateNotifier<NotificationPreferencesEntity> {
   final AppDatabase db;
   final Ref ref;
+  Timer? _debounceTimer;
 
   NotificationPreferencesNotifier(this.db, this.ref)
       : super(const NotificationPreferencesEntity());
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
+  }
 
   Future<void> loadFromDb() async {
     final val = await db.getSetting('notification_preferences');
@@ -484,8 +492,13 @@ class NotificationPreferencesNotifier extends StateNotifier<NotificationPreferen
 
   Future<void> updatePreferences(NotificationPreferencesEntity newPrefs) async {
     state = newPrefs;
-    await db.setSetting('notification_preferences', jsonEncode(newPrefs.toJson()));
-    await resyncScheduledNotifications();
+    // Persist to DB asynchronously
+    unawaited(db.setSetting('notification_preferences', jsonEncode(newPrefs.toJson())));
+    // Debounce notification alarm resync by 350ms so rapid switch toggling and slider adjustments do not hitch the UI thread
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 350), () {
+      resyncScheduledNotifications();
+    });
   }
 
   Future<void> resyncScheduledNotifications() async {
@@ -892,6 +905,34 @@ class ExtraClassesNotifier extends StateNotifier<List<ExtraClassItem>> {
     final nowIso = DateTime.now().toIso8601String();
     final extra = ExtraClassData(
       id: 'extra_${DateTime.now().millisecondsSinceEpoch}',
+      semesterId: semesterId,
+      subjectComponentId: subjectId,
+      classDate: classDate,
+      startTime: startTime,
+      endTime: endTime,
+      room: room,
+      teacherName: teacherName,
+      reason: reason,
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    );
+    await db.saveExtraClass(extra);
+    await loadFromDb();
+  }
+
+  Future<void> updateExtraClass({
+    required String id,
+    required String subjectId,
+    required String classDate,
+    required String startTime,
+    required String endTime,
+    String? room,
+    String? teacherName,
+    String? reason,
+  }) async {
+    final nowIso = DateTime.now().toIso8601String();
+    final extra = ExtraClassData(
+      id: id,
       semesterId: semesterId,
       subjectComponentId: subjectId,
       classDate: classDate,

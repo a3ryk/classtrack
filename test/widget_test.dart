@@ -2281,6 +2281,173 @@ void main() {
 
       await db.close();
     });
+
+    test('ExtraClassesNotifier: updateExtraClass and deleteExtraClass update SQLite and state', () async {
+      final db = AppDatabase.inMemory();
+      final notifier = ExtraClassesNotifier(db, 'sem_test_1', [
+        SubjectEntity(
+          id: 'sub_1',
+          semesterId: 'sem_test_1',
+          name: 'Computer Networks',
+          category: 'MAJOR',
+          credits: 4,
+          targetAttendancePct: 75.0,
+          baselineHeld: 0,
+          baselineAttended: 0,
+          colorHex: '#4F46E5',
+          isArchived: false,
+          components: [],
+        ),
+      ]);
+
+      await notifier.loadFromDb();
+      expect(notifier.state.isEmpty, isTrue);
+
+      // Add extra class
+      await notifier.addExtraClass(
+        subjectId: 'sub_1',
+        classDate: '2026-09-15',
+        startTime: '10:00',
+        endTime: '11:00',
+        room: 'Lab 1',
+        reason: 'Revision',
+      );
+      expect(notifier.state.length, equals(1));
+      final extraId = notifier.state.first.id;
+      expect(notifier.state.first.room, equals('Lab 1'));
+
+      // Update extra class
+      await notifier.updateExtraClass(
+        id: extraId,
+        subjectId: 'sub_1',
+        classDate: '2026-09-15',
+        startTime: '14:00',
+        endTime: '15:00',
+        room: 'Lab 2',
+        reason: 'Exam Prep',
+      );
+      expect(notifier.state.first.startTime, equals('14:00'));
+      expect(notifier.state.first.room, equals('Lab 2'));
+
+      // Verify SQLite persistence
+      final extrasInDb = await db.getExtraClasses('sem_test_1');
+      expect(extrasInDb.length, equals(1));
+      expect(extrasInDb.first.startTime, equals('14:00'));
+      expect(extrasInDb.first.room, equals('Lab 2'));
+
+      // Delete extra class
+      await notifier.deleteExtraClass(extraId);
+      expect(notifier.state.isEmpty, isTrue);
+      final remainingInDb = await db.getExtraClasses('sem_test_1');
+      expect(remainingInDb.isEmpty, isTrue);
+
+      await db.close();
+    });
+
+    test('ScheduleResolutionEngine: Extra Class modification reflects immediately', () {
+      final extraClasses = [
+        ExtraClassItem(
+          id: 'extra_1',
+          semesterId: 'sem_1',
+          subjectComponentId: 'sub_1',
+          subjectName: 'Operating Systems',
+          category: 'MAJOR',
+          componentType: 'Theory',
+          colorHex: '#4F46E5',
+          classDate: '2026-09-16',
+          startTime: '09:00',
+          endTime: '10:00',
+          room: 'Hall A',
+        ),
+      ];
+
+      final sessionsBefore = ScheduleResolutionEngine.resolveScheduleForDate(
+        targetDate: DateTime(2026, 9, 16),
+        semesterId: 'sem_1',
+        holidays: [],
+        dayConfigs: [],
+        timetableSlots: [],
+        exceptions: [],
+        extraClasses: extraClasses,
+        existingOutcomes: {},
+      );
+      expect(sessionsBefore.length, equals(1));
+      expect(sessionsBefore.first.sessionSource, equals('EXTRA'));
+      expect(sessionsBefore.first.room, equals('Hall A'));
+      expect(sessionsBefore.first.startTime, equals('09:00'));
+
+      // Simulate edit
+      final updatedExtras = [
+        ExtraClassItem(
+          id: 'extra_1',
+          semesterId: 'sem_1',
+          subjectComponentId: 'sub_1',
+          subjectName: 'Operating Systems',
+          category: 'MAJOR',
+          componentType: 'Theory',
+          colorHex: '#4F46E5',
+          classDate: '2026-09-16',
+          startTime: '11:00',
+          endTime: '12:00',
+          room: 'Hall B',
+        ),
+      ];
+
+      final sessionsAfter = ScheduleResolutionEngine.resolveScheduleForDate(
+        targetDate: DateTime(2026, 9, 16),
+        semesterId: 'sem_1',
+        holidays: [],
+        dayConfigs: [],
+        timetableSlots: [],
+        exceptions: [],
+        extraClasses: updatedExtras,
+        existingOutcomes: {},
+      );
+      expect(sessionsAfter.length, equals(1));
+      expect(sessionsAfter.first.room, equals('Hall B'));
+      expect(sessionsAfter.first.startTime, equals('11:00'));
+    });
+
+    testWidgets('UpdateAvailableDialog: Zero-drop guarantee renders general items even when features or fixes are present', (tester) async {
+      const releaseInfo = AppReleaseInfo(
+        latestVersion: '1.5.0',
+        buildNumber: 15,
+        minSupportedVersion: '1.0.0',
+        releaseDate: '2026-09-08',
+        releaseTitle: 'ClassTrack v1.5.0 (Polish & Stability)',
+        changelog: [
+          '✨ **Interactive Sliders**: Smooth animations for dialogs',
+          '• General synchronization performance optimization',
+          '🧩 **Crash Fix**: Resolved NPE on cold start',
+        ],
+        isMandatory: false,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.light(),
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () => showDialog(
+                  context: context,
+                  builder: (_) => const UpdateAvailableDialog(releaseInfo: releaseInfo),
+                ),
+                child: const Text('Show Dialog'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Show Dialog'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('✨ Features'), findsOneWidget);
+      expect(find.text('🧩 Fixes'), findsOneWidget);
+      expect(find.text('⚡ Other Enhancements'), findsOneWidget);
+      expect(find.textContaining('General synchronization performance optimization'), findsOneWidget);
+    });
   });
 }
 

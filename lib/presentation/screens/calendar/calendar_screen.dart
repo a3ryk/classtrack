@@ -789,9 +789,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                           ].join('  •  ');
 
                           final bool isPastOrToday = selectedDateIso.compareTo(DateFormatter.toIsoDate(DateTime.now())) <= 0;
+                          final bool isExtra = session.sessionSource == 'EXTRA';
 
                           return InkWell(
-                            onTap: isPastOrToday
+                            onTap: (isPastOrToday || isExtra)
                                 ? () => _showQuickAttendancePicker(context, session, selectedDateIso)
                                 : null,
                             borderRadius: BorderRadius.circular(8),
@@ -1074,6 +1075,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
   void _showQuickAttendancePicker(BuildContext context, ClassSessionEntity session, String dateIso) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isPastOrToday = dateIso.compareTo(DateFormatter.toIsoDate(DateTime.now())) <= 0;
+    final isExtra = session.sessionSource == 'EXTRA';
 
     showModalBottomSheet(
       context: context,
@@ -1124,7 +1126,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              '${DateFormatter.formatTime12h(session.startTime)} – ${DateFormatter.formatTime12h(session.endTime)}  •  $dateIso',
+                              isExtra
+                                  ? '${DateFormatter.formatTime12h(session.startTime)} – ${DateFormatter.formatTime12h(session.endTime)}  •  $dateIso  •  Extra Class'
+                                  : '${DateFormatter.formatTime12h(session.startTime)} – ${DateFormatter.formatTime12h(session.endTime)}  •  $dateIso',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
@@ -1258,190 +1262,278 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                   ),
                   const SizedBox(height: 8),
 
-                  // Reschedule for this date only
-                  ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: isDark ? AppColors.pillDark : const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(Icons.edit_calendar_rounded, size: 16, color: isDark ? AppColors.accentIndigoDark : AppColors.accentIndigoLight),
-                    ),
-                    title: const Text('Change room / time for this date only', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                    subtitle: const Text('Override this date without affecting weekly timetable', style: TextStyle(fontSize: 11)),
-                    trailing: const Icon(Icons.chevron_right_rounded, size: 18),
-                    onTap: () {
-                      Navigator.pop(context);
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (context.mounted) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => RescheduleSessionScreen(
-                                session: session,
-                                dateIso: dateIso,
-                              ),
-                            ),
-                          );
-                        }
-                      });
-                    },
-                  ),
-
-                  // Update room for all weekly slots of this subject
-                  ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: isDark ? AppColors.pillDark : const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(Icons.meeting_room_outlined, size: 16, color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
-                    ),
-                    title: const Text('Manage rooms for this subject', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                    subtitle: const Text('Set or customize rooms for all days of this subject', style: TextStyle(fontSize: 11)),
-                    trailing: const Icon(Icons.chevron_right_rounded, size: 18),
-                    onTap: () {
-                      final subjects = ref.read(subjectsProvider);
-                      final sub = subjects.firstWhere(
-                        (s) => s.id == session.subjectComponentId,
-                        orElse: () => SubjectEntity(
-                          id: session.subjectComponentId,
-                          semesterId: session.semesterId,
-                          name: session.subjectName,
-                          category: session.category,
-                          credits: 3,
-                          targetAttendancePct: 75.0,
-                          baselineHeld: 0,
-                          baselineAttended: 0,
-                          isArchived: false,
-                          colorHex: session.colorHex,
-                          components: [],
+                  if (isExtra) ...[
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: isDark ? AppColors.pillDark : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                      );
-                      Navigator.pop(context);
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (context.mounted) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => SubjectRoomManagerScreen(
-                                subject: sub,
-                                initialRoom: session.room,
-                              ),
-                            ),
-                          );
+                        child: Icon(Icons.edit_calendar_rounded, size: 16, color: isDark ? AppColors.accentIndigoDark : AppColors.accentIndigoLight),
+                      ),
+                      title: const Text('Edit Extra Class', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                      subtitle: const Text('Change time, subject, room, or reason', style: TextStyle(fontSize: 11)),
+                      trailing: const Icon(Icons.chevron_right_rounded, size: 18),
+                      onTap: () {
+                        Navigator.pop(context);
+                        TimeOfDay parseTime(String t) {
+                          try {
+                            final parts = t.split(':');
+                            return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+                          } catch (_) {
+                            return const TimeOfDay(hour: 10, minute: 0);
+                          }
                         }
-                      });
-                    },
-                  ),
 
-                  // Edit this recurring weekly slot permanently
-                  ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: isDark ? AppColors.pillDark : const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(Icons.edit_note_rounded, size: 16, color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
-                    ),
-                    title: const Text('Edit this weekly slot permanently', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                    subtitle: const Text('Change time, room, or teacher for this recurring day', style: TextStyle(fontSize: 11)),
-                    trailing: const Icon(Icons.chevron_right_rounded, size: 18),
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => AddEditSlotScreen(
-                            existingSlot: session,
-                            initialDayOfWeek: session.dayOfWeek ?? DateFormatter.getDayOfWeek(DateTime.tryParse(dateIso) ?? DateTime.now()),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-
-                  // Cancel class for this date only
-                  ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF4C0519).withValues(alpha: 0.3) : const Color(0xFFFEE2E2),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.delete_outline_rounded, size: 16, color: AppColors.absentRed),
-                    ),
-                    title: const Text('Remove from this date only', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                    subtitle: const Text('Erase this session from this date\'s schedule', style: TextStyle(fontSize: 11)),
-                    trailing: const Icon(Icons.chevron_right_rounded, size: 18),
-                    onTap: () async {
-                      Navigator.pop(context);
-                      if (session.sourceRefId != null) {
-                        await ref.read(scheduleExceptionsProvider.notifier).addOrUpdateException(
-                          timetableSlotId: session.sourceRefId!,
-                          exceptionDate: dateIso,
-                          actionType: 'CANCELLED',
+                        AddExtraClassSheet.show(
+                          context,
+                          dateIso: dateIso,
+                          editExtraId: session.sourceRefId ?? session.id,
+                          initialSubjectId: session.subjectComponentId,
+                          initialStartTime: parseTime(session.startTime),
+                          initialEndTime: parseTime(session.endTime),
+                          initialRoom: session.room,
                         );
-                        if (context.mounted) {
-                          AppToast.info(context, 'Removed ${session.subjectName} for $dateIso');
-                        }
-                      }
-                    },
-                  ),
-
-                  // Edit master slot or manage all slots
-                  ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: isDark ? AppColors.pillDark : const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(Icons.tune_rounded, size: 16, color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
+                      },
                     ),
-                    title: const Text('Manage all slots for this subject', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                    subtitle: const Text('View, add, and customize all weekly days and rooms', style: TextStyle(fontSize: 11)),
-                    trailing: const Icon(Icons.chevron_right_rounded, size: 18),
-                    onTap: () {
-                      Navigator.pop(context);
-                      final subjects = ref.read(subjectsProvider);
-                      final sub = subjects.firstWhere(
-                        (s) => s.id == session.subjectComponentId,
-                        orElse: () => SubjectEntity(
-                          id: session.subjectComponentId,
-                          semesterId: session.semesterId,
-                          name: session.subjectName,
-                          category: session.category,
-                          credits: 3,
-                          targetAttendancePct: 75.0,
-                          baselineHeld: 0,
-                          baselineAttended: 0,
-                          isArchived: false,
-                          colorHex: session.colorHex,
-                          components: [],
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF4C0519).withValues(alpha: 0.3) : const Color(0xFFFEE2E2),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                      );
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ManageSubjectSlotsScreen(subject: sub),
+                        child: const Icon(Icons.delete_outline_rounded, size: 16, color: AppColors.absentRed),
+                      ),
+                      title: const Text('Delete Extra Class', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                      subtitle: const Text('Permanently remove this extra class and its attendance', style: TextStyle(fontSize: 11)),
+                      trailing: const Icon(Icons.chevron_right_rounded, size: 18),
+                      onTap: () async {
+                        Navigator.pop(context);
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (dialogCtx) => AlertDialog(
+                            backgroundColor: isDark ? AppColors.cardDark : Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            title: const Text('Delete Extra Class?', style: TextStyle(fontWeight: FontWeight.w700)),
+                            content: const Text(
+                              'Are you sure you want to delete this extra class? This will also remove any attendance recorded for it.',
+                              style: TextStyle(fontSize: 14),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(dialogCtx, false),
+                                child: const Text('Cancel'),
+                              ),
+                              FilledButton(
+                                onPressed: () => Navigator.pop(dialogCtx, true),
+                                style: FilledButton.styleFrom(backgroundColor: AppColors.absentRed),
+                                child: const Text('Delete'),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirm == true) {
+                          final extraId = session.sourceRefId ?? session.id;
+                          await ref.read(extraClassesProvider.notifier).deleteExtraClass(extraId);
+                          if (context.mounted) {
+                            AppToast.info(context, 'Extra class deleted');
+                          }
+                        }
+                      },
+                    ),
+                  ] else ...[
+                    // Reschedule for this date only
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: isDark ? AppColors.pillDark : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                      );
-                    },
-                  ),
+                        child: Icon(Icons.edit_calendar_rounded, size: 16, color: isDark ? AppColors.accentIndigoDark : AppColors.accentIndigoLight),
+                      ),
+                      title: const Text('Change room / time for this date only', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                      subtitle: const Text('Override this date without affecting weekly timetable', style: TextStyle(fontSize: 11)),
+                      trailing: const Icon(Icons.chevron_right_rounded, size: 18),
+                      onTap: () {
+                        Navigator.pop(context);
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (context.mounted) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => RescheduleSessionScreen(
+                                  session: session,
+                                  dateIso: dateIso,
+                                ),
+                              ),
+                            );
+                          }
+                        });
+                      },
+                    ),
+
+                    // Update room for all weekly slots of this subject
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: isDark ? AppColors.pillDark : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(Icons.meeting_room_outlined, size: 16, color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
+                      ),
+                      title: const Text('Manage rooms for this subject', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                      subtitle: const Text('Set or customize rooms for all days of this subject', style: TextStyle(fontSize: 11)),
+                      trailing: const Icon(Icons.chevron_right_rounded, size: 18),
+                      onTap: () {
+                        final subjects = ref.read(subjectsProvider);
+                        final sub = subjects.firstWhere(
+                          (s) => s.id == session.subjectComponentId,
+                          orElse: () => SubjectEntity(
+                            id: session.subjectComponentId,
+                            semesterId: session.semesterId,
+                            name: session.subjectName,
+                            category: session.category,
+                            credits: 3,
+                            targetAttendancePct: 75.0,
+                            baselineHeld: 0,
+                            baselineAttended: 0,
+                            isArchived: false,
+                            colorHex: session.colorHex,
+                            components: [],
+                          ),
+                        );
+                        Navigator.pop(context);
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (context.mounted) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => SubjectRoomManagerScreen(
+                                  subject: sub,
+                                  initialRoom: session.room,
+                                ),
+                              ),
+                            );
+                          }
+                        });
+                      },
+                    ),
+
+                    // Edit this recurring weekly slot permanently
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: isDark ? AppColors.pillDark : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(Icons.edit_note_rounded, size: 16, color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
+                      ),
+                      title: const Text('Edit this weekly slot permanently', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                      subtitle: const Text('Change time, room, or teacher for this recurring day', style: TextStyle(fontSize: 11)),
+                      trailing: const Icon(Icons.chevron_right_rounded, size: 18),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AddEditSlotScreen(
+                              existingSlot: session,
+                              initialDayOfWeek: session.dayOfWeek ?? DateFormatter.getDayOfWeek(DateTime.tryParse(dateIso) ?? DateTime.now()),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+
+                    // Cancel class for this date only
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF4C0519).withValues(alpha: 0.3) : const Color(0xFFFEE2E2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.delete_outline_rounded, size: 16, color: AppColors.absentRed),
+                      ),
+                      title: const Text('Remove from this date only', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                      subtitle: const Text('Erase this session from this date\'s schedule', style: TextStyle(fontSize: 11)),
+                      trailing: const Icon(Icons.chevron_right_rounded, size: 18),
+                      onTap: () async {
+                        Navigator.pop(context);
+                        if (session.sourceRefId != null) {
+                          await ref.read(scheduleExceptionsProvider.notifier).addOrUpdateException(
+                            timetableSlotId: session.sourceRefId!,
+                            exceptionDate: dateIso,
+                            actionType: 'CANCELLED',
+                          );
+                          if (context.mounted) {
+                            AppToast.info(context, 'Removed ${session.subjectName} for $dateIso');
+                          }
+                        }
+                      },
+                    ),
+
+                    // Edit master slot or manage all slots
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: isDark ? AppColors.pillDark : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(Icons.tune_rounded, size: 16, color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
+                      ),
+                      title: const Text('Manage all slots for this subject', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                      subtitle: const Text('View, add, and customize all weekly days and rooms', style: TextStyle(fontSize: 11)),
+                      trailing: const Icon(Icons.chevron_right_rounded, size: 18),
+                      onTap: () {
+                        Navigator.pop(context);
+                        final subjects = ref.read(subjectsProvider);
+                        final sub = subjects.firstWhere(
+                          (s) => s.id == session.subjectComponentId,
+                          orElse: () => SubjectEntity(
+                            id: session.subjectComponentId,
+                            semesterId: session.semesterId,
+                            name: session.subjectName,
+                            category: session.category,
+                            credits: 3,
+                            targetAttendancePct: 75.0,
+                            baselineHeld: 0,
+                            baselineAttended: 0,
+                            isArchived: false,
+                            colorHex: session.colorHex,
+                            components: [],
+                          ),
+                        );
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ManageSubjectSlotsScreen(subject: sub),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ],
               ),
             ),

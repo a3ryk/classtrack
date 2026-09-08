@@ -257,7 +257,10 @@ class AppReleaseInfo {
             .trim();
         if (msg.isNotEmpty) alertLines.add(msg);
       } else {
-        changelog.add(line.replaceAll(RegExp(r'^[•\-\*]\s*'), '').trim());
+        final rawItem = line.replaceAll(RegExp(r'^[•\-\*]\s*'), '').trim();
+        if (rawItem.isNotEmpty) {
+          changelog.add(rawItem);
+        }
       }
     }
 
@@ -353,14 +356,55 @@ class AppReleaseInfo {
         }
       }
 
-      final liMatches = RegExp(r'<li>(.*?)</li>', dotAll: true).allMatches(rawHtml);
-      for (final m in liMatches) {
-        final itemText = _decodeHtmlEntities(m.group(1)!.replaceAll(RegExp(r'<[^>]*>'), '').trim());
-        if (itemText.isNotEmpty &&
-            !itemText.startsWith('|') &&
-            !itemText.startsWith('---') &&
-            !itemText.startsWith('Full Changelog')) {
-          changelog.add(itemText);
+      // Split by header elements to maintain category context
+      final sections = rawHtml.split(RegExp(r'<h[2-4][^>]*>', caseSensitive: false));
+      for (final sec in sections) {
+        String sectionType = 'FEATURES';
+        final headerMatch = RegExp(r'^(.*?)</h[2-4]>', dotAll: true, caseSensitive: false).firstMatch(sec);
+        if (headerMatch != null) {
+          final headerText = headerMatch.group(1)!.toLowerCase();
+          if (headerText.contains('fix') || headerText.contains('bug') || headerText.contains('issue') || headerText.contains('polish')) {
+            sectionType = 'FIXES';
+          } else if (headerText.contains('feature') || headerText.contains('what') || headerText.contains('add') || headerText.contains('improvement')) {
+            sectionType = 'FEATURES';
+          } else {
+            sectionType = 'IMPROVEMENTS';
+          }
+        }
+
+        final liMatches = RegExp(r'<li>(.*?)</li>', dotAll: true).allMatches(sec);
+        for (final m in liMatches) {
+          final itemText = _decodeHtmlEntities(m.group(1)!.replaceAll(RegExp(r'<[^>]*>'), '').trim());
+          if (itemText.isNotEmpty &&
+              !itemText.startsWith('|') &&
+              !itemText.startsWith('---') &&
+              !itemText.startsWith('Full Changelog')) {
+            String itemToAdd = itemText;
+            if (!itemText.startsWith('✨') && !itemText.startsWith('🧩') && !itemText.startsWith('⚡') && !itemText.startsWith('🛠️')) {
+              if (sectionType == 'FIXES') {
+                itemToAdd = '🧩 $itemText';
+              } else if (sectionType == 'FEATURES') {
+                itemToAdd = '✨ $itemText';
+              } else {
+                itemToAdd = '⚡ $itemText';
+              }
+            }
+            changelog.add(itemToAdd);
+          }
+        }
+      }
+
+      // Fallback if no sections were detected
+      if (changelog.isEmpty) {
+        final liMatches = RegExp(r'<li>(.*?)</li>', dotAll: true).allMatches(rawHtml);
+        for (final m in liMatches) {
+          final itemText = _decodeHtmlEntities(m.group(1)!.replaceAll(RegExp(r'<[^>]*>'), '').trim());
+          if (itemText.isNotEmpty &&
+              !itemText.startsWith('|') &&
+              !itemText.startsWith('---') &&
+              !itemText.startsWith('Full Changelog')) {
+            changelog.add(itemText);
+          }
         }
       }
     }

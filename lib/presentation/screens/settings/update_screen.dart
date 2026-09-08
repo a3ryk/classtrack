@@ -59,24 +59,32 @@ class _UpdateScreenState extends State<UpdateScreen> {
 
   late final List<String> _features;
   late final List<String> _fixes;
-  late final List<String> _general;
+  late final List<String> _improvements;
 
   @override
   void initState() {
     super.initState();
     _features = [];
     _fixes = [];
-    _general = [];
+    _improvements = [];
 
     for (final item in widget.releaseInfo.changelog) {
-      final lower = item.toLowerCase();
-      if (lower.contains('fix') || lower.contains('bug') || item.startsWith('🧩')) {
-        _fixes.add(item.replaceAll(RegExp(r'^(🧩|\-|\*|•)\s*'), ''));
-      } else if (lower.contains('feat') || lower.contains('add') || item.startsWith('✨')) {
-        _features.add(item.replaceAll(RegExp(r'^(✨|\-|\*|•)\s*'), ''));
+      final trimmed = item.trim();
+      if (trimmed.isEmpty) continue;
+      final lower = trimmed.toLowerCase();
+      if (trimmed.startsWith('🧩') || lower.contains('fix') || lower.contains('bug') || lower.startsWith('fixed')) {
+        _fixes.add(trimmed);
+      } else if (trimmed.startsWith('✨') || lower.contains('feat') || lower.contains('add')) {
+        _features.add(trimmed);
       } else {
-        _general.add(item.replaceAll(RegExp(r'^(\-|\*|•)\s*'), ''));
+        _improvements.add(trimmed);
       }
+    }
+
+    // Zero-drop guarantee: if features is empty but improvements exist, merge to features
+    if (_features.isEmpty && _improvements.isNotEmpty) {
+      _features.addAll(_improvements);
+      _improvements.clear();
     }
   }
 
@@ -175,10 +183,6 @@ class _UpdateScreenState extends State<UpdateScreen> {
     final githubUrl = widget.releaseInfo.releasePageUrl?.isNotEmpty == true
         ? widget.releaseInfo.releasePageUrl!
         : 'https://github.com/${UpdateConstants.defaultGithubOwner}/${UpdateConstants.defaultGithubRepo}/releases/latest';
-
-    final features = _features;
-    final fixes = _fixes;
-    final general = _general;
 
     return PopScope(
       canPop: !isMandatory,
@@ -356,22 +360,22 @@ class _UpdateScreenState extends State<UpdateScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              if (features.isNotEmpty) ...[
+                              if (_features.isNotEmpty) ...[
                                 _buildCategoryHeader('✨ Features', isDark),
                                 const SizedBox(height: 8),
-                                ...features.map((item) => _buildBulletItem(item, isDark)),
+                                ..._features.map((item) => _buildBulletItem(item, isDark)),
                                 const SizedBox(height: 14),
                               ],
-                              if (fixes.isNotEmpty) ...[
+                              if (_fixes.isNotEmpty) ...[
                                 _buildCategoryHeader('🧩 Fixes', isDark),
                                 const SizedBox(height: 8),
-                                ...fixes.map((item) => _buildBulletItem(item, isDark)),
+                                ..._fixes.map((item) => _buildBulletItem(item, isDark)),
                                 const SizedBox(height: 14),
                               ],
-                              if (general.isNotEmpty && features.isEmpty && fixes.isEmpty) ...[
-                                _buildCategoryHeader('⚡ Improvements', isDark),
+                              if (_improvements.isNotEmpty) ...[
+                                _buildCategoryHeader('⚡ Other Enhancements', isDark),
                                 const SizedBox(height: 8),
-                                ...general.map((item) => _buildBulletItem(item, isDark)),
+                                ..._improvements.map((item) => _buildBulletItem(item, isDark)),
                                 const SizedBox(height: 14),
                               ],
                               if (widget.releaseInfo.changelog.isEmpty)
@@ -576,7 +580,26 @@ class _UpdateScreenState extends State<UpdateScreen> {
     );
   }
 
-  Widget _buildBulletItem(String text, bool isDark) {
+  Widget _buildBulletItem(String rawText, bool isDark) {
+    // Strip leading emojis or bullet markers
+    String text = rawText.replaceAll(RegExp(r'^(✨|🧩|⚡|🛠️|[•\-\*])\s*'), '').trim();
+
+    // Parse bold title if formatted as **Title**: Description or Title: Description
+    String? title;
+    String description = text;
+
+    final boldMatch = RegExp(r'^\*\*(.*?)\*\*:\s*(.*)$').firstMatch(text);
+    if (boldMatch != null) {
+      title = boldMatch.group(1);
+      description = boldMatch.group(2) ?? '';
+    } else {
+      final colonIdx = text.indexOf(': ');
+      if (colonIdx > 0 && colonIdx < 50 && !text.substring(0, colonIdx).contains('.')) {
+        title = text.substring(0, colonIdx).replaceAll('**', '').trim();
+        description = text.substring(colonIdx + 2).trim();
+      }
+    }
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 6, left: 2),
       child: Row(
@@ -591,14 +614,34 @@ class _UpdateScreenState extends State<UpdateScreen> {
             ),
           ),
           Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                fontSize: 13,
-                height: 1.35,
-                color: isDark ? AppColors.textSecondaryDark : const Color(0xFF334155),
-              ),
-            ),
+            child: title != null
+                ? RichText(
+                    text: TextSpan(
+                      style: TextStyle(
+                        fontSize: 13,
+                        height: 1.35,
+                        color: isDark ? AppColors.textSecondaryDark : const Color(0xFF334155),
+                      ),
+                      children: [
+                        TextSpan(
+                          text: '$title: ',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                          ),
+                        ),
+                        TextSpan(text: description.replaceAll('**', '')),
+                      ],
+                    ),
+                  )
+                : Text(
+                    text.replaceAll('**', ''),
+                    style: TextStyle(
+                      fontSize: 13,
+                      height: 1.35,
+                      color: isDark ? AppColors.textSecondaryDark : const Color(0xFF334155),
+                    ),
+                  ),
           ),
         ],
       ),
