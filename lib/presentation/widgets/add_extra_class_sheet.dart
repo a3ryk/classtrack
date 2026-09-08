@@ -737,7 +737,7 @@ class _AddExtraClassSheetState extends ConsumerState<AddExtraClassSheet> {
                         child: Row(
                           children: [
                             Icon(
-                              Icons.schedule_rounded,
+                              Icons.access_time_rounded,
                               size: 18,
                               color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
                             ),
@@ -785,7 +785,7 @@ class _AddExtraClassSheetState extends ConsumerState<AddExtraClassSheet> {
                         child: Row(
                           children: [
                             Icon(
-                              Icons.update_rounded,
+                              Icons.access_time_rounded,
                               size: 18,
                               color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
                             ),
