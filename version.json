@@ -1,29 +1,26 @@
 {
-  "latest_version": "1.0.0-alpha.6",
-  "build_number": 6,
-  "min_supported_version": "1.0.0-alpha.6",
-  "release_date": "2026-09-04",
-  "release_title": "ClassTrack v1.0.0-alpha.6 (Telegram Theme Transitions & Appearance Hub)",
+  "latest_version": "1.0.0-alpha.7",
+  "build_number": 7,
+  "min_supported_version": "1.0.0-alpha.7",
+  "release_date": "2026-09-09",
+  "release_title": "ClassTrack v1.0.0-alpha.7 (Notifications Hub & Multi-Channel Fix)",
   "changelog": [
-    "✨ Dedicated Appearance & Themes Hub: Unified minimalist appearance screen with live interactive attendance hero, AMOLED Pure OLED Black toggle, and match-device schedule",
-    "✨ Telegram-Style Radial Theme Transitions: Center-locked circular wave emanating outward for Dark and inward for Light with tuned 650ms momentum",
-    "✨ 1:1 Native Resolution Theme Capture: True devicePixelRatio snapshot capture eliminating screen resize artifacts and blur across all Android displays",
-    "✨ Rock-Solid Theme Cards: Fixed 1.5px border geometry eliminating card shaking and flex reflow during theme switching",
-    "✨ Instant Touch Responsiveness: Visually synchronized anti-spam lock release and 0ms onTapDown gesture dispatch preventing dropped clicks",
-    "✨ Active 100% Progress Meter: Full emerald progress arc and clean '100%' typography in the appearance preview hero",
-    "✨ Unified Navigation Hierarchy: Standardized iOS-style chevron back buttons and centered titles across Appearance, About, and Backup & Restore",
-    "✨ Fixed-Height Alphabetical State Picker: Rock-solid 72% height searchable state/UT selector preventing sheet collapse during filtering",
-    "🧩 Fixed holiday sheet dismissal choreography to eliminate the 0.1ms button flash before downward glide",
-    "🧩 Harmonized settings typography and layout constraints across all device form factors"
+    "✨ Android Multi-Channel Sound & Vibration Routing: Registered 4 dedicated Android system channels (all, sound only, vibrate only, silent) dynamically resolving notifications according to preferences, fixing Android OS channel lock",
+    "✨ Redesigned Notifications Hub: Streamlined single-word 'Notifications' title across App Bar and settings menu, eliminating all redundant secondary subtext and clutter",
+    "✨ Tactile Reminder Timing Bottom Sheet: Replaced awkward text inputs and keyboard popups with a smooth 340ms bottom sheet featuring big bold hero display, 0-60m continuous slider, micro-haptics, and [-1m]/[+1m] steppers",
+    "✨ Top-Right 'Did You Know?' Battery Efficiency Sheet: Non-popup slider bottom sheet accessible from top-right info button explaining zero idle battery consumption, exact scheduled alarms, and no background service overhead",
+    "✨ Refined Minimalist Design Language: Replaced hospital-green pill with signature slate badges and uniform blue accent icons matching Apple/Linear-grade quality standards",
+    "🧩 Fixed test notification dispatch permission checks and zero-vibration pattern fallbacks"
   ],
-  "download_url": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.6/ClassTrack-v1.0.0-alpha.6.apk",
+  "download_url": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.7/ClassTrack-v1.0.0-alpha.7.apk",
   "abi_assets": {
-    "arm64-v8a": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.6/app-arm64-v8a-release.apk",
-    "armeabi-v7a": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.6/app-armeabi-v7a-release.apk",
-    "x86_64": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.6/app-x86_64-release.apk",
-    "universal": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.6/ClassTrack-v1.0.0-alpha.6.apk"
+    "arm64-v8a": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.7/app-arm64-v8a-release.apk",
+    "armeabi-v7a": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.7/app-armeabi-v7a-release.apk",
+    "x86_64": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.7/app-x86_64-release.apk",
+    "universal": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.7/ClassTrack-v1.0.0-alpha.7.apk"
   },
-  "release_page_url": "https://github.com/a3ryk/classtrack/releases/tag/v1.0.0-alpha.6",
+  "release_page_url": "https://github.com/a3ryk/classtrack/releases/tag/v1.0.0-alpha.7",
   "is_mandatory": true,
-  "warning_message": "CRITICAL: Mandatory update required for appearance stability, theme transition fidelity, and navigation polish."
+  "warning_message": "Mandatory update required for notification channel reliability, sound/vibration fidelity, and battery efficiency enhancements."
 }
+

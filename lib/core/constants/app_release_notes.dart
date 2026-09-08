@@ -4,9 +4,26 @@ import '../services/app_update_service.dart';
 class AppReleaseNotes {
   AppReleaseNotes._();
 
-  static const String currentVersion = '1.0.0-alpha.6';
+  static const String currentVersion = '1.0.0-alpha.7';
 
   static final Map<String, AppReleaseInfo> _releases = {
+    '1.0.0-alpha.7': const AppReleaseInfo(
+      latestVersion: '1.0.0-alpha.7',
+      buildNumber: 7,
+      minSupportedVersion: '1.0.0-alpha.7',
+      releaseDate: 'September 2026',
+      releaseTitle: 'ClassTrack v1.0.0-alpha.7 (Notifications Hub & Multi-Channel Fix)',
+      changelog: [
+        '✨ Android Multi-Channel Sound & Vibration Routing: Registered 4 dedicated Android system channels (all, sound only, vibrate only, silent) dynamically resolving notifications according to preferences, fixing Android OS channel lock',
+        '✨ Redesigned Notifications Hub: Streamlined single-word "Notifications" title across App Bar and settings menu, eliminating all redundant secondary subtext and clutter',
+        '✨ Tactile Reminder Timing Bottom Sheet: Replaced awkward text inputs and keyboard popups with a smooth 340ms bottom sheet featuring big bold hero display, 0-60m continuous slider, micro-haptics, and [-1m]/[+1m] steppers',
+        '✨ Top-Right "Did You Know?" Battery Efficiency Sheet: Non-popup slider bottom sheet accessible from top-right info button explaining zero idle battery consumption, exact scheduled alarms, and no background service overhead',
+        '✨ Refined Minimalist Design Language: Replaced hospital-green pill with signature slate badges and uniform blue accent icons matching Apple/Linear-grade quality standards',
+        '🧩 Fixed test notification dispatch permission checks and zero-vibration pattern fallbacks',
+      ],
+      isMandatory: true,
+      warningMessage: 'Mandatory update required for notification channel reliability, sound/vibration fidelity, and battery efficiency enhancements.',
+    ),
     '1.0.0-alpha.6': const AppReleaseInfo(
       latestVersion: '1.0.0-alpha.6',
       buildNumber: 6,

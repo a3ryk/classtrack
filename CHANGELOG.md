@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.0-alpha.7] - 2026-09-09
+
+### ✨ Features & Architecture
+- **Android Multi-Channel Sound & Vibration Routing**: Registered 4 dedicated Android system notification channels (`classtrack_reminders_all`, `classtrack_reminders_sound`, `classtrack_reminders_vibrate`, `classtrack_reminders_silent`) in `NotificationService`, dynamically resolving notifications according to preferences to fix Android OS channel lock.
+- **Redesigned Notifications Hub (Anti-AI-Slop)**: Streamlined single-word "Notifications" title across App Bar and settings menu, eliminating all redundant secondary subtext and clutter.
+- **Tactile Reminder Timing Bottom Sheet**: Replaced awkward text inputs and keyboard popups with a smooth 340ms bottom sheet featuring big bold hero display, 0-60m continuous slider, micro-haptics, and `[-1m]` / `[+1m]` steppers.
+- **Top-Right "Did You Know?" Battery Efficiency Sheet**: Non-popup slider bottom sheet accessible from top-right info button explaining zero idle battery consumption, exact scheduled alarms, and no background service overhead.
+- **Refined Minimalist Design Language**: Replaced hospital-green pill with signature slate badges and uniform blue accent icons matching Apple/Linear-grade quality standards.
+
+### 🧩 Bug Fixes & Stability
+- **Test Notification Dispatch**: Added runtime notification permission verification prior to test alert dispatch and zero-vibration pattern fallbacks for older devices.
+- **Settings Hierarchy Standardization**: Unified iOS-style chevron back buttons and centered titles across settings views.
+
+---
+
+## [1.0.0-alpha.6] - 2026-09-04
+
+### ✨ Features & Appearance
+- **Dedicated Appearance & Themes Hub**: Unified minimalist appearance screen with live interactive attendance hero, AMOLED Pure OLED Black toggle, and match-device schedule.
+- **Telegram-Style Radial Theme Transitions**: Center-locked circular wave emanating outward for Dark and inward for Light with tuned 650ms momentum.
+- **1:1 Native Resolution Theme Capture**: True devicePixelRatio snapshot capture eliminating screen resize artifacts and blur across all Android displays.
+- **Rock-Solid Theme Cards**: Fixed 1.5px border geometry eliminating card shaking and flex reflow during theme switching.
+- **Instant Touch Responsiveness**: Visually synchronized anti-spam lock release and 0ms onTapDown gesture dispatch preventing dropped clicks.
+- **Active 100% Progress Meter**: Full emerald progress arc and clean "100%" typography in the appearance preview hero.
+- **Fixed-Height Alphabetical State Picker**: Rock-solid 72% height searchable state/UT selector preventing sheet collapse during filtering.
+
+### 🧩 Bug Fixes & Polish
+- **Dismissal Choreography**: Fixed holiday sheet dismissal choreography to eliminate the 0.1ms button flash before downward glide.
+- **Layout Constraints**: Harmonized settings typography and layout constraints across all device form factors.
+
+---
+
 ## [1.0.0-alpha.5] - 2026-09-03
 
 ### ✨ Features & Architecture
