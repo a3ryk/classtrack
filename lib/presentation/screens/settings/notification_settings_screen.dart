@@ -1,7 +1,7 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/notification_service.dart';
 import '../../../core/ui/app_toast.dart';
@@ -16,37 +16,33 @@ class NotificationSettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _NotificationSettingsScreenState extends ConsumerState<NotificationSettingsScreen> {
-  Future<void> _sendTestNotification(NotificationPreferencesEntity prefs) async {
-    final hasPerm = await NotificationService.checkAndRequestNotificationPermission();
-    if (!hasPerm) {
-      if (mounted) {
-        AppToast.error(context, 'Notification permission is required to display notifications.');
-      }
-      return;
-    }
+  bool _canExactAlarms = true;
+  bool _hasNotificationPermission = true;
+  AppLifecycleListener? _lifecycleListener;
 
-    final now = DateTime.now();
-    final testDate = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-    final payload = jsonEncode({
-      'sessionId': 'test_session_${now.millisecondsSinceEpoch}',
-      'slotId': 'test_slot',
-      'subjectId': 'test_subject',
-      'sessionDate': testDate,
-      'subjectName': 'Sample Lecture',
-    });
-
-    await NotificationService.instance.showImmediateClassNotification(
-      id: 9999,
-      title: 'Sample Lecture • Attendance Reminder',
-      body: 'Class ended • Mark your attendance directly below:',
-      payload: payload,
-      withQuickActions: prefs.enableQuickActions,
-      sound: prefs.sound,
-      vibrate: prefs.vibrate,
+  @override
+  void initState() {
+    super.initState();
+    _checkPermissions();
+    _lifecycleListener = AppLifecycleListener(
+      onResume: _checkPermissions,
     );
+  }
 
+  @override
+  void dispose() {
+    _lifecycleListener?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _checkPermissions() async {
+    final hasPerm = await Permission.notification.isGranted;
+    final canExact = await NotificationService.instance.canScheduleExactAlarms();
     if (mounted) {
-      AppToast.success(context, 'Test notification sent! Check your notification shade.');
+      setState(() {
+        _hasNotificationPermission = hasPerm;
+        _canExactAlarms = canExact;
+      });
     }
   }
 
@@ -162,6 +158,9 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
         physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         children: [
+          // TOP STATUS HERO CARD (Matching BackupRestoreScreen)
+          _buildStatusHeroCard(prefs, isDark),
+
           // GROUP 1: CLASS REMINDERS
           _buildSectionHeader('Class Reminders', isDark),
           RepaintBoundary(
@@ -175,6 +174,7 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                 children: [
                   _buildSwitchRow(
                     title: 'Class Reminders',
+                    subtitle: 'Enable automatic scheduled alerts',
                     value: prefs.enabled,
                     isDark: isDark,
                     onChanged: (val) async {
@@ -182,9 +182,9 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                         notifier.updatePreferences(prefs.copyWith(enabled: false));
                         return;
                       }
-                      // Optimistically flip immediately for 60fps tactile feel
                       notifier.updatePreferences(prefs.copyWith(enabled: true));
                       final hasPerm = await NotificationService.checkAndRequestNotificationPermission();
+                      await _checkPermissions();
                       if (!hasPerm) {
                         notifier.updatePreferences(prefs.copyWith(enabled: false));
                         if (context.mounted) {
@@ -196,7 +196,8 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                   if (prefs.enabled) ...[
                     Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
                     _buildSwitchRow(
-                       title: 'Remind Before Class',
+                      title: 'Remind Before Class',
+                      subtitle: 'Notify before a session begins',
                       value: prefs.enableClassStart,
                       isDark: isDark,
                       onChanged: (val) {
@@ -207,6 +208,7 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                       Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
                       _buildValueRow(
                         title: 'Reminder Timing',
+                        subtitle: 'How early to notify before class',
                         value: prefs.startLeadMinutes == 0
                             ? 'At start'
                             : '${prefs.startLeadMinutes}m before',
@@ -225,6 +227,7 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                     Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
                     _buildSwitchRow(
                       title: 'Remind When Class Ends',
+                      subtitle: 'Remind to record attendance after class',
                       value: prefs.enableClassEnd,
                       isDark: isDark,
                       onChanged: (val) {
@@ -235,6 +238,7 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                       Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
                       _buildValueRow(
                         title: 'End Reminder Timing',
+                        subtitle: 'When to notify relative to class end',
                         value: prefs.endLeadMinutes == 0
                             ? 'At class end'
                             : '${prefs.endLeadMinutes}m before end',
@@ -253,6 +257,7 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                     Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
                     _buildSwitchRow(
                       title: 'Quick Attendance Buttons',
+                      subtitle: 'Include Present and Absent actions',
                       value: prefs.enableQuickActions,
                       isDark: isDark,
                       onChanged: (val) {
@@ -267,8 +272,8 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
 
           const SizedBox(height: 20),
 
-          // GROUP 2: ALERTS & TESTING
-          _buildSectionHeader('Alerts & Testing', isDark),
+          // GROUP 2: SOUND & VIBRATION
+          _buildSectionHeader('Sound & Vibration', isDark),
           RepaintBoundary(
             child: Container(
               decoration: BoxDecoration(
@@ -280,6 +285,7 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                 children: [
                   _buildSwitchRow(
                     title: 'Vibration',
+                    subtitle: 'Vibrate on reminder alerts',
                     value: prefs.vibrate,
                     isDark: isDark,
                     onChanged: (val) {
@@ -289,41 +295,42 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                   Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
                   _buildSwitchRow(
                     title: 'Sound',
+                    subtitle: 'Play sound on reminder alerts',
                     value: prefs.sound,
                     isDark: isDark,
                     onChanged: (val) {
                       notifier.updatePreferences(prefs.copyWith(sound: val));
                     },
                   ),
-                  Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
-                  InkWell(
-                    onTap: () => _sendTestNotification(prefs),
-                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.bolt_rounded, size: 20, color: AppColors.accentBlue),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Send Test Notification',
-                              style: TextStyle(
-                                fontSize: 14.5,
-                                fontWeight: FontWeight.w600,
-                                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                              ),
-                            ),
-                          ),
-                          Icon(
-                            Icons.chevron_right_rounded,
-                            size: 20,
-                            color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
-                          ),
-                        ],
-                      ),
+                  if (!_hasNotificationPermission) ...[
+                    Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
+                    _buildPermissionRow(
+                      title: 'Notification Permission',
+                      subtitle: 'Disabled • Tap to allow alerts in system settings',
+                      isGranted: false,
+                      isDark: isDark,
+                      onTap: () async {
+                        final status = await Permission.notification.request();
+                        if (status.isPermanentlyDenied) {
+                          await openAppSettings();
+                        }
+                        await _checkPermissions();
+                      },
                     ),
-                  ),
+                  ],
+                  if (!_canExactAlarms) ...[
+                    Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
+                    _buildPermissionRow(
+                      title: 'Exact Alarms & Reminders',
+                      subtitle: 'Restricted • Tap to allow in special app access',
+                      isGranted: false,
+                      isDark: isDark,
+                      onTap: () async {
+                        await NotificationService.instance.requestExactAlarmsPermission();
+                        await _checkPermissions();
+                      },
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -334,6 +341,88 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
       ),
     );
   }
+
+  Widget _buildStatusHeroCard(NotificationPreferencesEntity prefs, bool isDark) {
+    final bool isActive = prefs.enabled;
+    final String title = isActive ? 'Reminders Active' : 'Reminders Paused';
+    final Color statusColor = isActive
+        ? AppColors.presentGreen
+        : (isDark ? AppColors.textMutedDark : AppColors.textMutedLight);
+
+    return RepaintBoundary(
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 20),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.cardDark : AppColors.cardLight,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: isDark ? AppColors.borderDark : AppColors.borderLight, width: 0.8),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: isActive
+                    ? (isDark ? AppColors.presentContainerDark : AppColors.presentContainerLight)
+                    : (isDark ? AppColors.pillDark : const Color(0xFFF1F5F9)),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isActive ? Icons.notifications_active_rounded : Icons.notifications_off_rounded,
+                size: 19,
+                color: statusColor,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: statusColor.withValues(alpha: isDark ? 0.15 : 0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: statusColor,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    isActive ? 'Active' : 'Off',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: statusColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
 
   Widget _buildSectionHeader(String title, bool isDark) {
     return Padding(
@@ -351,6 +440,7 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
 
   Widget _buildSwitchRow({
     required String title,
+    required String subtitle,
     required bool value,
     required bool isDark,
     required ValueChanged<bool> onChanged,
@@ -360,20 +450,36 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
       child: Row(
         children: [
           Expanded(
-            child: Text(
-              title,
-              style: TextStyle(
-                fontSize: 14.5,
-                fontWeight: FontWeight.w600,
-                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(width: 12),
           Switch(
             value: value,
             activeThumbColor: AppColors.presentGreen,
-            onChanged: onChanged,
+            onChanged: (val) {
+              HapticFeedback.selectionClick();
+              onChanged(val);
+            },
           ),
         ],
       ),
@@ -382,31 +488,49 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
 
   Widget _buildValueRow({
     required String title,
+    required String subtitle,
     required String value,
     required bool isDark,
     required VoidCallback onTap,
   }) {
     return InkWell(
-      onTap: onTap,
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
             Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w500,
-                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                    ),
+                  ),
+                ],
               ),
             ),
+            const SizedBox(width: 12),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
                   width: 0.8,
@@ -417,18 +541,110 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                 children: [
                   Text(
                     value,
-                    style: TextStyle(
-                      fontSize: 12.5,
+                    style: const TextStyle(
+                      fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: AppColors.accentBlue,
                     ),
                   ),
                   const SizedBox(width: 3),
-                  Icon(
+                  const Icon(
                     Icons.chevron_right_rounded,
-                    size: 16,
+                    size: 15,
                     color: AppColors.accentBlue,
                   ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPermissionRow({
+    required String title,
+    required String subtitle,
+    required bool isGranted,
+    required bool isDark,
+    required VoidCallback onTap,
+  }) {
+    final Color badgeColor = isGranted
+        ? AppColors.presentGreen
+        : (isDark ? AppColors.warningAmberDark : AppColors.warningAmberLight);
+    final String badgeLabel = isGranted ? 'Allowed' : 'Tap to Fix';
+
+    return InkWell(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: badgeColor.withValues(alpha: isDark ? 0.15 : 0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: badgeColor.withValues(alpha: 0.3),
+                  width: 0.8,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: badgeColor,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    badgeLabel,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: badgeColor,
+                    ),
+                  ),
+                  if (!isGranted) ...[
+                    const SizedBox(width: 3),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      size: 14,
+                      color: badgeColor,
+                    ),
+                  ],
                 ],
               ),
             ),

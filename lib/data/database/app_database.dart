@@ -49,8 +49,10 @@ class AppDatabase extends _$AppDatabase {
       // Enable Write-Ahead Logging (WAL) mode for maximum performance and multi-thread concurrency
       return NativeDatabase.createInBackground(
         file,
-        isolateSetup: () async {
-          // Pragmas for performance
+        setup: (rawDb) {
+          rawDb.execute('PRAGMA journal_mode = WAL;');
+          rawDb.execute('PRAGMA busy_timeout = 5000;');
+          rawDb.execute('PRAGMA synchronous = NORMAL;');
         },
       );
     });

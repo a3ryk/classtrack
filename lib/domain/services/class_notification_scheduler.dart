@@ -33,27 +33,51 @@ class ClassNotificationScheduler {
       return;
     }
 
+    // CLEAN-SLATE RECONCILIATION:
+    // Cancel all pending class reminder alarms from Android AlarmManager first
+    // to eliminate ghost alarms from moved, cancelled, or deleted classes.
+    await notificationService.cancelAllPendingClassReminders();
+
     final now = DateTime.now();
 
     for (final session in sessions) {
-      // Don't notify for cancelled classes or holiday / no class days
+      final int startId = generateNotificationId('${session.id}_start');
+      final int endId = generateNotificationId('${session.id}_end');
+
+      // Don't notify for cancelled classes, holidays, or sessions where attendance is already recorded
       if (session.status == 'CANCELLED' ||
           session.status == 'NO_CLASS_DAY' ||
-          session.attendanceOutcome == 'CANCELLED') {
+          session.status == 'HOLIDAY' ||
+          session.attendanceOutcome == 'CANCELLED' ||
+          session.attendanceOutcome == 'PRESENT' ||
+          session.attendanceOutcome == 'ABSENT' ||
+          session.attendanceOutcome == 'HOLIDAY') {
+        await notificationService.cancelNotification(startId);
+        await notificationService.cancelNotification(endId);
         continue;
       }
 
       final startDt = parseSessionDateTime(session.sessionDate, session.startTime);
-      final endDt = parseSessionDateTime(session.sessionDate, session.endTime);
+      var endDt = parseSessionDateTime(session.sessionDate, session.endTime);
 
       if (startDt == null || endDt == null) continue;
+
+      // Handle overnight / cross-midnight classes (e.g. 23:00 to 01:00 next day)
+      if (endDt.isBefore(startDt)) {
+        endDt = endDt.add(const Duration(days: 1));
+      }
+
+      final hasComponent = session.componentType.isNotEmpty && session.componentType != 'LECTURE';
+      final displayName = hasComponent
+          ? '${session.subjectName} (${session.componentType})'
+          : session.subjectName;
 
       final sessionPayload = jsonEncode({
         'sessionId': session.id,
         'slotId': session.sourceRefId ?? session.id,
         'subjectId': session.subjectComponentId,
         'sessionDate': session.sessionDate,
-        'subjectName': session.subjectName,
+        'subjectName': displayName,
       });
 
       final hasRoom = session.room != null && session.room!.trim().isNotEmpty;
@@ -66,8 +90,7 @@ class ClassNotificationScheduler {
         );
 
         if (startNotificationTime.isAfter(now)) {
-          final int startId = generateNotificationId('${session.id}_start');
-          final String title = session.subjectName;
+          final String title = displayName;
           final String body = preferences.startLeadMinutes == 0
               ? 'Class starting now • $roomText'
               : 'Class starts in ${preferences.startLeadMinutes} min • $roomText';
@@ -83,6 +106,8 @@ class ClassNotificationScheduler {
             vibrate: preferences.vibrate,
           );
         }
+      } else {
+        await notificationService.cancelNotification(startId);
       }
 
       // 2. Class End Attendance Reminder
@@ -92,8 +117,7 @@ class ClassNotificationScheduler {
         );
 
         if (endNotificationTime.isAfter(now)) {
-          final int endId = generateNotificationId('${session.id}_end');
-          final String title = 'Mark Attendance: ${session.subjectName}';
+          final String title = 'Mark Attendance: $displayName';
           final String body = preferences.endLeadMinutes == 0
               ? 'Class ended • Tap an action to record attendance'
               : 'Class ending in ${preferences.endLeadMinutes} min • Tap an action to record attendance';
@@ -109,6 +133,8 @@ class ClassNotificationScheduler {
             vibrate: preferences.vibrate,
           );
         }
+      } else {
+        await notificationService.cancelNotification(endId);
       }
     }
   }

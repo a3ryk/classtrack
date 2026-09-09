@@ -56,6 +56,8 @@ class _MainShellState extends ConsumerState<MainShell> with WidgetsBindingObserv
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _checkAutoBackup();
+      ref.read(attendanceRecordsProvider.notifier).loadFromDb();
+      ref.read(notificationPreferencesProvider.notifier).triggerDebouncedResync();
     }
   }
 

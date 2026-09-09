@@ -42,6 +42,8 @@ final appInitializationProvider = FutureProvider<bool>((ref) async {
   await ref.read(subjectsProvider.notifier).loadFromDb();
   await ref.read(timetableSlotsProvider.notifier).loadFromDb();
   await ref.read(holidaysProvider.notifier).loadFromDb();
+  await ref.read(scheduleExceptionsProvider.notifier).loadFromDb();
+  await ref.read(extraClassesProvider.notifier).loadFromDb();
   await ref.read(attendanceRecordsProvider.notifier).loadFromDb();
   await ref.read(targetPercentageProvider.notifier).loadFromDb();
   await ref.read(activeTemplateProvider.notifier).loadFromDb();
@@ -181,14 +183,15 @@ class SelectedUniversityNotifier extends StateNotifier<UserUniversityInfo> {
 final holidaysProvider = StateNotifierProvider<HolidaysNotifier, List<HolidayItem>>((ref) {
   final db = ref.watch(databaseProvider);
   final activeSem = ref.watch(activeSemesterProvider);
-  return HolidaysNotifier(db, activeSem.id);
+  return HolidaysNotifier(db, activeSem.id, ref);
 });
 
 class HolidaysNotifier extends StateNotifier<List<HolidayItem>> {
   final AppDatabase db;
   final String semesterId;
+  final Ref? ref;
 
-  HolidaysNotifier(this.db, this.semesterId) : super([]) {
+  HolidaysNotifier(this.db, this.semesterId, [this.ref]) : super([]) {
     loadFromDb();
   }
 
@@ -213,6 +216,7 @@ class HolidaysNotifier extends StateNotifier<List<HolidayItem>> {
         updatedAt: nowIso,
       ),
     );
+    ref?.read(notificationPreferencesProvider.notifier).triggerDebouncedResync();
   }
 
   Future<void> removeHoliday(String title) async {
@@ -222,6 +226,7 @@ class HolidaysNotifier extends StateNotifier<List<HolidayItem>> {
       await db.deleteHoliday(m.id);
     }
     await loadFromDb();
+    ref?.read(notificationPreferencesProvider.notifier).triggerDebouncedResync();
   }
 
   Future<void> removeHolidayForDate(String dateIso) async {
@@ -231,6 +236,7 @@ class HolidaysNotifier extends StateNotifier<List<HolidayItem>> {
       await db.deleteHoliday(m.id);
     }
     await loadFromDb();
+    ref?.read(notificationPreferencesProvider.notifier).triggerDebouncedResync();
   }
 }
 
@@ -488,6 +494,7 @@ class NotificationPreferencesNotifier extends StateNotifier<NotificationPreferen
         state = NotificationPreferencesEntity.fromJson(map);
       } catch (_) {}
     }
+    triggerDebouncedResync();
   }
 
   Future<void> updatePreferences(NotificationPreferencesEntity newPrefs) async {
@@ -495,6 +502,10 @@ class NotificationPreferencesNotifier extends StateNotifier<NotificationPreferen
     // Persist to DB asynchronously
     unawaited(db.setSetting('notification_preferences', jsonEncode(newPrefs.toJson())));
     // Debounce notification alarm resync by 350ms so rapid switch toggling and slider adjustments do not hitch the UI thread
+    triggerDebouncedResync();
+  }
+
+  void triggerDebouncedResync() {
     _debounceTimer?.cancel();
     _debounceTimer = Timer(const Duration(milliseconds: 350), () {
       resyncScheduledNotifications();
@@ -652,15 +663,16 @@ final timetableSlotsProvider = StateNotifierProvider<TimetableSlotsNotifier, Lis
   final db = ref.watch(databaseProvider);
   final activeSem = ref.watch(activeSemesterProvider);
   final subjects = ref.watch(subjectsProvider);
-  return TimetableSlotsNotifier(db, activeSem.id, subjects);
+  return TimetableSlotsNotifier(db, activeSem.id, subjects, ref);
 });
 
 class TimetableSlotsNotifier extends StateNotifier<List<TimetableSlotItem>> {
   final AppDatabase db;
   final String semesterId;
   final List<SubjectEntity> subjects;
+  final Ref? ref;
 
-  TimetableSlotsNotifier(this.db, this.semesterId, this.subjects) : super([]) {
+  TimetableSlotsNotifier(this.db, this.semesterId, this.subjects, [this.ref]) : super([]) {
     loadFromDb();
   }
 
@@ -706,16 +718,19 @@ class TimetableSlotsNotifier extends StateNotifier<List<TimetableSlotItem>> {
   Future<void> addSlot(TimetableSlotData slotData) async {
     await db.saveTimetableSlot(slotData);
     await loadFromDb();
+    ref?.read(notificationPreferencesProvider.notifier).triggerDebouncedResync();
   }
 
   Future<void> addBatchSlots(List<TimetableSlotData> slotList) async {
     await db.saveTimetableSlotsBatch(slotList);
     await loadFromDb();
+    ref?.read(notificationPreferencesProvider.notifier).triggerDebouncedResync();
   }
 
   Future<void> updateSingleSlot(TimetableSlotData slotData) async {
     await db.saveTimetableSlot(slotData);
     await loadFromDb();
+    ref?.read(notificationPreferencesProvider.notifier).triggerDebouncedResync();
   }
 
   Future<void> updateSlotsForSubject({
@@ -741,6 +756,7 @@ class TimetableSlotsNotifier extends StateNotifier<List<TimetableSlotItem>> {
       await db.saveTimetableSlot(updated);
     }
     await loadFromDb();
+    ref?.read(notificationPreferencesProvider.notifier).triggerDebouncedResync();
   }
 
   Future<void> updateRoomForSubject({
@@ -758,6 +774,7 @@ class TimetableSlotsNotifier extends StateNotifier<List<TimetableSlotItem>> {
       await db.saveTimetableSlot(updated);
     }
     await loadFromDb();
+    ref?.read(notificationPreferencesProvider.notifier).triggerDebouncedResync();
   }
 
   Future<void> updateSlotRooms(Map<String, String?> slotRooms) async {
@@ -774,6 +791,7 @@ class TimetableSlotsNotifier extends StateNotifier<List<TimetableSlotItem>> {
       );
     }
     await loadFromDb();
+    ref?.read(notificationPreferencesProvider.notifier).triggerDebouncedResync();
   }
 
   Future<void> deleteSlotsForSubject(String subjectId) async {
@@ -783,11 +801,13 @@ class TimetableSlotsNotifier extends StateNotifier<List<TimetableSlotItem>> {
       await db.deleteTimetableSlot(slot.id);
     }
     await loadFromDb();
+    ref?.read(notificationPreferencesProvider.notifier).triggerDebouncedResync();
   }
 
   Future<void> deleteSlot(String slotId) async {
     await db.deleteTimetableSlot(slotId);
     state = state.where((s) => s.id != slotId).toList();
+    ref?.read(notificationPreferencesProvider.notifier).triggerDebouncedResync();
   }
 }
 
@@ -796,12 +816,14 @@ class TimetableSlotsNotifier extends StateNotifier<List<TimetableSlotItem>> {
 // ==========================================
 final scheduleExceptionsProvider = StateNotifierProvider<ScheduleExceptionsNotifier, List<ScheduleExceptionItem>>((ref) {
   final db = ref.watch(databaseProvider);
-  return ScheduleExceptionsNotifier(db);
+  return ScheduleExceptionsNotifier(db, ref);
 });
 
 class ScheduleExceptionsNotifier extends StateNotifier<List<ScheduleExceptionItem>> {
   final AppDatabase db;
-  ScheduleExceptionsNotifier(this.db) : super([]) {
+  final Ref? ref;
+
+  ScheduleExceptionsNotifier(this.db, [this.ref]) : super([]) {
     loadFromDb();
   }
 
@@ -844,11 +866,13 @@ class ScheduleExceptionsNotifier extends StateNotifier<List<ScheduleExceptionIte
     );
     await db.saveScheduleException(exception);
     await loadFromDb();
+    ref?.read(notificationPreferencesProvider.notifier).triggerDebouncedResync();
   }
 
   Future<void> removeException(String timetableSlotId, String exceptionDate) async {
     await db.deleteScheduleExceptionForSlotAndDate(timetableSlotId, exceptionDate);
     await loadFromDb();
+    ref?.read(notificationPreferencesProvider.notifier).triggerDebouncedResync();
   }
 }
 
@@ -856,15 +880,16 @@ final extraClassesProvider = StateNotifierProvider<ExtraClassesNotifier, List<Ex
   final db = ref.watch(databaseProvider);
   final activeSem = ref.watch(activeSemesterProvider);
   final subjects = ref.watch(subjectsProvider);
-  return ExtraClassesNotifier(db, activeSem.id, subjects);
+  return ExtraClassesNotifier(db, activeSem.id, subjects, ref);
 });
 
 class ExtraClassesNotifier extends StateNotifier<List<ExtraClassItem>> {
   final AppDatabase db;
   final String semesterId;
   final List<SubjectEntity> subjects;
+  final Ref? ref;
 
-  ExtraClassesNotifier(this.db, this.semesterId, this.subjects) : super([]) {
+  ExtraClassesNotifier(this.db, this.semesterId, this.subjects, [this.ref]) : super([]) {
     loadFromDb();
   }
 
@@ -918,6 +943,7 @@ class ExtraClassesNotifier extends StateNotifier<List<ExtraClassItem>> {
     );
     await db.saveExtraClass(extra);
     await loadFromDb();
+    ref?.read(notificationPreferencesProvider.notifier).triggerDebouncedResync();
   }
 
   Future<void> updateExtraClass({
@@ -946,11 +972,13 @@ class ExtraClassesNotifier extends StateNotifier<List<ExtraClassItem>> {
     );
     await db.saveExtraClass(extra);
     await loadFromDb();
+    ref?.read(notificationPreferencesProvider.notifier).triggerDebouncedResync();
   }
 
   Future<void> deleteExtraClass(String id) async {
     await db.deleteExtraClass(id);
     await loadFromDb();
+    ref?.read(notificationPreferencesProvider.notifier).triggerDebouncedResync();
   }
 }
 
@@ -964,8 +992,25 @@ final attendanceRecordsProvider = StateNotifierProvider<AttendanceRecordsNotifie
 
 class AttendanceRecordsNotifier extends StateNotifier<Map<String, AttendanceRecordData>> {
   final AppDatabase db;
+  StreamSubscription<AttendanceRecordData>? _streamSub;
 
-  AttendanceRecordsNotifier(this.db) : super({});
+  AttendanceRecordsNotifier(this.db) : super({}) {
+    loadFromDb();
+    _streamSub = NotificationService.onAttendanceActionMarked.stream.listen((record) {
+      if (!mounted) return;
+      state = {
+        ...state,
+        record.classSessionId: record,
+      };
+      loadFromDb();
+    });
+  }
+
+  @override
+  void dispose() {
+    _streamSub?.cancel();
+    super.dispose();
+  }
 
   Future<void> loadFromDb() async {
     final records = await db.getAllAttendanceRecords();
@@ -974,7 +1019,10 @@ class AttendanceRecordsNotifier extends StateNotifier<Map<String, AttendanceReco
     for (final r in records) {
       map[r.classSessionId] = r;
     }
-    state = map;
+    state = {
+      ...state,
+      ...map,
+    };
   }
 
   Future<void> markAttendance({
@@ -1000,14 +1048,20 @@ class AttendanceRecordsNotifier extends StateNotifier<Map<String, AttendanceReco
       updatedAt: nowIso,
     );
 
+    // Save to SQLite
+    await db.saveAttendanceRecord(record);
+
     // Update in-memory map reactively
     state = {
       ...state,
       sessionId: record,
     };
 
-    // Save to SQLite
-    await db.saveAttendanceRecord(record);
+    // Cancel pending class start and end reminders since attendance is already recorded
+    final startReminderId = ('${sessionId}_start'.hashCode & 0x7FFFFFFF) % 1000000000;
+    final endReminderId = ('${sessionId}_end'.hashCode & 0x7FFFFFFF) % 1000000000;
+    unawaited(NotificationService.instance.cancelNotification(startReminderId));
+    unawaited(NotificationService.instance.cancelNotification(endReminderId));
   }
 }
 

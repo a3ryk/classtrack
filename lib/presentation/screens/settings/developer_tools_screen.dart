@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,6 +12,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/app_update_service.dart';
 import '../../../core/services/developer_auth_service.dart';
+import '../../../core/services/notification_service.dart';
 import '../../../core/ui/app_toast.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../core/utils/uuid_generator.dart';
@@ -27,6 +30,66 @@ class DeveloperToolsScreen extends ConsumerStatefulWidget {
 
 class _DeveloperToolsScreenState extends ConsumerState<DeveloperToolsScreen> {
   bool _isLoading = false;
+  StreamSubscription<String>? _testActionSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _testActionSub = NotificationService.onTestNotificationAction.stream.listen((action) {
+      if (mounted) {
+        AppToast.success(
+          context,
+          'Test action "$action" verified! Your real schedule was not altered.',
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _testActionSub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _sendTestNotification() async {
+    final hasPerm = await NotificationService.checkAndRequestNotificationPermission();
+    if (!hasPerm) {
+      if (mounted) {
+        AppToast.error(context, 'Notification permission is required to display notifications.');
+      }
+      return;
+    }
+
+    final today = DateTime.now();
+    final testDate = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    final prefs = ref.read(notificationPreferencesProvider);
+
+    final payload = jsonEncode({
+      'isTest': true,
+      'sessionId': 'test_sample_session',
+      'slotId': 'test_slot',
+      'subjectId': 'test_subject',
+      'sessionDate': testDate,
+      'subjectName': 'Sample Class (Test Alert)',
+    });
+
+    await NotificationService.instance.showImmediateClassNotification(
+      id: 9999,
+      title: 'Sample Class (Test Alert) • Attendance Reminder',
+      body: 'Class ended • Mark your attendance directly below:',
+      payload: payload,
+      withQuickActions: prefs.enableQuickActions,
+      sound: prefs.sound,
+      vibrate: prefs.vibrate,
+    );
+
+    if (mounted) {
+      AppToast.success(
+        context,
+        'Test notification sent! Tap Present, Absent, or Cancelled to verify simulation.',
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -414,6 +477,15 @@ class _DeveloperToolsScreenState extends ConsumerState<DeveloperToolsScreen> {
                             AppToast.info(context, 'Haptic feedback triggered');
                           }
                         },
+                      ),
+                      Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
+                      _buildTile(
+                        title: 'Send Test Notification',
+                        subtitle: 'Send sample alert with attendance actions',
+                        isDark: isDark,
+                        icon: Icons.notifications_active_outlined,
+                        iconColor: AppColors.accentIndigoLight,
+                        onTap: _sendTestNotification,
                       ),
                       Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
                       _buildTile(

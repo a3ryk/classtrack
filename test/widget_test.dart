@@ -805,6 +805,9 @@ void main() {
       await tester.scrollUntilVisible(find.text('UI & Feedback Diagnostics'), 200);
       expect(find.text('UI & Feedback Diagnostics'), findsOneWidget);
 
+      await tester.scrollUntilVisible(find.text('Send Test Notification'), 200);
+      expect(find.text('Send Test Notification'), findsOneWidget);
+
       await db.close();
     });
 

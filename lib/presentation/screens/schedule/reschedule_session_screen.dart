@@ -110,14 +110,26 @@ class _RescheduleSessionScreenState extends ConsumerState<RescheduleSessionScree
           ? enteredRoom
           : (initialRoom.isNotEmpty ? "" : null);
 
-      await ref.read(scheduleExceptionsProvider.notifier).addOrUpdateException(
-        timetableSlotId: widget.session.sourceRefId!,
-        exceptionDate: widget.dateIso,
-        actionType: 'MOVED',
-        newStartTime: startStr,
-        newEndTime: endStr,
-        newRoom: roomParam,
-      );
+      if (widget.session.sessionSource == 'EXTRA') {
+        await ref.read(extraClassesProvider.notifier).updateExtraClass(
+          id: widget.session.sourceRefId!,
+          subjectId: widget.session.subjectComponentId,
+          classDate: widget.dateIso,
+          startTime: startStr,
+          endTime: endStr,
+          room: enteredRoom.isNotEmpty ? enteredRoom : null,
+          teacherName: widget.session.teacherName,
+        );
+      } else {
+        await ref.read(scheduleExceptionsProvider.notifier).addOrUpdateException(
+          timetableSlotId: widget.session.sourceRefId!,
+          exceptionDate: widget.dateIso,
+          actionType: 'MOVED',
+          newStartTime: startStr,
+          newEndTime: endStr,
+          newRoom: roomParam,
+        );
+      }
 
       if (mounted) {
         Navigator.pop(context);
@@ -136,13 +148,23 @@ class _RescheduleSessionScreenState extends ConsumerState<RescheduleSessionScree
     if (widget.session.sourceRefId == null) return;
     setState(() => _isSaving = true);
     try {
-      await ref.read(scheduleExceptionsProvider.notifier).removeException(
-        widget.session.sourceRefId!,
-        widget.dateIso,
-      );
-      if (mounted) {
-        Navigator.pop(context);
-        AppToast.info(context, 'Reset to weekly timetable schedule');
+      if (widget.session.sessionSource == 'EXTRA') {
+        await ref.read(extraClassesProvider.notifier).deleteExtraClass(
+          widget.session.sourceRefId!,
+        );
+        if (mounted) {
+          Navigator.pop(context);
+          AppToast.info(context, 'Extra class removed');
+        }
+      } else {
+        await ref.read(scheduleExceptionsProvider.notifier).removeException(
+          widget.session.sourceRefId!,
+          widget.dateIso,
+        );
+        if (mounted) {
+          Navigator.pop(context);
+          AppToast.info(context, 'Reset to weekly timetable schedule');
+        }
       }
     } catch (e) {
       if (mounted) AppToast.error(context, 'Error resetting: $e');
@@ -478,8 +500,21 @@ class _RescheduleSessionScreenState extends ConsumerState<RescheduleSessionScree
                 Center(
                   child: TextButton.icon(
                     onPressed: _isSaving ? null : _resetToDefault,
-                    icon: const Icon(Icons.restore_rounded, size: 16),
-                    label: const Text('Reset to Weekly Schedule Default'),
+                    icon: Icon(
+                      widget.session.sessionSource == 'EXTRA'
+                          ? Icons.delete_outline_rounded
+                          : Icons.restore_rounded,
+                      size: 16,
+                      color: widget.session.sessionSource == 'EXTRA' ? AppColors.absentRed : null,
+                    ),
+                    label: Text(
+                      widget.session.sessionSource == 'EXTRA'
+                          ? 'Delete Extra Class'
+                          : 'Reset to Weekly Schedule Default',
+                      style: TextStyle(
+                        color: widget.session.sessionSource == 'EXTRA' ? AppColors.absentRed : null,
+                      ),
+                    ),
                     style: TextButton.styleFrom(
                       foregroundColor: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                     ),

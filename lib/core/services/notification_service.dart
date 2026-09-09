@@ -1,6 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
+import 'dart:ui';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
@@ -11,14 +15,18 @@ import '../../data/database/app_database.dart';
 /// Executed by OS BroadcastReceiver when app is in background or completely terminated
 @pragma('vm:entry-point')
 void notificationTapBackground(NotificationResponse response) async {
+  WidgetsFlutterBinding.ensureInitialized();
   await _processNotificationAction(response);
 }
 
 /// Foreground or app-launch notification response handler
+@pragma('vm:entry-point')
 void notificationTapForeground(NotificationResponse response) async {
+  WidgetsFlutterBinding.ensureInitialized();
   await _processNotificationAction(response);
 }
 
+@pragma('vm:entry-point')
 Future<void> _processNotificationAction(NotificationResponse response) async {
   final actionId = response.actionId;
   final payloadStr = response.payload;
@@ -26,6 +34,7 @@ Future<void> _processNotificationAction(NotificationResponse response) async {
 
   try {
     final Map<String, dynamic> data = jsonDecode(payloadStr) as Map<String, dynamic>;
+    final bool isTest = data['isTest'] == true || data['sessionId'] == 'test_sample_session';
     final String? sessionId = data['sessionId'] as String?;
     final String? slotId = data['slotId'] as String?;
     final String? subjectId = data['subjectId'] as String?;
@@ -43,6 +52,20 @@ Future<void> _processNotificationAction(NotificationResponse response) async {
     }
 
     if (outcome != null) {
+      if (isTest) {
+        // NON-DESTRUCTIVE SIMULATION: Do NOT write to real database!
+        final sendPort = IsolateNameServer.lookupPortByName(NotificationService.isolateActionPortName);
+        if (sendPort != null) {
+          sendPort.send(jsonEncode({'isTest': true, 'action': outcome}));
+        } else {
+          NotificationService.onTestNotificationAction.add(outcome);
+        }
+        if (response.id != null) {
+          await NotificationService.instance.cancelNotification(response.id!);
+        }
+        return;
+      }
+
       final db = AppDatabase.production();
       final nowIso = DateTime.now().toIso8601String();
       final record = AttendanceRecordData(
@@ -60,6 +83,25 @@ Future<void> _processNotificationAction(NotificationResponse response) async {
       );
       await db.saveAttendanceRecord(record);
       await db.close();
+
+      // Broadcast cross-isolate to running UI isolate if active, or locally in same isolate
+      final sendPort = IsolateNameServer.lookupPortByName(NotificationService.isolateActionPortName);
+      if (sendPort != null) {
+        sendPort.send(jsonEncode(record.toJson()));
+      } else {
+        NotificationService.onAttendanceActionMarked.add(record);
+      }
+
+      // Dismiss the notification from tray
+      if (response.id != null) {
+        await NotificationService.instance.cancelNotification(response.id!);
+      }
+
+      // Cancel BOTH start and end reminders for this session
+      final startReminderId = ('${sessionId}_start'.hashCode & 0x7FFFFFFF) % 1000000000;
+      final endReminderId = ('${sessionId}_end'.hashCode & 0x7FFFFFFF) % 1000000000;
+      await NotificationService.instance.cancelNotification(startReminderId);
+      await NotificationService.instance.cancelNotification(endReminderId);
     }
   } catch (e) {
     debugPrint('Error handling notification background action: $e');
@@ -69,6 +111,55 @@ Future<void> _processNotificationAction(NotificationResponse response) async {
 class NotificationService {
   NotificationService._();
   static final NotificationService instance = NotificationService._();
+
+  /// Broadcast stream notifying running listeners whenever an attendance action is recorded from a notification
+  static final StreamController<AttendanceRecordData> onAttendanceActionMarked =
+      StreamController<AttendanceRecordData>.broadcast();
+
+  /// Broadcast stream for test notification simulation events (non-destructive feedback)
+  static final StreamController<String> onTestNotificationAction =
+      StreamController<String>.broadcast();
+
+  static const String isolateActionPortName = 'classtrack_notification_action_port';
+  ReceivePort? _actionReceivePort;
+
+  /// Sets up cross-isolate communication so actions executed in background isolates
+  /// are cleanly forwarded to the main UI isolate's StreamController.
+  void setupIsolateCommunication() {
+    try {
+      IsolateNameServer.removePortNameMapping(isolateActionPortName);
+      final port = ReceivePort();
+      final registered = IsolateNameServer.registerPortWithName(port.sendPort, isolateActionPortName);
+      if (registered) {
+        _actionReceivePort?.close();
+        _actionReceivePort = port;
+        port.listen((dynamic message) {
+          if (message is String) {
+            try {
+              final data = jsonDecode(message) as Map<String, dynamic>;
+              if (data['isTest'] == true) {
+                final action = data['action'] as String? ?? 'PRESENT';
+                onTestNotificationAction.add(action);
+                return;
+              }
+              final record = AttendanceRecordData.fromJson(data);
+              onAttendanceActionMarked.add(record);
+            } catch (e) {
+              debugPrint('NotificationService: Failed to parse action message from isolate: $e');
+            }
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('NotificationService: Failed to setup isolate communication: $e');
+    }
+  }
+
+  /// Visible for testing: allows direct simulation of notification response action
+  @visibleForTesting
+  static Future<void> handleNotificationAction(NotificationResponse response) async {
+    await _processNotificationAction(response);
+  }
 
   final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
   bool _isInitialized = false;
@@ -137,15 +228,46 @@ class NotificationService {
     return true;
   }
 
+  /// Checks whether exact alarms can be scheduled on Android 12+
+  Future<bool> canScheduleExactAlarms() async {
+    if (!Platform.isAndroid) return true;
+    try {
+      final androidImpl = _notificationsPlugin
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      return await androidImpl?.canScheduleExactNotifications() ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Requests exact alarms permission from the OS
+  Future<void> requestExactAlarmsPermission() async {
+    if (!Platform.isAndroid) return;
+    try {
+      final androidImpl = _notificationsPlugin
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      await androidImpl?.requestExactAlarmsPermission();
+    } catch (_) {}
+  }
+
   void _initTimezones() {
     try {
       tz.initializeTimeZones();
       final now = DateTime.now();
+
+      // 1. Try matching by system timezone name if recognized
+      try {
+        final loc = tz.getLocation(now.timeZoneName);
+        tz.setLocalLocation(loc);
+        return;
+      } catch (_) {}
+
+      // 2. Match by current device offset
       final offsetMs = now.timeZoneOffset.inMilliseconds;
       for (final loc in tz.timeZoneDatabase.locations.values) {
         if (loc.currentTimeZone.offset == offsetMs) {
           tz.setLocalLocation(loc);
-          break;
+          return;
         }
       }
     } catch (e) {
@@ -154,6 +276,7 @@ class NotificationService {
   }
 
   Future<void> init() async {
+    setupIsolateCommunication();
     if (_isInitialized) return;
 
     _initTimezones();
@@ -323,6 +446,11 @@ class NotificationService {
         enableVibration: vibrate,
         vibrationPattern: vibrate ? null : Int64List.fromList([0]),
         actions: actions,
+        autoCancel: true,
+        category: AndroidNotificationCategory.reminder,
+        visibility: NotificationVisibility.public,
+        groupKey: 'classtrack_reminders_group',
+        groupAlertBehavior: GroupAlertBehavior.children,
       );
 
       const darwinDetails = DarwinNotificationDetails(
@@ -336,13 +464,18 @@ class NotificationService {
         iOS: darwinDetails,
       );
 
+      final canExact = await canScheduleExactAlarms();
+      final scheduleMode = canExact
+          ? AndroidScheduleMode.exactAllowWhileIdle
+          : AndroidScheduleMode.inexactAllowWhileIdle;
+
       await _notificationsPlugin.zonedSchedule(
         id: id,
         title: sanitizeText(title),
         body: sanitizeText(body),
         scheduledDate: tzTime,
         notificationDetails: details,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: scheduleMode,
         payload: payload,
       );
     } catch (e) {
@@ -407,6 +540,11 @@ class NotificationService {
         enableVibration: vibrate,
         vibrationPattern: vibrate ? null : Int64List.fromList([0]),
         actions: actions,
+        autoCancel: true,
+        category: AndroidNotificationCategory.reminder,
+        visibility: NotificationVisibility.public,
+        groupKey: 'classtrack_reminders_group',
+        groupAlertBehavior: GroupAlertBehavior.children,
       );
 
       const darwinDetails = DarwinNotificationDetails(
@@ -442,6 +580,31 @@ class NotificationService {
     try {
       await _notificationsPlugin.cancelAll();
     } catch (_) {}
+  }
+
+  /// Returns all currently scheduled pending notification requests from Android AlarmManager
+  Future<List<PendingNotificationRequest>> getPendingNotificationRequests() async {
+    try {
+      return await _notificationsPlugin.pendingNotificationRequests();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Cancels only pending class reminder alarms scheduled in AlarmManager,
+  /// preserving active tray notifications and static system alerts (export, backup, update)
+  Future<void> cancelAllPendingClassReminders() async {
+    try {
+      final pending = await _notificationsPlugin.pendingNotificationRequests();
+      for (final req in pending) {
+        final isClassReminder = req.id > 10005 || (req.payload != null && req.payload!.contains('sessionId'));
+        if (isClassReminder) {
+          await _notificationsPlugin.cancel(id: req.id);
+        }
+      }
+    } catch (e) {
+      debugPrint('Failed to cancel pending class reminders: $e');
+    }
   }
 
   Future<void> showExportProgressNotification({
