@@ -5,6 +5,24 @@ All notable changes to **ClassTrack** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-alpha.10] - 2026-09-10
+
+### ✨ Features & Architecture
+- **Real-Time Notification Attendance**: Mark Present, Absent, or Cancelled directly from Android notifications with instant multi-isolate synchronization to Today and Calendar views via `IsolateNameServer`.
+- **Lock Screen Attendance Actions**: Quick attendance marking directly from lock screen or status bar without requiring device unlock or PIN entry (`showsUserInterface: false` with public card visibility).
+- **10+ Concurrent Classes Support**: Simultaneous classes batch cleanly into an expandable notification group with a single chime alert, deterministic IDs, and independent dismissal.
+- **Developer Test Alert Simulation**: Moved test notification generator to Developer Options with 100% non-destructive simulation and verification toast.
+- **Clean-Slate Alarm Reconciliation**: Automatic purge of stale alarms on schedule changes or cancellations before scheduling rolling 7-day window, eliminating ghost alerts.
+- **Cross-Midnight Scheduling Support**: Overnight lectures and labs now automatically advance end-of-class reminders by +1 day.
+- **Multi-Isolate SQLite WAL Mode**: Configured Write-Ahead Logging (`PRAGMA journal_mode = WAL;`) and busy timeout to eliminate multi-isolate database lock contention.
+
+### 🧩 Bug Fixes & Polish
+- **Extra Class Rescheduling & Removal**: RescheduleSessionScreen now cleanly routes one-off extra classes to update or delete without timetable exception conflicts.
+- **Streamlined Notification Settings**: Removed developer test alerts and rainbow clutter from notification settings, organizing into clean Sound & Vibration preferences.
+- **Dual Reminder Cancellation**: Marking attendance either in-app or from notifications immediately dismisses both start and end class reminders.
+
+---
+
 ## [1.0.0-alpha.9] - 2026-09-09
 
 ### ✨ Features & Architecture

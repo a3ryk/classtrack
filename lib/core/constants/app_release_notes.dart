@@ -4,9 +4,28 @@ import '../services/app_update_service.dart';
 class AppReleaseNotes {
   AppReleaseNotes._();
 
-  static const String currentVersion = '1.0.0-alpha.9';
+  static const String currentVersion = '1.0.0-alpha.10';
 
   static final Map<String, AppReleaseInfo> _releases = {
+    '1.0.0-alpha.10': const AppReleaseInfo(
+      latestVersion: '1.0.0-alpha.10',
+      buildNumber: 10,
+      minSupportedVersion: '1.0.0-alpha.10',
+      releaseDate: 'September 2026',
+      releaseTitle: 'ClassTrack v1.0.0-alpha.10 (Production Class Notifications, Lock Screen Actions & Safe Simulation)',
+      changelog: [
+        '✨ Real-Time Notification Attendance: Mark Present, Absent, or Cancelled directly from Android notifications with instant multi-isolate synchronization to Today and Calendar views',
+        '✨ Lock Screen Attendance Actions: Quick attendance marking directly from lock screen or status bar without requiring device unlock or PIN entry',
+        '✨ 10+ Concurrent Classes Support: Simultaneous classes batch cleanly into an expandable notification group with a single chime alert, deterministic IDs, and independent dismissal',
+        '✨ Developer Test Alert Simulation: Moved test notification generator to Developer Options with 100% non-destructive simulation and verification toast',
+        '✨ Clean-Slate Alarm Reconciliation: Automatic purge of stale alarms on schedule changes or cancellations before scheduling rolling 7-day window, eliminating ghost alerts',
+        '✨ Cross-Midnight Scheduling Support: Overnight lectures and labs now automatically advance end-of-class reminders by +1 day',
+        '✨ SQLite WAL Mode & Concurrency Protection: Enabled Write-Ahead Logging and busy timeout to eliminate multi-isolate database lock contention',
+        '🧩 RescheduleSessionScreen Extra Class Handling: Rescheduling and deleting one-off extra classes properly routes to ExtraClassesNotifier',
+      ],
+      isMandatory: true,
+      warningMessage: 'Mandatory update required for real-time notification attendance marking, lock screen actions, and 100 edge cases scheduling overhaul.',
+    ),
     '1.0.0-alpha.9': const AppReleaseInfo(
       latestVersion: '1.0.0-alpha.9',
       buildNumber: 9,
