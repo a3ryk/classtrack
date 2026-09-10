@@ -18,6 +18,7 @@ class AppReleaseInfo {
   final String releaseDate;
   final String releaseTitle;
   final List<String> changelog;
+  final String? releaseNotesMarkdown;
   final String? downloadUrl;
   final String? releasePageUrl;
   final bool isMandatory;
@@ -31,12 +32,33 @@ class AppReleaseInfo {
     required this.releaseDate,
     required this.releaseTitle,
     required this.changelog,
+    this.releaseNotesMarkdown,
     this.downloadUrl,
     this.releasePageUrl,
     this.isMandatory = false,
     this.warningMessage,
     this.abiAssets = const {},
   });
+
+  /// Returns clean, render-ready Markdown representation of the release notes.
+  String get effectiveMarkdown {
+    if (releaseNotesMarkdown != null && releaseNotesMarkdown!.trim().isNotEmpty) {
+      return releaseNotesMarkdown!.trim();
+    }
+    if (changelog.isNotEmpty) {
+      return changelog.map((line) {
+        final trimmed = line.trim();
+        if (trimmed.startsWith('* ') ||
+            trimmed.startsWith('- ') ||
+            trimmed.startsWith('• ') ||
+            trimmed.startsWith('#')) {
+          return trimmed.replaceAll(RegExp(r'^[•]\s*'), '* ');
+        }
+        return '* $trimmed';
+      }).join('\n');
+    }
+    return '* General performance improvements and bug fixes.';
+  }
 
   /// Parse from standard ClassTrack version.json format
   factory AppReleaseInfo.fromJson(Map<String, dynamic> json) {
@@ -77,6 +99,12 @@ class AppReleaseInfo {
       }
     }
 
+    final String? markdownContent = json['release_notes_markdown']?.toString() ??
+        json['markdown']?.toString() ??
+        (json['changelog'] is String && (json['changelog'] as String).contains('\n')
+            ? json['changelog'] as String
+            : null);
+
     return AppReleaseInfo(
       latestVersion: (json['latest_version'] ?? json['version'] ?? '1.0.0').toString().trim(),
       buildNumber: json['build_number'] is int
@@ -86,6 +114,7 @@ class AppReleaseInfo {
       releaseDate: (json['release_date'] ?? json['date'] ?? '').toString().trim(),
       releaseTitle: (json['release_title'] ?? json['title'] ?? 'New Update Available').toString().trim(),
       changelog: parsedChangelog,
+      releaseNotesMarkdown: markdownContent,
       downloadUrl: downloadUrl,
       releasePageUrl: json['release_page_url']?.toString().trim() ?? json['page_url']?.toString().trim() ?? json['play_store_url']?.toString().trim(),
       isMandatory: json['is_mandatory'] == true || json['mandatory'] == true,
@@ -111,6 +140,92 @@ class AppReleaseInfo {
       passes++;
     }
     return current;
+  }
+
+  /// Extracts clean markdown for release notes by filtering out internal metadata tags,
+  /// alert callouts (which are rendered in the warning banner), and APK download tables.
+  static String _extractCleanMarkdown(String rawBody) {
+    if (rawBody.trim().isEmpty) return '';
+
+    final List<String> resultLines = [];
+    bool inAlertBlock = false;
+    bool inDownloadsSection = false;
+
+    for (final rawLine in rawBody.split('\n')) {
+      final line = rawLine.trim();
+      final cleanLine = line.replaceAll(RegExp(r'<!--|-->'), '').trim();
+      final upper = cleanLine.toUpperCase();
+
+      // Skip metadata directives (even inside comments)
+      if (upper.startsWith('MIN_VERSION:') ||
+          upper.startsWith('MIN_SUPPORTED:') ||
+          upper.startsWith('BUILD_NUMBER:') ||
+          upper.startsWith('BUILD:')) {
+        continue;
+      }
+
+      // Check for start of downloads/assets section (handled natively in UI)
+      if (upper.startsWith('### 📦 DOWNLOAD') ||
+          upper.startsWith('### DOWNLOAD') ||
+          upper.startsWith('### ASSET') ||
+          upper.startsWith('## 📦 DOWNLOAD') ||
+          upper.startsWith('## DOWNLOAD') ||
+          upper.startsWith('## ASSET')) {
+        inDownloadsSection = true;
+        continue;
+      }
+
+      // Check if downloads section ended by reaching a new header or footer
+      if (inDownloadsSection) {
+        if (cleanLine.startsWith('#') ||
+            cleanLine.startsWith('**Full Changelog') ||
+            cleanLine.startsWith('[Full Changelog')) {
+          inDownloadsSection = false;
+        } else {
+          continue;
+        }
+      }
+
+      // Check for start of GitHub Alert Callout Block
+      if (upper.startsWith('> [!WARNING]') ||
+          upper.startsWith('> [!CAUTION]') ||
+          upper.startsWith('> [!IMPORTANT]') ||
+          upper.startsWith('> [!NOTE]') ||
+          upper.startsWith('> [!TIP]')) {
+        inAlertBlock = true;
+        continue;
+      }
+
+      // If currently inside an alert blockquote, skip its lines
+      if (inAlertBlock) {
+        if (cleanLine.startsWith('>')) {
+          continue;
+        } else {
+          inAlertBlock = false;
+        }
+      }
+
+      // Skip single-line alert markers (already hoisted to warning banner)
+      if (upper.startsWith('MANDATORY:') ||
+          upper.startsWith('REQUIRED:') ||
+          upper.startsWith('BREAKING:') ||
+          upper.startsWith('CRITICAL:') ||
+          upper.startsWith('WARNING:') ||
+          line.startsWith('⚠️') ||
+          line.startsWith('🚨')) {
+        continue;
+      }
+
+      // Skip table rows mentioning APK assets
+      if (cleanLine.startsWith('|') && cleanLine.toLowerCase().contains('.apk')) {
+        continue;
+      }
+
+      resultLines.add(rawLine);
+    }
+
+    final cleaned = resultLines.join('\n').trim();
+    return cleaned;
   }
 
   /// Parse from GitHub Releases API response (strictly published, non-draft releases)
@@ -265,6 +380,7 @@ class AppReleaseInfo {
     }
 
     final String? warningMessage = alertLines.isNotEmpty ? alertLines.join(' ') : null;
+    final String cleanMarkdown = _extractCleanMarkdown(body);
 
     return AppReleaseInfo(
       latestVersion: tagName,
@@ -273,6 +389,7 @@ class AppReleaseInfo {
       releaseDate: publishedAt.isNotEmpty ? publishedAt.split('T').first : '',
       releaseTitle: (json['name'] ?? 'ClassTrack $tagName').toString(),
       changelog: changelog,
+      releaseNotesMarkdown: cleanMarkdown.isNotEmpty ? cleanMarkdown : null,
       downloadUrl: apkUrl,
       releasePageUrl: htmlUrl,
       isMandatory: isMandatory,
@@ -418,6 +535,10 @@ class AppReleaseInfo {
       'universal': '$baseUrl/ClassTrack-$rawTag.apk',
     };
 
+    final String? markdownNotes = changelog.isNotEmpty
+        ? changelog.map((c) => '* $c').join('\n')
+        : null;
+
     return AppReleaseInfo(
       latestVersion: cleanVersion,
       buildNumber: buildNumber,
@@ -425,6 +546,7 @@ class AppReleaseInfo {
       releaseDate: publishedDate,
       releaseTitle: title,
       changelog: changelog,
+      releaseNotesMarkdown: markdownNotes,
       downloadUrl: _selectBestApkFromMap(abiAssets),
       releasePageUrl: 'https://github.com/$owner/$repo/releases/tag/$rawTag',
       isMandatory: isMandatory,

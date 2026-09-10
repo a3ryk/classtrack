@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/update_constants.dart';
@@ -43,30 +44,6 @@ class UpdateAvailableDialog extends StatelessWidget {
     final githubUrl = releaseInfo.releasePageUrl?.isNotEmpty == true
         ? releaseInfo.releasePageUrl!
         : 'https://github.com/${UpdateConstants.defaultGithubOwner}/${UpdateConstants.defaultGithubRepo}/releases/latest';
-
-    // Separate changelog into categories if possible
-    final features = <String>[];
-    final fixes = <String>[];
-    final improvements = <String>[];
-
-    for (final item in releaseInfo.changelog) {
-      final trimmed = item.trim();
-      if (trimmed.isEmpty) continue;
-      final lower = trimmed.toLowerCase();
-      if (trimmed.startsWith('🧩') || lower.contains('fix') || lower.contains('bug') || lower.startsWith('fixed')) {
-        fixes.add(trimmed);
-      } else if (trimmed.startsWith('✨') || lower.contains('feat') || lower.contains('add')) {
-        features.add(trimmed);
-      } else {
-        improvements.add(trimmed);
-      }
-    }
-
-    // Zero-drop guarantee: if features is empty but improvements exist, merge to features
-    if (features.isEmpty && improvements.isNotEmpty) {
-      features.addAll(improvements);
-      improvements.clear();
-    }
 
     return PopScope(
       canPop: !isMandatory,
@@ -197,39 +174,78 @@ class UpdateAvailableDialog extends StatelessWidget {
                 // Scrollable Changelog Area
                 Flexible(
                   child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (features.isNotEmpty) ...[
-                          _buildCategoryHeader('✨ Features', isDark),
-                          const SizedBox(height: 6),
-                          ...features.map((item) => _buildBulletItem(item, isDark)),
-                          const SizedBox(height: 12),
-                        ],
-                        if (fixes.isNotEmpty) ...[
-                          _buildCategoryHeader('🧩 Fixes', isDark),
-                          const SizedBox(height: 6),
-                          ...fixes.map((item) => _buildBulletItem(item, isDark)),
-                          const SizedBox(height: 12),
-                        ],
-                        if (improvements.isNotEmpty) ...[
-                          _buildCategoryHeader('⚡ Other Enhancements', isDark),
-                          const SizedBox(height: 6),
-                          ...improvements.map((item) => _buildBulletItem(item, isDark)),
-                          const SizedBox(height: 12),
-                        ],
-                        if (releaseInfo.changelog.isEmpty)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: Text(
-                              '• General performance improvements and bug fixes.',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                              ),
+                    child: MarkdownBody(
+                      data: releaseInfo.effectiveMarkdown,
+                      selectable: true,
+                      onTapLink: (text, href, title) {
+                        if (href != null) _launchUrl(context, href);
+                      },
+                      styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+                        p: TextStyle(
+                          fontSize: 12.5,
+                          height: 1.45,
+                          color: isDark ? AppColors.textSecondaryDark : const Color(0xFF334155),
+                        ),
+                        h1: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                        ),
+                        h2: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                        ),
+                        h3: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                        ),
+                        code: TextStyle(
+                          fontSize: 11.5,
+                          fontFamily: 'monospace',
+                          backgroundColor: isDark ? AppColors.surfaceDark : const Color(0xFFF1F5F9),
+                          color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7),
+                        ),
+                        codeblockDecoration: BoxDecoration(
+                          color: isDark ? AppColors.surfaceDark : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
+                            width: 0.8,
+                          ),
+                        ),
+                        listBullet: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                        ),
+                        a: const TextStyle(
+                          color: Color(0xFF1D64EC),
+                          decoration: TextDecoration.underline,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        strong: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                        ),
+                        em: const TextStyle(fontStyle: FontStyle.italic),
+                        blockquote: TextStyle(
+                          fontSize: 12,
+                          fontStyle: FontStyle.italic,
+                          color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                        ),
+                        blockquoteDecoration: BoxDecoration(
+                          border: Border(
+                            left: BorderSide(
+                              color: isDark ? AppColors.accentIndigoDark : AppColors.accentIndigoLight,
+                              width: 3,
                             ),
                           ),
-                      ],
+                        ),
+                        listIndent: 16,
+                        blockSpacing: 8,
+                      ),
                     ),
                   ),
                 ),
@@ -318,85 +334,6 @@ class UpdateAvailableDialog extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildCategoryHeader(String title, bool isDark) {
-    return Text(
-      title,
-      style: TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.w700,
-        color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-      ),
-    );
-  }
-
-  Widget _buildBulletItem(String rawText, bool isDark) {
-    // Strip leading emojis or bullet markers
-    String text = rawText.replaceAll(RegExp(r'^(✨|🧩|⚡|🛠️|[•\-\*])\s*'), '').trim();
-
-    // Parse bold title if formatted as **Title**: Description or Title: Description
-    String? title;
-    String description = text;
-
-    final boldMatch = RegExp(r'^\*\*(.*?)\*\*:\s*(.*)$').firstMatch(text);
-    if (boldMatch != null) {
-      title = boldMatch.group(1);
-      description = boldMatch.group(2) ?? '';
-    } else {
-      final colonIdx = text.indexOf(': ');
-      if (colonIdx > 0 && colonIdx < 50 && !text.substring(0, colonIdx).contains('.')) {
-        title = text.substring(0, colonIdx).replaceAll('**', '').trim();
-        description = text.substring(colonIdx + 2).trim();
-      }
-    }
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 5, left: 2),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '• ',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-            ),
-          ),
-          Expanded(
-            child: title != null
-                ? RichText(
-                    text: TextSpan(
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        height: 1.35,
-                        color: isDark ? AppColors.textSecondaryDark : const Color(0xFF334155),
-                      ),
-                      children: [
-                        TextSpan(
-                          text: '$title: ',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                          ),
-                        ),
-                        TextSpan(text: description.replaceAll('**', '')),
-                      ],
-                    ),
-                  )
-                : Text(
-                    text.replaceAll('**', ''),
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      height: 1.35,
-                      color: isDark ? AppColors.textSecondaryDark : const Color(0xFF334155),
-                    ),
-                  ),
-          ),
-        ],
       ),
     );
   }

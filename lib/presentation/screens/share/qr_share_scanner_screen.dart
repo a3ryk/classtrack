@@ -16,6 +16,7 @@ import '../../../core/services/notification_service.dart';
 import '../../../core/ui/app_toast.dart';
 import '../../../core/utils/uuid_generator.dart';
 import '../../../data/database/app_database.dart';
+import '../../../domain/entities/semester_entity.dart';
 import '../../../domain/entities/subject_entity.dart';
 import '../../../domain/services/schedule_engine.dart';
 import '../../providers/app_state_provider.dart';
@@ -193,14 +194,24 @@ class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> wit
       String code = raw.trim();
       if (code.startsWith('CT2:')) {
         code = code.substring(4);
-        final compressed = base64Url.decode(code);
+        List<int> compressed;
+        try {
+          compressed = base64Url.decode(code);
+        } catch (_) {
+          compressed = base64.decode(base64.normalize(code));
+        }
         final decompressed = gzip.decode(compressed);
         final jsonStr = utf8.decode(decompressed);
         return jsonDecode(jsonStr) as Map<String, dynamic>;
       }
       if (code.startsWith('CT1:')) {
         code = code.substring(4);
-        final compressed = base64Url.decode(code);
+        List<int> compressed;
+        try {
+          compressed = base64Url.decode(code);
+        } catch (_) {
+          compressed = base64.decode(base64.normalize(code));
+        }
         final decompressed = gzip.decode(compressed);
         final jsonStr = utf8.decode(decompressed);
         return jsonDecode(jsonStr) as Map<String, dynamic>;
@@ -403,10 +414,24 @@ class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> wit
   }
 
   Future<void> _applyImport(Map<String, dynamic> data, Set<int> selectedSubIndices) async {
-    final activeSem = ref.read(activeSemesterProvider);
+    var activeSem = ref.read(activeSemesterProvider);
     if (activeSem.isUnset) {
-      AppToast.error(context, 'Please create an active semester first');
-      return;
+      final semName = (data['sem'] as String?)?.trim();
+      final effectiveName = (semName != null && semName.isNotEmpty) ? semName : 'Semester 1';
+      final now = DateTime.now();
+      final newSem = SemesterEntity(
+        id: UuidGenerator.generate(),
+        name: effectiveName,
+        academicYear: '${now.year}-${now.year + 1}',
+        termType: TermType.semester,
+        startDate: now,
+        endDate: now.add(const Duration(days: 140)),
+        isCurrent: true,
+        isArchived: false,
+      );
+      await ref.read(semestersListProvider.notifier).addSemester(newSem);
+      await ref.read(activeSemesterProvider.notifier).updateSemester(newSem);
+      activeSem = newSem;
     }
 
     final rawSubs = (data['subs'] as List?) ?? [];
@@ -466,6 +491,9 @@ class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> wit
     if (newSlots.isNotEmpty) {
       await ref.read(timetableSlotsProvider.notifier).addBatchSlots(newSlots);
     }
+
+    await ref.read(subjectsProvider.notifier).loadFromDb();
+    await ref.read(timetableSlotsProvider.notifier).loadFromDb();
 
     // Dispatch phone notification
     await NotificationService.instance.showGeneralNotification(

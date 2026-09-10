@@ -390,9 +390,24 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> copySubjectsToSemester(String fromSemId, String toSemId) async {
+    final sourceSubjects = await getAllSubjects(fromSemId);
+    await copySelectedSubjectsToSemester(
+      fromSemId,
+      toSemId,
+      sourceSubjects.map((s) => s.id).toList(),
+    );
+  }
+
+  Future<void> copySelectedSubjectsToSemester(
+    String fromSemId,
+    String toSemId,
+    List<String> selectedSubjectIds,
+  ) async {
+    if (selectedSubjectIds.isEmpty) return;
     final nowIso = DateTime.now().toIso8601String();
     final sourceSubjects = await getAllSubjects(fromSemId);
-    for (final s in sourceSubjects) {
+    final toCopy = sourceSubjects.where((s) => selectedSubjectIds.contains(s.id));
+    for (final s in toCopy) {
       await saveSubject(
         SubjectData(
           id: UuidGenerator.generate(),
@@ -411,6 +426,39 @@ class AppDatabase extends _$AppDatabase {
         ),
       );
     }
+  }
+
+  /// Atomically archives old active semester, saves new semester as ACTIVE,
+  /// and copies selected continuing subjects without modifying other tables.
+  Future<void> archiveAndTransitionSemester({
+    required String oldSemesterId,
+    required SemesterData newSemester,
+    required List<String> carryOverSubjectIds,
+  }) async {
+    await transaction(() async {
+      // 1. Mark existing ACTIVE semesters as ARCHIVED
+      await (update(semesters)..where((t) => t.status.equals('ACTIVE'))).write(
+        const SemestersCompanion(status: Value('ARCHIVED')),
+      );
+
+      // 2. Also ensure specific oldSemesterId is marked ARCHIVED
+      if (oldSemesterId.isNotEmpty) {
+        await (update(semesters)..where((t) => t.id.equals(oldSemesterId))).write(
+          const SemestersCompanion(status: Value('ARCHIVED')),
+        );
+      }
+
+      // 3. Save new semester with ACTIVE status
+      await saveSemester(newSemester.copyWith(status: 'ACTIVE'));
+
+      // 4. Copy selected subjects
+      if (carryOverSubjectIds.isNotEmpty) {
+        await copySelectedSubjectsToSemester(oldSemesterId, newSemester.id, carryOverSubjectIds);
+      }
+
+      // 5. Update active semester setting
+      await setSetting('active_semester_id', newSemester.id);
+    });
   }
 
   // ==========================================

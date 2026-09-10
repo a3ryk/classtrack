@@ -19,6 +19,8 @@ import '../../domain/entities/notification_preferences_entity.dart';
 import '../../domain/services/class_notification_scheduler.dart';
 import 'backup_provider.dart';
 import 'theme_provider.dart';
+import '../../domain/entities/widget_settings_entity.dart';
+import '../../core/services/widget_sync_service.dart';
 
 // ==========================================
 // 1. DATABASE PROVIDER
@@ -53,11 +55,14 @@ final appInitializationProvider = FutureProvider<bool>((ref) async {
   await ref.read(hasCompletedOnboardingProvider.notifier).loadFromDb();
   await ref.read(isDeveloperUnlockedProvider.notifier).loadFromDb();
   await ref.read(customDevPasscodeHashProvider.notifier).loadFromDb();
+  await ref.read(dismissedEndOfTermProvider.notifier).loadFromDb();
   await ref.read(backupProvider.notifier).loadSettingsAndBackups();
   await ref.read(backupProvider.notifier).checkAndRunAutoBackup(db);
   await NotificationService.instance.init();
   await ref.read(notificationPreferencesProvider.notifier).loadFromDb();
   await ref.read(notificationPreferencesProvider.notifier).resyncScheduledNotifications();
+  await ref.read(widgetSettingsProvider.notifier).loadFromDb();
+  await ref.read(widgetSyncProvider).syncWidgets();
 
   return true;
 });
@@ -295,25 +300,65 @@ class ActiveSemesterNotifier extends StateNotifier<SemesterEntity> {
       startDate: start,
       endDate: end,
       isCurrent: d.status == 'ACTIVE',
+      isArchived: d.status == 'ARCHIVED',
     );
   }
 }
 
 final semestersListProvider = StateNotifierProvider<SemestersListNotifier, List<SemesterEntity>>((ref) {
   final db = ref.watch(databaseProvider);
-  return SemestersListNotifier(db);
+  return SemestersListNotifier(db, ref);
 });
 
 class SemestersListNotifier extends StateNotifier<List<SemesterEntity>> {
   final AppDatabase db;
+  final Ref? ref;
 
-  SemestersListNotifier(this.db) : super([]);
+  SemestersListNotifier(this.db, [this.ref]) : super([]);
 
   Future<void> loadFromDb() async {
     final list = await db.getAllSemesters();
     if (!mounted) return;
     if (list.isNotEmpty) {
       state = list.map((d) => ActiveSemesterNotifier._mapSemesterData(d)).toList();
+    }
+  }
+
+  Future<void> transitionSemester({
+    required SemesterEntity newSemester,
+    required List<String> carryOverSubjectIds,
+  }) async {
+    final oldActive = state.firstWhere(
+      (s) => s.isCurrent,
+      orElse: () => SemesterEntity.empty(),
+    );
+
+    final nowIso = DateTime.now().toIso8601String();
+    final newSemData = SemesterData(
+      id: newSemester.id,
+      name: newSemester.name,
+      startDate: DateFormatter.toIsoDate(newSemester.startDate),
+      endDate: newSemester.endDate != null
+          ? DateFormatter.toIsoDate(newSemester.endDate!)
+          : DateFormatter.toIsoDate(DateTime(2026, 12, 31)),
+      defaultTargetPct: 75.0,
+      status: 'ACTIVE',
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    );
+
+    await db.archiveAndTransitionSemester(
+      oldSemesterId: oldActive.id,
+      newSemester: newSemData,
+      carryOverSubjectIds: carryOverSubjectIds,
+    );
+
+    await loadFromDb();
+    if (ref != null) {
+      await ref!.read(activeSemesterProvider.notifier).loadFromDb();
+      await ref!.read(subjectsProvider.notifier).loadFromDb();
+      await ref!.read(timetableSlotsProvider.notifier).loadFromDb();
+      ref!.read(notificationPreferencesProvider.notifier).triggerDebouncedResync();
     }
   }
 
@@ -573,7 +618,7 @@ class SubjectsNotifier extends StateNotifier<List<SubjectEntity>> {
     await db.saveSubject(
       SubjectData(
         id: subject.id,
-        semesterId: semesterId,
+        semesterId: subject.semesterId.isNotEmpty ? subject.semesterId : semesterId,
         name: subject.name,
         code: subject.code,
         category: subject.category,
@@ -599,7 +644,7 @@ class SubjectsNotifier extends StateNotifier<List<SubjectEntity>> {
     await db.saveSubject(
       SubjectData(
         id: updated.id,
-        semesterId: semesterId,
+        semesterId: updated.semesterId.isNotEmpty ? updated.semesterId : semesterId,
         name: updated.name,
         code: updated.code,
         category: updated.category,
@@ -987,14 +1032,15 @@ class ExtraClassesNotifier extends StateNotifier<List<ExtraClassItem>> {
 // ==========================================
 final attendanceRecordsProvider = StateNotifierProvider<AttendanceRecordsNotifier, Map<String, AttendanceRecordData>>((ref) {
   final db = ref.watch(databaseProvider);
-  return AttendanceRecordsNotifier(db);
+  return AttendanceRecordsNotifier(db, ref);
 });
 
 class AttendanceRecordsNotifier extends StateNotifier<Map<String, AttendanceRecordData>> {
   final AppDatabase db;
+  final Ref? ref;
   StreamSubscription<AttendanceRecordData>? _streamSub;
 
-  AttendanceRecordsNotifier(this.db) : super({}) {
+  AttendanceRecordsNotifier(this.db, [this.ref]) : super({}) {
     loadFromDb();
     _streamSub = NotificationService.onAttendanceActionMarked.stream.listen((record) {
       if (!mounted) return;
@@ -1003,6 +1049,7 @@ class AttendanceRecordsNotifier extends StateNotifier<Map<String, AttendanceReco
         record.classSessionId: record,
       };
       loadFromDb();
+      ref?.read(widgetSyncProvider).syncWidgets();
     });
   }
 
@@ -1062,6 +1109,7 @@ class AttendanceRecordsNotifier extends StateNotifier<Map<String, AttendanceReco
     final endReminderId = ('${sessionId}_end'.hashCode & 0x7FFFFFFF) % 1000000000;
     unawaited(NotificationService.instance.cancelNotification(startReminderId));
     unawaited(NotificationService.instance.cancelNotification(endReminderId));
+    ref?.read(widgetSyncProvider).syncWidgets();
   }
 }
 
@@ -1141,11 +1189,11 @@ class DailySessionsNotifier extends StateNotifier<List<ClassSessionEntity>> {
 // ==========================================
 // 13. OVERALL ATTENDANCE STATS CALCULATOR
 // ==========================================
-final overallStatsProvider = Provider<OverallAttendanceStats>((ref) {
-  final subjects = ref.watch(subjectsProvider);
-  final attendanceMap = ref.watch(attendanceRecordsProvider);
-  final targetPct = ref.watch(targetPercentageProvider);
-
+OverallAttendanceStats computeAttendanceStats({
+  required List<SubjectEntity> subjects,
+  required Map<String, AttendanceRecordData> attendanceMap,
+  required double targetPct,
+}) {
   int globalHeld = 0;
   int globalAttended = 0;
   int globalAbsent = 0;
@@ -1238,7 +1286,61 @@ final overallStatsProvider = Provider<OverallAttendanceStats>((ref) {
     requiredClassesToAttend: overallMustAttend,
     subjectStats: subjectStatsList,
   );
+}
+
+final overallStatsProvider = Provider<OverallAttendanceStats>((ref) {
+  final subjects = ref.watch(subjectsProvider);
+  final attendanceMap = ref.watch(attendanceRecordsProvider);
+  final targetPct = ref.watch(targetPercentageProvider);
+
+  return computeAttendanceStats(
+    subjects: subjects,
+    attendanceMap: attendanceMap,
+    targetPct: targetPct,
+  );
 });
+
+final archivedSemesterStatsProvider = FutureProvider.family<OverallAttendanceStats, String>((ref, semesterId) async {
+  final db = ref.watch(databaseProvider);
+  final targetPct = ref.watch(targetPercentageProvider);
+  final subjectsData = await db.getAllSubjects(semesterId);
+  final subjects = subjectsData.map((d) => SubjectsNotifier._mapSubjectData(d)).toList();
+  final attendanceMap = ref.watch(attendanceRecordsProvider);
+
+  return computeAttendanceStats(
+    subjects: subjects,
+    attendanceMap: attendanceMap,
+    targetPct: targetPct,
+  );
+});
+
+final dismissedEndOfTermProvider = StateNotifierProvider<DismissedEndOfTermNotifier, Set<String>>((ref) {
+  final db = ref.watch(databaseProvider);
+  return DismissedEndOfTermNotifier(db);
+});
+
+class DismissedEndOfTermNotifier extends StateNotifier<Set<String>> {
+  final AppDatabase db;
+  DismissedEndOfTermNotifier(this.db) : super({}) {
+    loadFromDb();
+  }
+
+  Future<void> loadFromDb() async {
+    final val = await db.getSetting('dismissed_end_of_term_ids');
+    if (!mounted) return;
+    if (val != null && val.isNotEmpty) {
+      try {
+        final List<dynamic> list = jsonDecode(val);
+        state = list.map((e) => e.toString()).toSet();
+      } catch (_) {}
+    }
+  }
+
+  Future<void> dismiss(String semesterId) async {
+    state = {...state, semesterId};
+    await db.setSetting('dismissed_end_of_term_ids', jsonEncode(state.toList()));
+  }
+}
 
 // ==========================================
 // ONBOARDING STATUS PROVIDER
@@ -1311,5 +1413,59 @@ class CustomDevPasscodeHashNotifier extends StateNotifier<String?> {
   }
 }
 
+// ==========================================
+// 17. HOME SCREEN WIDGET SETTINGS & SYNC
+// ==========================================
+final widgetSettingsProvider = StateNotifierProvider<WidgetSettingsNotifier, WidgetSettingsEntity>((ref) {
+  final db = ref.watch(databaseProvider);
+  return WidgetSettingsNotifier(db, ref);
+});
 
+class WidgetSettingsNotifier extends StateNotifier<WidgetSettingsEntity> {
+  final AppDatabase db;
+  final Ref ref;
 
+  WidgetSettingsNotifier(this.db, this.ref) : super(const WidgetSettingsEntity());
+
+  Future<void> loadFromDb() async {
+    final jsonStr = await db.getSetting('home_widget_settings');
+    if (jsonStr != null && jsonStr.isNotEmpty) {
+      state = WidgetSettingsEntity.fromJson(jsonStr);
+    }
+  }
+
+  Future<void> updateSettings(WidgetSettingsEntity updated) async {
+    state = updated;
+    await db.setSetting('home_widget_settings', updated.toJson());
+    await ref.read(widgetSyncProvider).syncWidgets();
+  }
+}
+
+final widgetSyncProvider = Provider<WidgetSyncController>((ref) {
+  return WidgetSyncController(ref);
+});
+
+class WidgetSyncController {
+  final Ref ref;
+  WidgetSyncController(this.ref);
+
+  Future<bool> syncWidgets() async {
+    final now = DateTime.now();
+    final activeSem = ref.read(activeSemesterProvider);
+    final todaySessions = ref.read(resolvedDayScheduleProvider(now));
+    final tomorrowSessions = ref.read(resolvedDayScheduleProvider(now.add(const Duration(days: 1))));
+    final stats = ref.read(overallStatsProvider);
+    final settings = ref.read(widgetSettingsProvider);
+    final holidays = ref.read(holidaysProvider);
+
+    return WidgetSyncService.syncAll(
+      now: now,
+      activeSemester: activeSem,
+      todaySessions: todaySessions,
+      tomorrowSessions: tomorrowSessions,
+      attendanceStats: stats,
+      widgetSettings: settings,
+      holidays: holidays,
+    );
+  }
+}

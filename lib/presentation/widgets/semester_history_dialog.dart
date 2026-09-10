@@ -5,7 +5,9 @@ import '../../core/ui/app_toast.dart';
 import '../../core/utils/date_formatter.dart';
 import '../../domain/entities/semester_entity.dart';
 import '../providers/app_state_provider.dart';
+import 'archived_semester_report_sheet.dart';
 import 'edit_semester_dialog.dart';
+import 'semester_transition_wizard.dart';
 
 /// Modern Modal Bottom Sheet for Academic History & Semesters
 class SemesterHistorySheet extends ConsumerWidget {
@@ -113,13 +115,17 @@ class SemesterHistorySheet extends ConsumerWidget {
                   ),
                   child: Row(
                     children: [
-                      // Left Content (Tap to set active)
+                      // Left Content (Tap to view report card or edit)
                       Expanded(
                         child: InkWell(
                           onTap: () {
-                            if (!isActive) {
-                              ref.read(activeSemesterProvider.notifier).updateSemester(sem);
-                              AppToast.success(context, 'Switched active term to ${sem.name}');
+                            if (isActive) {
+                              showDialog(
+                                context: context,
+                                builder: (context) => EditSemesterDialog(semesterToEdit: sem),
+                              );
+                            } else {
+                              ArchivedSemesterReportSheet.show(context, sem);
                             }
                           },
                           child: Column(
@@ -135,8 +141,8 @@ class SemesterHistorySheet extends ConsumerWidget {
                                       color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                                     ),
                                   ),
-                                  if (isActive) ...[
-                                    const SizedBox(width: 8),
+                                  const SizedBox(width: 8),
+                                  if (isActive)
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                       decoration: BoxDecoration(
@@ -152,8 +158,24 @@ class SemesterHistorySheet extends ConsumerWidget {
                                           letterSpacing: 0.5,
                                         ),
                                       ),
+                                    )
+                                  else
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: isDark ? AppColors.pillDark : const Color(0xFFE2E8F0),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        'ARCHIVED',
+                                        style: TextStyle(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w800,
+                                          color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
                                     ),
-                                  ],
                                 ],
                               ),
                               const SizedBox(height: 3),
@@ -169,24 +191,35 @@ class SemesterHistorySheet extends ConsumerWidget {
                         ),
                       ),
 
-                      // Right Actions (Edit & Delete)
+                      // Right Actions (Edit / Report Card & Delete)
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          IconButton(
-                            icon: Icon(
-                              Icons.edit_outlined,
-                              size: 17,
-                              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                          if (isActive)
+                            IconButton(
+                              icon: Icon(
+                                Icons.edit_outlined,
+                                size: 17,
+                                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                              ),
+                              tooltip: 'Edit Term',
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) => EditSemesterDialog(semesterToEdit: sem),
+                                );
+                              },
+                            )
+                          else
+                            IconButton(
+                              icon: Icon(
+                                Icons.bar_chart_rounded,
+                                size: 18,
+                                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                              ),
+                              tooltip: 'Final Report Card',
+                              onPressed: () => ArchivedSemesterReportSheet.show(context, sem),
                             ),
-                            tooltip: 'Edit Term',
-                            onPressed: () {
-                              showDialog(
-                                context: context,
-                                builder: (context) => EditSemesterDialog(semesterToEdit: sem),
-                              );
-                            },
-                          ),
                           if (allSemesters.length > 1)
                             IconButton(
                               icon: Icon(
@@ -243,26 +276,52 @@ class SemesterHistorySheet extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
 
-          // Add New Term Action
-          SizedBox(
-            width: double.infinity,
-            height: 44,
-            child: ElevatedButton.icon(
-              icon: const Icon(Icons.add_rounded, size: 16),
-              label: const Text('Add New Term', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                foregroundColor: isDark ? AppColors.bgDark : AppColors.surfaceLight,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                elevation: 0,
+          // Actions Row: Transition Wizard (Primary) & Manual Setup
+          Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: SizedBox(
+                  height: 44,
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.auto_awesome_rounded, size: 15),
+                    label: const Text('Start Next Term', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                      foregroundColor: isDark ? AppColors.bgDark : AppColors.surfaceLight,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      elevation: 0,
+                    ),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      SemesterTransitionWizard.show(context);
+                    },
+                  ),
+                ),
               ),
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => const EditSemesterDialog(),
-                );
-              },
-            ),
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 2,
+                child: SizedBox(
+                  height: 44,
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.add_rounded, size: 15),
+                    label: const Text('Blank Term', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                      side: BorderSide(color: isDark ? AppColors.borderDark : const Color(0xFFCBD5E1)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => const EditSemesterDialog(),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

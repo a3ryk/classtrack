@@ -4,9 +4,28 @@ import '../services/app_update_service.dart';
 class AppReleaseNotes {
   AppReleaseNotes._();
 
-  static const String currentVersion = '1.0.0-alpha.10';
+  static const String currentVersion = '1.0.0-alpha.11';
 
   static final Map<String, AppReleaseInfo> _releases = {
+    '1.0.0-alpha.11': const AppReleaseInfo(
+      latestVersion: '1.0.0-alpha.11',
+      buildNumber: 11,
+      minSupportedVersion: '1.0.0-alpha.11',
+      releaseDate: 'September 2026',
+      releaseTitle: 'ClassTrack v1.0.0-alpha.11 (Home Screen Widgets, Crash-Proof Deserialization, Transition Wizard & Design Overhaul)',
+      changelog: [
+        '✨ Home Screen Widgets Suite: Next Up Live Pill, Today\'s Agenda (with direct attendance actions), and Attendance Gauge (with real progress bar)',
+        '✨ Crash-Proof Deserialization: Polymorphic type-safe pattern matching on Android SharedPreferences eliminating Long-to-Integer ClassCastException runtime crashes',
+        '✨ In-App Widget Customization Studio: Granular background opacity slider, responsive non-truncating segmented switcher, theme palettes, and realistic wallpaper backdrops',
+        '✨ Authentic Figma Design System Tokens: Replaced AI slop saturated neons with crisp ClassTrack design tokens (#1C1D22 card dark, #27282F pill dark, #2E3039 border, #10B981 emerald, #3B82F6 blue)',
+        '✨ Semester Archiving & 3-Step Transition Wizard: Milestone report card, smart term name sequencer, selective subject carry-over with clean baselines, and 60 FPS shared-axis transitions',
+        '✨ Semester Setup Guards: Block and guide users to create an active semester first when tapping timetable setup options on Attendance and WelcomeSetupCard',
+        '✨ Classmate QR Scanner Fix: Unified QR scanning behavior on Analytics screen directly to dedicated scanner and automatic onboarding',
+        '✨ Modern GitHub Markdown for Updater: In-app release notes dialog and screen now render GitHub Flavored Markdown with headings, code blocks, bold spans, and clickable hyperlinks',
+      ],
+      isMandatory: true,
+      warningMessage: 'Mandatory update required for home screen widgets suite, crash-proof Android deserialization, semester transition wizard, and design system overhaul.',
+    ),
     '1.0.0-alpha.10': const AppReleaseInfo(
       latestVersion: '1.0.0-alpha.10',
       buildNumber: 10,

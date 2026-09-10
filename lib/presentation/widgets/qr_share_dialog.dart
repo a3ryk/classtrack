@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../core/constants/app_colors.dart';
 import '../providers/app_state_provider.dart';
-import 'qr_scanner_dialog.dart';
+import '../screens/share/qr_share_scanner_screen.dart';
 
 class QrShareDialog extends ConsumerWidget {
   const QrShareDialog({super.key});
@@ -82,9 +82,11 @@ class QrShareDialog extends ConsumerWidget {
         TextButton(
           onPressed: () {
             Navigator.pop(context);
-            showDialog(
-              context: context,
-              builder: (context) => const QrScannerDialog(),
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const QrShareScannerScreen(initialTabIndex: 1),
+              ),
             );
           },
           child: const Text('Scan Classmate QR'),

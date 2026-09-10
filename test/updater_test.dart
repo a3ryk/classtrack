@@ -1,5 +1,9 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:classtrack/core/services/app_update_service.dart';
+import 'package:classtrack/presentation/widgets/update_available_dialog.dart';
+import 'package:classtrack/presentation/screens/settings/update_screen.dart';
 
 void main() {
   group('AppUpdateService Release & ABI Tests', () {
@@ -86,8 +90,8 @@ void main() {
       expect(info.releaseTitle, 'ClassTrack v1.0.0-alpha.7 (Notifications & Multi-Channel Fix)');
       expect(info.isMandatory, isTrue);
       expect(info.warningMessage, contains('Critical notification channel fix.'));
-      expect(info.changelog, contains('Android Multi-Channel Sound & Vibration Routing'));
-      expect(info.changelog, contains('Redesigned Notifications Hub'));
+      expect(info.changelog.any((c) => c.contains('Android Multi-Channel Sound & Vibration Routing')), isTrue);
+      expect(info.changelog.any((c) => c.contains('Redesigned Notifications Hub')), isTrue);
 
       // Check deterministic ABI assets
       expect(info.abiAssets['arm64-v8a'], contains('app-arm64-v8a-release.apk'));
@@ -134,6 +138,118 @@ void main() {
         ),
         isFalse,
       );
+    });
+
+    test('GitHub Release Markdown preservation and effectiveMarkdown generation', () {
+      final mockGithubJson = {
+        'tag_name': 'v1.0.0-alpha.10',
+        'name': 'ClassTrack v1.0.0-alpha.10',
+        'published_at': '2026-09-10T12:00:00Z',
+        'body': '''
+> [!WARNING]
+> Critical update required for multi-room schedule synchronization.
+
+## ✨ What's New in v1.0.0-alpha.10
+- **Real-Time Notification Attendance**: Mark `Present`, `Absent`, or `Cancelled` directly from Android notifications with instant sync to `TodayScreen`.
+- **Lock Screen Actions**: Quick marking without unlocking device.
+- **10+ Classes Batching**: Simultaneous classes batch cleanly into an expandable notification group.
+
+### 🧩 Bug Fixes & Polish
+- Enabled SQLite `WAL` mode to eliminate multi-isolate lock contention.
+- Fixed room selection persistence in `RescheduleSessionScreen`.
+
+---
+Full details in [PR #42](https://github.com/a3ryk/classtrack/pull/42).
+<!-- MIN_VERSION: 1.0.0-alpha.9 -->
+''',
+      };
+
+      final info = AppReleaseInfo.fromGithubReleaseJson(mockGithubJson);
+
+      expect(info.latestVersion, '1.0.0-alpha.10');
+      expect(info.isMandatory, isTrue);
+      expect(info.warningMessage, contains('Critical update required for multi-room schedule synchronization.'));
+      expect(info.minSupportedVersion, '1.0.0-alpha.9');
+
+      // Pristine markdown preserved
+      expect(info.releaseNotesMarkdown, isNotNull);
+      expect(info.effectiveMarkdown, contains("## ✨ What's New in v1.0.0-alpha.10"));
+      expect(info.effectiveMarkdown, contains('**Real-Time Notification Attendance**:'));
+      expect(info.effectiveMarkdown, contains('`Present`'));
+      expect(info.effectiveMarkdown, contains('### 🧩 Bug Fixes & Polish'));
+      expect(info.effectiveMarkdown, contains('[PR #42]'));
+
+      // Directives and alert lines are extracted out of the body
+      expect(info.effectiveMarkdown.contains('MIN_VERSION:'), isFalse);
+      expect(info.effectiveMarkdown.contains('> [!WARNING]'), isFalse);
+    });
+
+    test('Legacy list changelog gracefully formats into markdown', () {
+      const info = AppReleaseInfo(
+        latestVersion: '1.0.0-alpha.9',
+        buildNumber: 9,
+        minSupportedVersion: '1.0.0',
+        releaseDate: '2026-09-08',
+        releaseTitle: 'ClassTrack v1.0.0-alpha.9',
+        changelog: [
+          '✨ Feature 1: Great new capability',
+          '🧩 Fix 2: Resolved crash on startup',
+        ],
+      );
+
+      expect(info.releaseNotesMarkdown, isNull);
+      expect(info.effectiveMarkdown, contains('* ✨ Feature 1: Great new capability'));
+      expect(info.effectiveMarkdown, contains('* 🧩 Fix 2: Resolved crash on startup'));
+    });
+
+    testWidgets('UpdateAvailableDialog renders MarkdownBody without overflow', (tester) async {
+      final mockGithubJson = {
+        'tag_name': 'v1.0.0-alpha.10',
+        'name': 'ClassTrack v1.0.0-alpha.10',
+        'body': '''
+## ✨ What's New
+- **Bold Feature**: Works with `code` formatting and [links](https://github.com).
+### 🧩 Fixes
+- Bug fix 1
+''',
+      };
+
+      final info = AppReleaseInfo.fromGithubReleaseJson(mockGithubJson);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: UpdateAvailableDialog(releaseInfo: info),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(MarkdownBody), findsOneWidget);
+      expect(find.text('New version available!'), findsOneWidget);
+      expect(find.text('v1.0.0-alpha.10'), findsOneWidget);
+    });
+
+    testWidgets('UpdateScreen renders MarkdownBody with rich markdown notes', (tester) async {
+      final mockGithubJson = {
+        'tag_name': 'v1.0.0-alpha.10',
+        'name': 'ClassTrack v1.0.0-alpha.10',
+        'body': '''
+## ✨ Highlights
+- **Notification Actions**: Quick attendance from notifications.
+''',
+      };
+
+      final info = AppReleaseInfo.fromGithubReleaseJson(mockGithubJson);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: UpdateScreen(releaseInfo: info),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(MarkdownBody), findsOneWidget);
     });
   });
 }

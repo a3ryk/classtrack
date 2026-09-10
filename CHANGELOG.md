@@ -5,6 +5,41 @@ All notable changes to **ClassTrack** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-alpha.11] - 2026-09-11
+
+### ✨ Features & Architecture
+- **Home Screen Widgets Suite**: Three native Android AppWidgets for glanceable timetable and attendance tracking:
+  - *Next Up Live Pill (2×1)*: Dynamic status pulse dot, lecture timing, room tag, and high-contrast countdown chip.
+  - *Today's Agenda Card (4×2)*: Date header with term attendance badge, hero active lecture card, 1-tap direct attendance action buttons (`[✓ Present]` and `[✗ Absent]`), and upcoming schedule stack.
+  - *Attendance Gauge Card (2×2)*: Overall attendance percentage with color-coded progress gauge bar and safe bunk / cushion calculator.
+- **In-App Widget Customization Studio**: Accessible via Settings &rarr; Appearance &rarr; Home Screen Widgets:
+  - Responsive segmented form-factor switcher (`Next Up`, `Agenda`, `Gauge`) with zero text truncation.
+  - Butter-smooth height adaptation via `AnimatedSize` (260ms, `Curves.easeOutCubic`) and fade/scale transitions.
+  - Frosted glassmorphism background opacity slider ($0\%$ to $100\%$) over contrasting realistic wallpaper backdrops (*Oceanic Aurora*, *Sunset Glow*, *Minimal Slate*, *AMOLED Black*).
+  - 6 cohesive theme palettes (*Material You*, *AMOLED Black*, *Midnight Obsidian*, *Emerald Forest*, *Rose Velvet*, *Sunset Amber*).
+  - Granular privacy and display switches (Privacy Shield, Show Room Numbers, Show Tomorrow's First Class, 24-Hour Time Format, 1-Tap Direct Attendance).
+- **Semester Archiving & 3-Step Transition Wizard**:
+  - Automated end-of-term detection with dismissible hero banner on Today screen.
+  - Multi-step transition wizard with 60 FPS shared-axis transitions and `AnimatedSize` height adaptation.
+  - Step 1 (Milestone Report Card): Final term percentage, goal achievement status, held/attended metrics, and premature archiving warning.
+  - Step 2 (Term Configuration & Smart Sequencer): `SemesterSequencer` engine predicting next sequential term name (Roman, Arabic, Year presets, and academic year rollover).
+  - Step 3 (Subject Setup): Selective carry-over checklist with fresh UUIDs and clean 0/0 baseline attendance.
+  - Atomic SQLite Drift transaction (`archiveAndTransitionSemester`) archiving active term, creating new term, and updating `app_settings`.
+  - Read-only historical performance viewer (`ArchivedSemesterReportSheet`) via Academic History without hijacking operational timetable slots or reminders.
+- **Modern GitHub Markdown for App Updater**:
+  - Integrated `flutter_markdown_plus: ^1.0.12` for rich GitHub Flavored Markdown (GFM) rendering.
+  - Interactive clickable links, syntax-highlighted code blocks, bold/italic spans, and theme-adaptive contrast in update dialogs and updater screen.
+  - Backward compatibility with offline bundled release notes and automatic stripping of metadata directives.
+
+### 🧩 Bug Fixes & Stability
+- **Crash-Proof Deserialization (`ClassCastException` Fix)**: Replaced rigid `prefs.getInt` calls with polymorphic type pattern matching on `prefs.all[key]`, completely eliminating `java.lang.ClassCastException: java.lang.Long cannot be cast to java.lang.Integer` crashes when reading Dart 64-bit numerical values from Android SharedPreferences.
+- **Native RemoteViews Opacity & Color Filter Fix**: Updated Kotlin providers to apply composite 32-bit ARGB `widget_bg_color` directly to `setColorFilter` and `setImageAlpha`, ensuring genuine translucency across all Android OEM launcher engines.
+- **Semester Setup Guards**: Blocked and guided users when attempting to scan QR codes or add batch classes without an active semester on `WelcomeSetupCard` and `AttendanceScreen`, displaying a helpful "Semester Setup Required" dialog with direct navigation to `EditSemesterDialog`.
+- **Classmate QR Scanner Routing & Auto-Onboarding**: Fixed Analytics screen Option 2 to route directly to `QrShareScannerScreen(initialTabIndex: 1)` with automatic semester initialization and resilient Base64 decoding.
+- **Settings & Appearance Clean-Up**: Removed duplicate "Home Screen Widgets" entry from `SettingsScreen` and refined typography in `AppearanceScreen`.
+
+---
+
 ## [1.0.0-alpha.10] - 2026-09-10
 
 ### ✨ Features & Architecture

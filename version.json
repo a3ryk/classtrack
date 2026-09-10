@@ -1,28 +1,28 @@
 {
-  "latest_version": "1.0.0-alpha.10",
-  "build_number": 10,
-  "min_supported_version": "1.0.0-alpha.10",
-  "release_date": "2026-09-10",
-  "release_title": "ClassTrack v1.0.0-alpha.10 (Production Class Notifications, Lock Screen Actions & Safe Simulation)",
+  "latest_version": "1.0.0-alpha.11",
+  "build_number": 11,
+  "min_supported_version": "1.0.0-alpha.11",
+  "release_date": "2026-09-11",
+  "release_title": "ClassTrack v1.0.0-alpha.11 (Home Screen Widgets, Crash-Proof Deserialization, Transition Wizard & Design Overhaul)",
   "changelog": [
-    "✨ Real-Time Notification Attendance: Mark Present, Absent, or Cancelled directly from Android notifications with instant multi-isolate synchronization to Today and Calendar views via IsolateNameServer",
-    "✨ Lock Screen Attendance Actions: Quick attendance marking directly from lock screen or status bar without requiring device unlock or PIN entry",
-    "✨ 10+ Concurrent Classes Support: Simultaneous classes batch cleanly into an expandable notification group with a single chime alert, deterministic IDs, and independent dismissal",
-    "✨ Developer Test Alert Simulation: Moved test notification generator to Developer Options with 100% non-destructive simulation and verification toast",
-    "✨ Clean-Slate Alarm Reconciliation: Automatic purge of stale alarms on schedule changes or cancellations before scheduling rolling 7-day window, eliminating ghost alerts",
-    "✨ Cross-Midnight Scheduling Support: Overnight lectures and labs now automatically advance end-of-class reminders by +1 day",
-    "✨ SQLite WAL Mode & Concurrency Protection: Enabled Write-Ahead Logging and busy timeout to eliminate multi-isolate database lock contention",
-    "🧩 RescheduleSessionScreen Extra Class Handling: Rescheduling and deleting one-off extra classes properly routes to ExtraClassesNotifier"
+    "✨ Home Screen Widgets Suite: Next Up Live Pill, Today's Agenda (with direct attendance actions), and Attendance Gauge (with progress bar) for Android home screens",
+    "✨ Crash-Proof Widget Deserialization: Polymorphic type pattern matching on SharedPreferences completely eliminates Android Long-to-Integer ClassCastException runtime crashes",
+    "✨ In-App Widget Customization Studio: Granular background opacity slider, responsive segmented switcher, theme palettes, and realistic wallpaper backdrops",
+    "✨ Authentic Figma Design System Tokens: Replaced AI slop saturated neons with crisp ClassTrack design tokens (#1C1D22 card dark, #27282F pill dark, #2E3039 border, #10B981 emerald, #3B82F6 blue)",
+    "✨ Semester Archiving & 3-Step Transition Wizard: Milestone report card, smart term name sequencer, selective subject carry-over with clean baselines, and 60 FPS shared-axis animations",
+    "✨ Semester Setup Guards: Block and guide users to create an active semester first when tapping timetable setup options on Attendance and WelcomeSetupCard",
+    "✨ Classmate QR Scanner Fix: Unified QR scanning behavior on Analytics screen directly to dedicated scanner and automatic onboarding",
+    "✨ Modern GitHub Markdown for Updater: In-app release notes dialog and screen now render GitHub Flavored Markdown with headings, code blocks, bold spans, and clickable hyperlinks"
   ],
-  "download_url": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.10/ClassTrack-v1.0.0-alpha.10.apk",
+  "download_url": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.11/ClassTrack-v1.0.0-alpha.11.apk",
   "abi_assets": {
-    "arm64-v8a": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.10/app-arm64-v8a-release.apk",
-    "armeabi-v7a": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.10/app-armeabi-v7a-release.apk",
-    "x86_64": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.10/app-x86_64-release.apk",
-    "universal": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.10/ClassTrack-v1.0.0-alpha.10.apk"
+    "arm64-v8a": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.11/app-arm64-v8a-release.apk",
+    "armeabi-v7a": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.11/app-armeabi-v7a-release.apk",
+    "x86_64": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.11/app-x86_64-release.apk",
+    "universal": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.11/ClassTrack-v1.0.0-alpha.11.apk"
   },
-  "release_page_url": "https://github.com/a3ryk/classtrack/releases/tag/v1.0.0-alpha.10",
+  "release_page_url": "https://github.com/a3ryk/classtrack/releases/tag/v1.0.0-alpha.11",
   "is_mandatory": true,
-  "warning_message": "Mandatory update required for real-time notification attendance marking, lock screen actions, and 100 edge cases scheduling overhaul."
+  "warning_message": "Mandatory update required for home screen widgets suite, crash-proof Android deserialization, semester transition wizard, and design system overhaul."
 }
 

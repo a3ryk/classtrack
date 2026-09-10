@@ -201,6 +201,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       );
                     },
                   ),
+
                   Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
                   _buildTile(
                     title: 'Notifications',

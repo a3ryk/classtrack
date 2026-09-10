@@ -20,3 +20,11 @@
 
 # SQLite rules
 -keep class org.sqlite.** { *; }
+
+# ClassTrack Home Screen Widgets & HomeWidget plugin
+-keep class com.classtrack.app.widgets.** { *; }
+-keep class com.classtrack.app.NextClassWidgetProvider { *; }
+-keep class com.classtrack.app.TodayAgendaWidgetProvider { *; }
+-keep class com.classtrack.app.AttendanceGaugeWidgetProvider { *; }
+-keep class es.antonborri.home_widget.** { *; }
+

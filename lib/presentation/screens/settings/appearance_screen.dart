@@ -7,6 +7,7 @@ import '../../../domain/entities/attendance_stats.dart';
 import '../../providers/app_state_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../widgets/attendance_ring_widget.dart';
+import 'widget_customization_screen.dart';
 
 /// Data structure representing an aesthetic template theme
 class AestheticTheme {
@@ -312,6 +313,67 @@ class _AppearanceScreenState extends ConsumerState<AppearanceScreen> {
                     },
                   ),
                 ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // 5. HOME SCREEN WIDGETS
+          _buildSectionHeader('Home Screen', isDark),
+          RepaintBoundary(
+            child: Container(
+              decoration: BoxDecoration(
+                color: groupBg,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: groupBorder, width: 0.8),
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const WidgetCustomizationScreen()),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(14),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Home Screen Widgets',
+                                style: TextStyle(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Configure live previews, themes, and transparency',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          size: 20,
+                          color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
           ),

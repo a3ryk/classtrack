@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/update_constants.dart';
@@ -56,37 +57,6 @@ class _UpdateScreenState extends State<UpdateScreen> {
   int _receivedBytes = 0;
   int _totalBytes = 0;
   File? _downloadedApkFile;
-
-  late final List<String> _features;
-  late final List<String> _fixes;
-  late final List<String> _improvements;
-
-  @override
-  void initState() {
-    super.initState();
-    _features = [];
-    _fixes = [];
-    _improvements = [];
-
-    for (final item in widget.releaseInfo.changelog) {
-      final trimmed = item.trim();
-      if (trimmed.isEmpty) continue;
-      final lower = trimmed.toLowerCase();
-      if (trimmed.startsWith('🧩') || lower.contains('fix') || lower.contains('bug') || lower.startsWith('fixed')) {
-        _fixes.add(trimmed);
-      } else if (trimmed.startsWith('✨') || lower.contains('feat') || lower.contains('add')) {
-        _features.add(trimmed);
-      } else {
-        _improvements.add(trimmed);
-      }
-    }
-
-    // Zero-drop guarantee: if features is empty but improvements exist, merge to features
-    if (_features.isEmpty && _improvements.isNotEmpty) {
-      _features.addAll(_improvements);
-      _improvements.clear();
-    }
-  }
 
   Future<void> _launchUrl(String url) async {
     final uri = Uri.tryParse(url);
@@ -357,39 +327,78 @@ class _UpdateScreenState extends State<UpdateScreen> {
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: borderColor, width: 0.8),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (_features.isNotEmpty) ...[
-                                _buildCategoryHeader('✨ Features', isDark),
-                                const SizedBox(height: 8),
-                                ..._features.map((item) => _buildBulletItem(item, isDark)),
-                                const SizedBox(height: 14),
-                              ],
-                              if (_fixes.isNotEmpty) ...[
-                                _buildCategoryHeader('🧩 Fixes', isDark),
-                                const SizedBox(height: 8),
-                                ..._fixes.map((item) => _buildBulletItem(item, isDark)),
-                                const SizedBox(height: 14),
-                              ],
-                              if (_improvements.isNotEmpty) ...[
-                                _buildCategoryHeader('⚡ Other Enhancements', isDark),
-                                const SizedBox(height: 8),
-                                ..._improvements.map((item) => _buildBulletItem(item, isDark)),
-                                const SizedBox(height: 14),
-                              ],
-                              if (widget.releaseInfo.changelog.isEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 4),
-                                  child: Text(
-                                    '• General performance improvements and bug fixes.',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                                    ),
+                          child: MarkdownBody(
+                            data: widget.releaseInfo.effectiveMarkdown,
+                            selectable: true,
+                            onTapLink: (text, href, title) {
+                              if (href != null) _launchUrl(href);
+                            },
+                            styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+                              p: TextStyle(
+                                fontSize: 13,
+                                height: 1.45,
+                                color: isDark ? AppColors.textSecondaryDark : const Color(0xFF334155),
+                              ),
+                              h1: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                              ),
+                              h2: TextStyle(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w700,
+                                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                              ),
+                              h3: TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w700,
+                                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                              ),
+                              code: TextStyle(
+                                fontSize: 12,
+                                fontFamily: 'monospace',
+                                backgroundColor: isDark ? AppColors.surfaceDark : const Color(0xFFF1F5F9),
+                                color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7),
+                              ),
+                              codeblockDecoration: BoxDecoration(
+                                color: isDark ? AppColors.surfaceDark : const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
+                                  width: 0.8,
+                                ),
+                              ),
+                              listBullet: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                              ),
+                              a: const TextStyle(
+                                color: Color(0xFF1D64EC),
+                                decoration: TextDecoration.underline,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              strong: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                              ),
+                              em: const TextStyle(fontStyle: FontStyle.italic),
+                              blockquote: TextStyle(
+                                fontSize: 12.5,
+                                fontStyle: FontStyle.italic,
+                                color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                              ),
+                              blockquoteDecoration: BoxDecoration(
+                                border: Border(
+                                  left: BorderSide(
+                                    color: isDark ? AppColors.accentIndigoDark : AppColors.accentIndigoLight,
+                                    width: 3,
                                   ),
                                 ),
-                            ],
+                              ),
+                              listIndent: 18,
+                              blockSpacing: 10,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -565,85 +574,6 @@ class _UpdateScreenState extends State<UpdateScreen> {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildCategoryHeader(String title, bool isDark) {
-    return Text(
-      title,
-      style: TextStyle(
-        fontSize: 14.5,
-        fontWeight: FontWeight.w700,
-        color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-      ),
-    );
-  }
-
-  Widget _buildBulletItem(String rawText, bool isDark) {
-    // Strip leading emojis or bullet markers
-    String text = rawText.replaceAll(RegExp(r'^(✨|🧩|⚡|🛠️|[•\-\*])\s*'), '').trim();
-
-    // Parse bold title if formatted as **Title**: Description or Title: Description
-    String? title;
-    String description = text;
-
-    final boldMatch = RegExp(r'^\*\*(.*?)\*\*:\s*(.*)$').firstMatch(text);
-    if (boldMatch != null) {
-      title = boldMatch.group(1);
-      description = boldMatch.group(2) ?? '';
-    } else {
-      final colonIdx = text.indexOf(': ');
-      if (colonIdx > 0 && colonIdx < 50 && !text.substring(0, colonIdx).contains('.')) {
-        title = text.substring(0, colonIdx).replaceAll('**', '').trim();
-        description = text.substring(colonIdx + 2).trim();
-      }
-    }
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6, left: 2),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '• ',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-            ),
-          ),
-          Expanded(
-            child: title != null
-                ? RichText(
-                    text: TextSpan(
-                      style: TextStyle(
-                        fontSize: 13,
-                        height: 1.35,
-                        color: isDark ? AppColors.textSecondaryDark : const Color(0xFF334155),
-                      ),
-                      children: [
-                        TextSpan(
-                          text: '$title: ',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                          ),
-                        ),
-                        TextSpan(text: description.replaceAll('**', '')),
-                      ],
-                    ),
-                  )
-                : Text(
-                    text.replaceAll('**', ''),
-                    style: TextStyle(
-                      fontSize: 13,
-                      height: 1.35,
-                      color: isDark ? AppColors.textSecondaryDark : const Color(0xFF334155),
-                    ),
-                  ),
-          ),
-        ],
       ),
     );
   }

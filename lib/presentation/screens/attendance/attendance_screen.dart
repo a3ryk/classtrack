@@ -8,6 +8,7 @@ import '../../providers/app_state_provider.dart';
 import '../schedule/add_edit_subject_screen.dart';
 import '../schedule/subject_room_manager_screen.dart';
 import '../../widgets/welcome_setup_card.dart';
+import '../../widgets/edit_semester_dialog.dart';
 
 class AttendanceScreen extends ConsumerStatefulWidget {
   const AttendanceScreen({super.key});
@@ -17,6 +18,59 @@ class AttendanceScreen extends ConsumerStatefulWidget {
 }
 
 class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
+  void _promptSemesterRequired(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? AppColors.cardDark : AppColors.cardLight,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: Text(
+          'Semester Setup Required',
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
+            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+          ),
+        ),
+        content: Text(
+          'Please create and activate a semester first before adding subjects.',
+          style: TextStyle(
+            fontSize: 13.5,
+            height: 1.4,
+            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              showDialog(
+                context: context,
+                builder: (context) => const EditSemesterDialog(),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+              foregroundColor: isDark ? AppColors.bgDark : Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Create Semester'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showWhatIfSimulator() {
     int simulatedMissCount = 2;
 
@@ -191,6 +245,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     final overallStats = ref.watch(overallStatsProvider);
     final subjects = ref.watch(subjectsProvider);
     final allSlots = ref.watch(timetableSlotsProvider);
+    final activeSem = ref.watch(activeSemesterProvider);
 
     final bool hasHeldClasses = subjects.isNotEmpty && overallStats.subjectStats.any((s) => s.totalHeld > 0);
 
@@ -233,6 +288,10 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                       backgroundColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                       iconColor: isDark ? AppColors.bgDark : AppColors.surfaceLight,
                       onTap: () {
+                        if (activeSem.isUnset) {
+                          _promptSemesterRequired(context);
+                          return;
+                        }
                         Navigator.push(
                           context,
                           MaterialPageRoute(builder: (_) => const AddEditSubjectScreen()),

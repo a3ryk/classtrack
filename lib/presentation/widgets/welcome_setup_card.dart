@@ -4,15 +4,70 @@ import '../../core/constants/app_colors.dart';
 import '../providers/app_state_provider.dart';
 import '../screens/ocr/ocr_scanner_screen.dart';
 import '../screens/schedule/batch_add_slots_screen.dart';
-import 'qr_scanner_dialog.dart';
+import '../screens/share/qr_share_scanner_screen.dart';
+import 'edit_semester_dialog.dart';
 
 class WelcomeSetupCard extends ConsumerWidget {
   const WelcomeSetupCard({super.key});
+
+  void _promptSemesterRequired(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? AppColors.cardDark : AppColors.cardLight,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: Text(
+          'Semester Setup Required',
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
+            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+          ),
+        ),
+        content: Text(
+          'Please create and activate a semester first before setting up your timetable schedule.',
+          style: TextStyle(
+            fontSize: 13.5,
+            height: 1.4,
+            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              showDialog(
+                context: context,
+                builder: (context) => const EditSemesterDialog(),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+              foregroundColor: isDark ? AppColors.bgDark : Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Create Semester'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isBetaEnabled = ref.watch(betaFeaturesEnabledProvider);
+    final activeSem = ref.watch(activeSemesterProvider);
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -70,6 +125,61 @@ class WelcomeSetupCard extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
 
+          // Action Banner if no semester is active
+          if (activeSem.isUnset) ...[
+            InkWell(
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => const EditSemesterDialog(),
+                );
+              },
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.accentBlue.withValues(alpha: isDark ? 0.15 : 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: AppColors.accentBlue.withValues(alpha: 0.35),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.school_rounded, color: AppColors.accentBlue, size: 22),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Step 1: Create a Semester',
+                            style: TextStyle(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Set your term name and dates to begin',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.arrow_forward_rounded, color: AppColors.accentBlue, size: 18),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+
           // Option 1: AI OCR Scanner (BETA Only)
           if (isBetaEnabled) ...[
             _buildSetupOption(
@@ -79,6 +189,10 @@ class WelcomeSetupCard extends ConsumerWidget {
               subtitle: 'Upload a JPG, PNG photo or PDF document',
               isDark: isDark,
               onTap: () {
+                if (activeSem.isUnset) {
+                  _promptSemesterRequired(context);
+                  return;
+                }
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const OcrScannerScreen()),
@@ -96,9 +210,15 @@ class WelcomeSetupCard extends ConsumerWidget {
             subtitle: 'Clone a friend\'s schedule in 1 second',
             isDark: isDark,
             onTap: () {
-              showDialog(
-                context: context,
-                builder: (context) => const QrScannerDialog(),
+              if (activeSem.isUnset) {
+                _promptSemesterRequired(context);
+                return;
+              }
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const QrShareScannerScreen(initialTabIndex: 1),
+                ),
               );
             },
           ),
@@ -112,6 +232,10 @@ class WelcomeSetupCard extends ConsumerWidget {
             subtitle: 'Type your subjects and pick multiple days at once',
             isDark: isDark,
             onTap: () {
+              if (activeSem.isUnset) {
+                _promptSemesterRequired(context);
+                return;
+              }
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const BatchAddSlotsScreen()),

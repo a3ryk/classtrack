@@ -13,6 +13,7 @@ import '../../providers/app_state_provider.dart';
 import '../../widgets/attendance_ring_widget.dart';
 import '../../widgets/today_class_card.dart';
 import '../../widgets/edit_semester_dialog.dart';
+import '../../widgets/semester_transition_wizard.dart';
 import '../../widgets/declare_holiday_dialog.dart';
 import '../../widgets/add_extra_class_sheet.dart';
 import '../../../domain/services/schedule_engine.dart';
@@ -759,9 +760,16 @@ class _TodayDatePageContent extends ConsumerWidget {
     final sessions = ref.watch(resolvedDayScheduleProvider(date));
     final overallStats = ref.watch(overallStatsProvider);
     final holidays = ref.watch(holidaysProvider);
+    final activeSem = ref.watch(activeSemesterProvider);
+    final dismissedEndOfTerm = ref.watch(dismissedEndOfTermProvider);
     final isToday = DateFormatter.toIsoDate(date) == DateFormatter.toIsoDate(DateTime.now());
     final isSelectedDateHoliday = holidays.any((h) => dateIso.compareTo(h.startDate) >= 0 && dateIso.compareTo(h.endDate) <= 0);
     final HolidayItem? currentHoliday = holidays.where((h) => dateIso.compareTo(h.startDate) >= 0 && dateIso.compareTo(h.endDate) <= 0).firstOrNull;
+    final bool isEndOfTerm = isToday &&
+        !activeSem.isUnset &&
+        activeSem.endDate != null &&
+        DateTime.now().isAfter(activeSem.endDate!) &&
+        !dismissedEndOfTerm.contains(activeSem.id);
 
     final isSafe = overallStats.totalHeld == 0 || overallStats.overallPercentage >= overallStats.targetPercentage;
 
@@ -911,6 +919,98 @@ class _TodayDatePageContent extends ConsumerWidget {
                           ),
                         );
                       },
+                    ),
+                  ),
+                )
+              : const SizedBox.shrink(),
+        ),
+
+        // End-of-Term Completion Banner Animation
+        AnimatedSize(
+          duration: const Duration(milliseconds: 320),
+          curve: Curves.easeOutCubic,
+          child: isEndOfTerm
+              ? Padding(
+                  padding: const EdgeInsets.only(top: 12, bottom: 4),
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1E1B4B).withValues(alpha: 0.35) : const Color(0xFFEEF2FF),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isDark ? const Color(0xFF4F46E5).withValues(alpha: 0.45) : const Color(0xFFC7D2FE),
+                        width: 0.9,
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF312E81) : const Color(0xFFE0E7FF),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.school_rounded,
+                            size: 20,
+                            color: AppColors.accentIndigoLight,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Term Completed · ${activeSem.name}',
+                                style: TextStyle(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: isDark ? const Color(0xFFE0E7FF) : const Color(0xFF312E81),
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'The scheduled end date has arrived. Wrap up your attendance and transition to your next term.',
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  color: isDark ? const Color(0xFFC7D2FE) : const Color(0xFF4338CA),
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                  foregroundColor: isDark ? AppColors.bgDark : Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                  elevation: 0,
+                                ),
+                                onPressed: () => SemesterTransitionWizard.show(context),
+                                child: const Text(
+                                  'Transition Now',
+                                  style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            Icons.close_rounded,
+                            size: 18,
+                            color: isDark ? const Color(0xFF818CF8) : const Color(0xFF6366F1),
+                          ),
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          tooltip: 'Dismiss',
+                          onPressed: () => ref.read(dismissedEndOfTermProvider.notifier).dismiss(activeSem.id),
+                        ),
+                      ],
                     ),
                   ),
                 )

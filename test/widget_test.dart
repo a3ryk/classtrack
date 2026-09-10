@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:classtrack/main.dart';
 import 'package:classtrack/data/database/app_database.dart';
@@ -951,8 +952,9 @@ void main() {
 
       expect(find.text('New version available!'), findsOneWidget);
       expect(find.text('v1.2.0 • Released 25/08/2026'), findsOneWidget);
-      expect(find.text('✨ Features'), findsOneWidget);
-      expect(find.text('🧩 Fixes'), findsOneWidget);
+      expect(find.byType(MarkdownBody), findsOneWidget);
+      expect(find.textContaining('New features'), findsOneWidget);
+      expect(find.textContaining('Fixed issues'), findsOneWidget);
       expect(find.text('View complete release notes on GitHub'), findsOneWidget);
       expect(find.text('Update Now'), findsOneWidget);
       expect(find.text('Not now'), findsOneWidget);
@@ -2084,6 +2086,11 @@ void main() {
       expect(find.text('Pure OLED Black'), findsOneWidget);
       expect(find.text('Match Device Appearance'), findsOneWidget);
 
+      // Check Home Screen Widgets tile
+      await tester.scrollUntilVisible(find.text('HOME SCREEN'), 150);
+      expect(find.text('HOME SCREEN'), findsOneWidget);
+      expect(find.text('Home Screen Widgets'), findsOneWidget);
+
       await db.close();
     });
 
@@ -2446,9 +2453,9 @@ void main() {
       await tester.tap(find.text('Show Dialog'));
       await tester.pumpAndSettle();
 
-      expect(find.text('✨ Features'), findsOneWidget);
-      expect(find.text('🧩 Fixes'), findsOneWidget);
-      expect(find.text('⚡ Other Enhancements'), findsOneWidget);
+      expect(find.byType(MarkdownBody), findsOneWidget);
+      expect(find.textContaining('Interactive Sliders'), findsOneWidget);
+      expect(find.textContaining('Crash Fix'), findsOneWidget);
       expect(find.textContaining('General synchronization performance optimization'), findsOneWidget);
     });
   });
