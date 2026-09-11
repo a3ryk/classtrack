@@ -230,7 +230,7 @@ class _DeveloperToolsScreenState extends ConsumerState<DeveloperToolsScreen> {
                         title: 'Simulate "Safe" Attendance (~90%)',
                         subtitle: 'Seeds past sessions with high attendance to test spare margins',
                         isDark: isDark,
-                        icon: Icons.verified_rounded,
+                        icon: Icons.check_circle_rounded,
                         iconColor: AppColors.presentGreen,
                         onTap: () async => _seedAttendanceScenario(attended: 18, total: 20),
                       ),
@@ -543,9 +543,19 @@ class _DeveloperToolsScreenState extends ConsumerState<DeveloperToolsScreen> {
                                 releasePageUrl: 'https://github.com/classtrack/classtrack/releases/tag/v1.0.0',
                                 isMandatory: true,
                               ),
+                              isDevInspectMode: true,
                             ),
                           );
                         },
+                      ),
+                      Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
+                      _buildTile(
+                        title: 'Inspect Live GitHub Release Notes',
+                        subtitle: 'Fetch and preview published release changelogs (Dev Bypass)',
+                        isDark: isDark,
+                        icon: Icons.history_edu_rounded,
+                        iconColor: AppColors.accentIndigoLight,
+                        onTap: () => _showGithubReleasePicker(context, isDark),
                       ),
                     ],
                   ),
@@ -1052,6 +1062,300 @@ class _DeveloperToolsScreenState extends ConsumerState<DeveloperToolsScreen> {
       ),
     );
   }
+
+  void _showGithubReleasePicker(BuildContext context, bool isDark) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) => _GithubReleasePickerSheet(isDark: isDark),
+    );
+  }
 }
 
+class _GithubReleasePickerSheet extends StatefulWidget {
+  final bool isDark;
 
+  const _GithubReleasePickerSheet({required this.isDark});
+
+  @override
+  State<_GithubReleasePickerSheet> createState() => _GithubReleasePickerSheetState();
+}
+
+class _GithubReleasePickerSheetState extends State<_GithubReleasePickerSheet> {
+  bool _isLoading = true;
+  String? _errorMessage;
+  List<AppReleaseInfo> _releases = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReleases();
+  }
+
+  Future<void> _loadReleases() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final list = await AppUpdateService.fetchAllGithubReleases();
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _releases = list;
+        if (list.isEmpty) {
+          _errorMessage = 'No published releases returned from GitHub API.';
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Failed to fetch releases: $e';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = widget.isDark;
+    final bgColor = isDark ? AppColors.cardDark : Colors.white;
+    final borderColor = isDark ? AppColors.borderDark : const Color(0xFFE2E8F0);
+
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.75,
+      ),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        border: Border(top: BorderSide(color: borderColor, width: 0.8)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Drag Handle
+          Container(
+            margin: const EdgeInsets.only(top: 10, bottom: 8),
+            width: 38,
+            height: 4,
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white24 : Colors.black12,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+
+          // Header
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: AppColors.accentBlue.withValues(alpha: isDark ? 0.2 : 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.history_edu_rounded,
+                    size: 20,
+                    color: AppColors.accentBlue,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Published GitHub Releases',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                        ),
+                      ),
+                      Text(
+                        'Select a release to preview in the updater screen',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, size: 20),
+                  color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+          ),
+          Divider(height: 1, color: borderColor),
+
+          // Body Content
+          Flexible(
+            child: _isLoading
+                ? const Padding(
+                    padding: EdgeInsets.all(40),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircularProgressIndicator(strokeWidth: 2.5),
+                        SizedBox(height: 16),
+                        Text(
+                          'Fetching live releases from GitHub...',
+                          style: TextStyle(fontSize: 13, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  )
+                : _errorMessage != null
+                    ? Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.cloud_off_rounded, size: 40, color: Colors.grey),
+                            const SizedBox(height: 12),
+                            Text(
+                              _errorMessage!,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 13, color: Colors.grey),
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton.icon(
+                              onPressed: _loadReleases,
+                              icon: const Icon(Icons.refresh_rounded, size: 18),
+                              label: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.separated(
+                        shrinkWrap: true,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        itemCount: _releases.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        itemBuilder: (ctx, index) {
+                          final rel = _releases[index];
+                          final isMandatory = rel.isMandatory;
+                          return Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(10),
+                              onTap: () {
+                                Navigator.pop(context);
+                                Navigator.push(
+                                  context,
+                                  UpdateScreen.route(rel, isDevInspectMode: true),
+                                );
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: isMandatory
+                                        ? (isDark
+                                            ? AppColors.absentRedDark.withValues(alpha: 0.4)
+                                            : AppColors.absentRed.withValues(alpha: 0.4))
+                                        : (isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
+                                    width: 0.8,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      isMandatory ? Icons.warning_amber_rounded : Icons.label_outline_rounded,
+                                      size: 20,
+                                      color: isMandatory
+                                          ? (isDark ? AppColors.absentRedDark : AppColors.absentRedText)
+                                          : AppColors.accentBlue,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Text(
+                                                'v${rel.latestVersion}',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                                ),
+                                              ),
+                                              if (isMandatory) ...[
+                                                const SizedBox(width: 8),
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                  decoration: BoxDecoration(
+                                                    color: AppColors.absentRed.withValues(alpha: 0.15),
+                                                    borderRadius: BorderRadius.circular(4),
+                                                  ),
+                                                  child: const Text(
+                                                    'MANDATORY',
+                                                    style: TextStyle(
+                                                      fontSize: 10,
+                                                      fontWeight: FontWeight.w700,
+                                                      color: AppColors.absentRed,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                          if (rel.releaseTitle.isNotEmpty && rel.releaseTitle != 'v${rel.latestVersion}') ...[
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              rel.releaseTitle,
+                                              style: TextStyle(
+                                                fontSize: 12.5,
+                                                fontWeight: FontWeight.w500,
+                                                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
+                                          if (rel.releaseDate.isNotEmpty) ...[
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              'Published: ${rel.releaseDate}',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.chevron_right_rounded,
+                                      size: 20,
+                                      color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+}

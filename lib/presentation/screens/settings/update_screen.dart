@@ -10,14 +10,20 @@ import '../../../core/ui/app_toast.dart';
 class UpdateScreen extends StatefulWidget {
   final AppReleaseInfo releaseInfo;
   final bool isWhatsNewMode;
+  final bool isDevInspectMode;
 
   const UpdateScreen({
     super.key,
     required this.releaseInfo,
     this.isWhatsNewMode = false,
+    this.isDevInspectMode = false,
   });
 
-  static Route<void> route(AppReleaseInfo releaseInfo, {bool isWhatsNewMode = false}) {
+  static Route<void> route(
+    AppReleaseInfo releaseInfo, {
+    bool isWhatsNewMode = false,
+    bool isDevInspectMode = false,
+  }) {
     return PageRouteBuilder<void>(
       transitionDuration: const Duration(milliseconds: 300),
       reverseTransitionDuration: const Duration(milliseconds: 240),
@@ -25,6 +31,7 @@ class UpdateScreen extends StatefulWidget {
         child: UpdateScreen(
           releaseInfo: releaseInfo,
           isWhatsNewMode: isWhatsNewMode,
+          isDevInspectMode: isDevInspectMode,
         ),
       ),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -137,10 +144,24 @@ class _UpdateScreenState extends State<UpdateScreen> {
     return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
+  String _extractReleaseTheme(String title) {
+    final sanitized = title.replaceAll('ClassTrack', 'Attendly').trim();
+    final match = RegExp(r'\((.*?)\)').firstMatch(sanitized);
+    if (match != null && match.group(1) != null && match.group(1)!.trim().isNotEmpty) {
+      return match.group(1)!.trim();
+    }
+    final stripped = sanitized.replaceFirst(RegExp(r'^(?:Attendly|ClassTrack)?\s*v?[0-9\.\-a-zA-Z]+\s*[:\-–—]?\s*'), '').trim();
+    if (stripped.isNotEmpty && stripped != sanitized) {
+      return stripped;
+    }
+    return '';
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isMandatory = widget.releaseInfo.isMandatory;
+    final canDismiss = widget.isWhatsNewMode || !isMandatory || widget.isDevInspectMode;
     final borderColor = isDark ? AppColors.borderDark : const Color(0xFFE2E8F0);
     final brandBlue = AppColors.accentBlue;
 
@@ -155,21 +176,21 @@ class _UpdateScreenState extends State<UpdateScreen> {
         : 'https://github.com/${UpdateConstants.defaultGithubOwner}/${UpdateConstants.defaultGithubRepo}/releases/latest';
 
     return PopScope(
-      canPop: !isMandatory,
+      canPop: canDismiss,
       child: Scaffold(
         backgroundColor: isDark ? AppColors.bgDark : const Color(0xFFF8FAFC),
         appBar: AppBar(
           backgroundColor: isDark ? AppColors.bgDark : const Color(0xFFF8FAFC),
           elevation: 0,
           scrolledUnderElevation: 0,
-          automaticallyImplyLeading: !isMandatory,
-          leading: isMandatory
-              ? null
-              : IconButton(
+          automaticallyImplyLeading: canDismiss,
+          leading: canDismiss
+              ? IconButton(
                   icon: const Icon(Icons.arrow_back_rounded, size: 22),
                   color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                   onPressed: () => Navigator.pop(context),
-                ),
+                )
+              : null,
           title: Text(
             widget.isWhatsNewMode
                 ? 'What\'s New'
@@ -193,45 +214,205 @@ class _UpdateScreenState extends State<UpdateScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        if (widget.isDevInspectMode) ...[
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            margin: const EdgeInsets.only(bottom: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.amber.withValues(alpha: 0.4), width: 0.8),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.developer_mode_rounded, size: 16, color: Colors.amber),
+                                const SizedBox(width: 8),
+                                const Expanded(
+                                  child: Text(
+                                    'DEV INSPECT MODE: Testing release notes (Bypass active)',
+                                    style: TextStyle(
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.amber,
+                                    ),
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: const Text(
+                                    'Exit',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.amber,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 8),
-                        Icon(
-                          widget.isWhatsNewMode
-                              ? Icons.auto_awesome_rounded
-                              : (isMandatory ? Icons.warning_amber_rounded : Icons.system_update_alt_rounded),
-                          size: 44,
-                          color: widget.isWhatsNewMode
-                              ? AppColors.accentIndigoLight
-                              : (isMandatory
-                                  ? (isDark ? AppColors.absentRedDark : AppColors.absentRedText)
-                                  : brandBlue),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          widget.isWhatsNewMode
-                              ? (widget.releaseInfo.releaseTitle.isNotEmpty
-                                  ? widget.releaseInfo.releaseTitle
-                                  : 'What\'s New in v${widget.releaseInfo.latestVersion}')
-                              : (isMandatory ? 'Critical Update Required' : 'New version available!'),
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.5,
-                            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                        if (widget.isWhatsNewMode) ...[
+                          Icon(
+                            Icons.auto_awesome_rounded,
+                            size: 36,
+                            color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          widget.isWhatsNewMode
-                              ? 'v${widget.releaseInfo.latestVersion}${widget.releaseInfo.releaseDate.isNotEmpty ? " • Released ${widget.releaseInfo.releaseDate}" : " • Current Version"}'
-                              : 'v${widget.releaseInfo.latestVersion}${widget.releaseInfo.releaseDate.isNotEmpty ? " • Released ${widget.releaseInfo.releaseDate}" : ""}',
-                          style: TextStyle(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w500,
-                            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                          const SizedBox(height: 14),
+                          Text(
+                            'What\'s New in Attendly',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.5,
+                              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                            ),
                           ),
-                        ),
+                          if (_extractReleaseTheme(widget.releaseInfo.releaseTitle).isNotEmpty) ...[
+                            const SizedBox(height: 5),
+                            Text(
+                              _extractReleaseTheme(widget.releaseInfo.releaseTitle),
+                              style: TextStyle(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w600,
+                                height: 1.35,
+                                color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 10),
+                          Wrap(
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: 8,
+                            runSpacing: 6,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
+                                decoration: BoxDecoration(
+                                  color: (isDark ? const Color(0xFF6366F1) : const Color(0xFF4F46E5)).withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: (isDark ? const Color(0xFF818CF8) : const Color(0xFF6366F1)).withValues(alpha: 0.25),
+                                    width: 0.8,
+                                  ),
+                                ),
+                                child: Text(
+                                  'v${widget.releaseInfo.latestVersion}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5),
+                                  ),
+                                ),
+                              ),
+                              if (widget.releaseInfo.releaseDate.isNotEmpty)
+                                Text(
+                                  widget.releaseInfo.releaseDate,
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w500,
+                                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                  ),
+                                ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: (isDark ? AppColors.presentGreenDark : AppColors.presentGreen).withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: (isDark ? AppColors.presentGreenDark : AppColors.presentGreen).withValues(alpha: 0.25),
+                                    width: 0.8,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.check_circle_rounded,
+                                      size: 12,
+                                      color: isDark ? AppColors.presentGreenDark : AppColors.presentGreen,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Current Version',
+                                      style: TextStyle(
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: isDark ? AppColors.presentGreenDark : AppColors.presentGreen,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ] else ...[
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: isMandatory
+                                  ? (isDark ? AppColors.absentContainerDark : AppColors.absentContainerLight)
+                                  : brandBlue.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: isMandatory
+                                    ? (isDark ? AppColors.absentRedDark : AppColors.absentRedText.withValues(alpha: 0.35))
+                                    : brandBlue.withValues(alpha: 0.25),
+                                width: 1.0,
+                              ),
+                            ),
+                            child: Center(
+                              child: Icon(
+                                isMandatory ? Icons.warning_amber_rounded : Icons.system_update_alt_rounded,
+                                size: 24,
+                                color: isMandatory
+                                    ? (isDark ? AppColors.absentRedDark : AppColors.absentRedText)
+                                    : brandBlue,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Text(
+                            isMandatory ? 'Critical Update Required' : 'New version available!',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.5,
+                              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'v${widget.releaseInfo.latestVersion}${widget.releaseInfo.releaseDate.isNotEmpty ? " • Released ${widget.releaseInfo.releaseDate}" : ""}',
+                            style: TextStyle(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w500,
+                              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                            ),
+                          ),
+                          if (_extractReleaseTheme(widget.releaseInfo.releaseTitle).isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              _extractReleaseTheme(widget.releaseInfo.releaseTitle),
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                                height: 1.35,
+                                color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+                              ),
+                            ),
+                          ],
+                        ],
                         if (!widget.isWhatsNewMode && Platform.isAndroid && downloadUrl.toLowerCase().endsWith('.apk')) ...[
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 10),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                             decoration: BoxDecoration(
@@ -263,7 +444,7 @@ class _UpdateScreenState extends State<UpdateScreen> {
                           ),
                         ],
                         const SizedBox(height: 16),
-                        if (isMandatory || (widget.releaseInfo.warningMessage != null && widget.releaseInfo.warningMessage!.isNotEmpty)) ...[
+                        if (!widget.isWhatsNewMode && (isMandatory || (widget.releaseInfo.warningMessage != null && widget.releaseInfo.warningMessage!.isNotEmpty))) ...[
                           Container(
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -310,7 +491,7 @@ class _UpdateScreenState extends State<UpdateScreen> {
                         ],
                         Text(
                           widget.isWhatsNewMode
-                              ? 'Here is what was added and improved in this version.'
+                              ? 'Discover the latest features, performance improvements, and fixes in this release.'
                               : 'Check out the release notes below or download the latest package to update in-place.',
                           style: TextStyle(
                             fontSize: 13,
@@ -318,7 +499,7 @@ class _UpdateScreenState extends State<UpdateScreen> {
                             color: isDark ? AppColors.textSecondaryDark : const Color(0xFF475569),
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 16),
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(16),
@@ -328,7 +509,7 @@ class _UpdateScreenState extends State<UpdateScreen> {
                             border: Border.all(color: borderColor, width: 0.8),
                           ),
                           child: MarkdownBody(
-                            data: widget.releaseInfo.effectiveMarkdown,
+                            data: widget.releaseInfo.effectiveMarkdown.replaceAll('ClassTrack', 'Attendly'),
                             selectable: true,
                             onTapLink: (text, href, title) {
                               if (href != null) _launchUrl(href);
@@ -351,6 +532,21 @@ class _UpdateScreenState extends State<UpdateScreen> {
                               ),
                               h3: TextStyle(
                                 fontSize: 13.5,
+                                fontWeight: FontWeight.w700,
+                                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                              ),
+                              h4: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                              ),
+                              h5: TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w700,
+                                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                              ),
+                              h6: TextStyle(
+                                fontSize: 12,
                                 fontWeight: FontWeight.w700,
                                 color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                               ),
@@ -396,8 +592,16 @@ class _UpdateScreenState extends State<UpdateScreen> {
                                   ),
                                 ),
                               ),
+                              horizontalRuleDecoration: BoxDecoration(
+                                border: Border(
+                                  top: BorderSide(
+                                    color: borderColor,
+                                    width: 0.8,
+                                  ),
+                                ),
+                              ),
                               listIndent: 18,
-                              blockSpacing: 10,
+                              blockSpacing: 8.0,
                             ),
                           ),
                         ),
@@ -543,7 +747,7 @@ class _UpdateScreenState extends State<UpdateScreen> {
                           ),
                         ),
                       ),
-                      if (!isMandatory && !_isDownloading) ...[
+                      if (canDismiss && !_isDownloading) ...[
                         const SizedBox(height: 10),
                         SizedBox(
                           width: double.infinity,
@@ -557,9 +761,9 @@ class _UpdateScreenState extends State<UpdateScreen> {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            child: const Text(
-                              'Not now',
-                              style: TextStyle(
+                            child: Text(
+                              widget.isDevInspectMode && isMandatory ? 'Exit Dev Preview' : 'Not now',
+                              style: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
                               ),

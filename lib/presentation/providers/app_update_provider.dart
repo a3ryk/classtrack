@@ -161,9 +161,11 @@ class AppUpdateNotifier extends StateNotifier<AppUpdateState> {
         );
 
         if (manualTrigger && context != null && context.mounted) {
-          showDialog(
-            context: context,
-            builder: (ctx) => UpToDateDialog(currentVersion: currentVer),
+          UpToDateDialog.show(
+            context,
+            currentVersion: currentVer,
+            releaseInfo: finalizedRelease,
+            lastCheckedTime: DateTime.now(),
           );
         }
       }

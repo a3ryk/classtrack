@@ -201,6 +201,21 @@ class UpdateAvailableDialog extends StatelessWidget {
                           fontWeight: FontWeight.w700,
                           color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                         ),
+                        h4: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                        ),
+                        h5: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                        ),
+                        h6: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                        ),
                         code: TextStyle(
                           fontSize: 11.5,
                           fontFamily: 'monospace',
@@ -240,6 +255,14 @@ class UpdateAvailableDialog extends StatelessWidget {
                             left: BorderSide(
                               color: isDark ? AppColors.accentIndigoDark : AppColors.accentIndigoLight,
                               width: 3,
+                            ),
+                          ),
+                        ),
+                        horizontalRuleDecoration: BoxDecoration(
+                          border: Border(
+                            top: BorderSide(
+                              color: borderColor,
+                              width: 0.8,
                             ),
                           ),
                         ),

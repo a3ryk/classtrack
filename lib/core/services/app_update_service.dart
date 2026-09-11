@@ -123,35 +123,69 @@ class AppReleaseInfo {
     );
   }
 
-  /// Decode basic HTML entities found in Atom feeds or web markdown (supports double-encoded entities)
+  /// Decode HTML entities commonly found in release notes, Atom feeds, or web markdown.
+  /// Handles arrows, bullet points, quotes, mathematical symbols, and numeric entities.
   static String _decodeHtmlEntities(String input) {
+    if (!input.contains('&')) return input;
+
     String prev = '';
     String current = input;
     int passes = 0;
     while (prev != current && passes < 3) {
       prev = current;
       current = current
+          .replaceAll('&rarr;', '→')
+          .replaceAll('&larr;', '←')
+          .replaceAll('&uarr;', '↑')
+          .replaceAll('&darr;', '↓')
+          .replaceAll('&harr;', '↔')
+          .replaceAll('&bull;', '•')
+          .replaceAll('&middot;', '·')
+          .replaceAll('&mdash;', '-')
+          .replaceAll('&ndash;', '-')
+          .replaceAll('&check;', '✓')
+          .replaceAll('&cross;', '✗')
           .replaceAll('&amp;', '&')
           .replaceAll('&lt;', '<')
           .replaceAll('&gt;', '>')
           .replaceAll('&quot;', '"')
           .replaceAll('&#39;', "'")
-          .replaceAll('&apos;', "'");
+          .replaceAll('&apos;', "'")
+          .replaceAll('&nbsp;', ' ')
+          .replaceAll('&#8594;', '→')
+          .replaceAll('&#8592;', '←')
+          .replaceAll('&#8226;', '•')
+          .replaceAll('&#8212;', '-')
+          .replaceAll('&#8211;', '-')
+          .replaceAll('&#10003;', '✓')
+          .replaceAll('&#10004;', '✔')
+          .replaceAll('&#10007;', '✗')
+          .replaceAll('&#10008;', '✘');
       passes++;
     }
     return current;
   }
 
   /// Extracts clean markdown for release notes by filtering out internal metadata tags,
-  /// alert callouts (which are rendered in the warning banner), and APK download tables.
+  /// alert callouts (which are rendered in the warning banner), APK download tables,
+  /// automatic GitHub compare footers, and decoding HTML entities.
   static String _extractCleanMarkdown(String rawBody) {
     if (rawBody.trim().isEmpty) return '';
+
+    // 1. Normalize line endings and decode HTML entities
+    final normalized = _decodeHtmlEntities(
+      rawBody.replaceAll('\r\n', '\n').replaceAll('\r', '\n'),
+    );
 
     final List<String> resultLines = [];
     bool inAlertBlock = false;
     bool inDownloadsSection = false;
+    bool inMarkdownTable = false;
 
-    for (final rawLine in rawBody.split('\n')) {
+    final lines = normalized.split('\n');
+
+    for (int i = 0; i < lines.length; i++) {
+      final rawLine = lines[i];
       final line = rawLine.trim();
       final cleanLine = line.replaceAll(RegExp(r'<!--|-->'), '').trim();
       final upper = cleanLine.toUpperCase();
@@ -175,18 +209,16 @@ class AppReleaseInfo {
         continue;
       }
 
-      // Check if downloads section ended by reaching a new header or footer
+      // Check if downloads section ended by reaching a new header
       if (inDownloadsSection) {
-        if (cleanLine.startsWith('#') ||
-            cleanLine.startsWith('**Full Changelog') ||
-            cleanLine.startsWith('[Full Changelog')) {
+        if (cleanLine.startsWith('#')) {
           inDownloadsSection = false;
         } else {
           continue;
         }
       }
 
-      // Check for start of GitHub Alert Callout Block
+      // Check for start of GitHub Alert Callout Block (> [!WARNING], > [!NOTE], etc.)
       if (upper.startsWith('> [!WARNING]') ||
           upper.startsWith('> [!CAUTION]') ||
           upper.startsWith('> [!IMPORTANT]') ||
@@ -196,13 +228,18 @@ class AppReleaseInfo {
         continue;
       }
 
-      // If currently inside an alert blockquote, skip its lines
+      // If currently inside an alert blockquote, skip its lines until block ends
       if (inAlertBlock) {
-        if (cleanLine.startsWith('>')) {
-          continue;
-        } else {
-          inAlertBlock = false;
+        if (cleanLine.startsWith('>') || cleanLine.isEmpty) {
+          // Empty line inside alert block
+          if (cleanLine.isEmpty && i + 1 < lines.length && lines[i + 1].trim().startsWith('>')) {
+            continue;
+          }
+          if (cleanLine.startsWith('>')) {
+            continue;
+          }
         }
+        inAlertBlock = false;
       }
 
       // Skip single-line alert markers (already hoisted to warning banner)
@@ -216,15 +253,50 @@ class AppReleaseInfo {
         continue;
       }
 
-      // Skip table rows mentioning APK assets
-      if (cleanLine.startsWith('|') && cleanLine.toLowerCase().contains('.apk')) {
+      // Strip automatic GitHub compare / changelog footers
+      if (cleanLine.startsWith('**Full Changelog**') ||
+          cleanLine.startsWith('[Full Changelog') ||
+          cleanLine.contains('github.com') && cleanLine.contains('/compare/')) {
         continue;
+      }
+
+      // Detect and drop markdown tables associated with downloads or assets
+      if (cleanLine.startsWith('|')) {
+        final lower = cleanLine.toLowerCase();
+        if (lower.contains('.apk') ||
+            lower.contains('download') ||
+            lower.contains('architecture') ||
+            lower.contains('checksum') ||
+            lower.contains('sha256') ||
+            lower.contains('target') ||
+            inMarkdownTable) {
+          inMarkdownTable = true;
+          // Also remove any preceding header row already added
+          while (resultLines.isNotEmpty && resultLines.last.trim().startsWith('|')) {
+            resultLines.removeLast();
+          }
+          continue;
+        }
+      } else {
+        inMarkdownTable = false;
       }
 
       resultLines.add(rawLine);
     }
 
-    final cleaned = resultLines.join('\n').trim();
+    // Post-process: Clean up consecutive blank lines, leading redundant titles & dividers
+    String cleaned = resultLines.join('\n').trim();
+
+    // Remove redundant leading H1/H2 version title if it matches "## ✨ What's New..."
+    cleaned = cleaned.replaceFirst(RegExp(r"^(#+\s*(?:✨\s*)?(?:What['’]s New|Release Notes)[^\n]*\n+)", caseSensitive: false), '');
+
+    // Trim leading/trailing horizontal rules
+    cleaned = cleaned.replaceFirst(RegExp(r'^(?:---\s*\n+)+'), '');
+    cleaned = cleaned.replaceFirst(RegExp(r'(?:\n+---\s*)+$'), '');
+
+    // Collapse 3+ consecutive newlines to 2
+    cleaned = cleaned.replaceAll(RegExp(r'\n{3,}'), '\n\n').trim();
+
     return cleaned;
   }
 
@@ -814,6 +886,49 @@ class AppUpdateService {
       }
     }
     return null;
+  }
+
+  /// Fetches a list of published releases from GitHub Releases API for developer inspection.
+  static Future<List<AppReleaseInfo>> fetchAllGithubReleases({
+    String owner = UpdateConstants.defaultGithubOwner,
+    String repo = UpdateConstants.defaultGithubRepo,
+    http.Client? client,
+    int perPage = 20,
+  }) async {
+    final httpClient = client ?? http.Client();
+    final uri = Uri.parse('https://api.github.com/repos/$owner/$repo/releases?per_page=$perPage');
+
+    try {
+      final response = await httpClient.get(
+        uri,
+        headers: {
+          'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'Attendly-Updater/1.0',
+        },
+      ).timeout(UpdateConstants.requestTimeout);
+
+      if (response.statusCode == 200) {
+        final decoded = json.decode(utf8.decode(response.bodyBytes));
+        if (decoded is List) {
+          final List<AppReleaseInfo> releases = [];
+          for (final item in decoded) {
+            if (item is Map<String, dynamic> && item['draft'] != true) {
+              releases.add(AppReleaseInfo.fromGithubReleaseJson(item));
+            }
+          }
+          return releases;
+        }
+      } else {
+        debugPrint('[AppUpdateService] GitHub releases fetch returned code: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('[AppUpdateService] GitHub fetchAllGithubReleases failed: $e');
+    } finally {
+      if (client == null) {
+        httpClient.close();
+      }
+    }
+    return [];
   }
 
   /// Fetches release info from GitHub's public releases Atom feed (has NO 60-req/hr rate limit)
