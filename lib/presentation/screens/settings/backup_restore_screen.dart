@@ -145,8 +145,62 @@ class BackupRestoreScreen extends ConsumerWidget {
                   ),
                   value: backupState.isAutoBackupEnabled,
                   activeThumbColor: AppColors.presentGreen,
-                  onChanged: (val) => backupNotifier.setAutoBackupEnabled(val),
+                  onChanged: (val) async {
+                    await backupNotifier.setAutoBackupEnabled(val, context: context);
+                  },
                 ),
+                if (backupState.isAutoBackupEnabled && !backupState.hasStoragePermission) ...[
+                  Container(
+                    margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.absentContainerDark : AppColors.absentContainerLight,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: (isDark ? AppColors.absentRedDark : AppColors.absentRed).withValues(alpha: 0.3),
+                        width: 0.8,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.warning_amber_rounded,
+                          size: 16,
+                          color: isDark ? AppColors.absentRedDark : AppColors.absentRedText,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Storage permission revoked. Backups cannot be saved to phone storage.',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? AppColors.absentRedDark : AppColors.absentRedText,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () async {
+                            await backupNotifier.requestStoragePermission(context);
+                          },
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: Text(
+                            'Grant',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? AppColors.absentRedDark : AppColors.absentRedText,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 if (backupState.isAutoBackupEnabled) ...[
                   Divider(height: 1, color: isDark ? AppColors.borderDark : AppColors.borderLight),
                   Padding(

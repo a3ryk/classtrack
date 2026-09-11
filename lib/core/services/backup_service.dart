@@ -28,7 +28,28 @@ class BackupService {
 
   static const String currentBackupVersion = '1';
   static const int currentSchemaVersion = 2;
-  static const String appIdentifier = 'ClassTrack';
+  static const String appIdentifier = 'Attendly';
+
+  /// Checks whether storage permissions are currently granted without requesting them
+  static Future<bool> hasStoragePermission() async {
+    if (kIsWeb) return true;
+    if (!Platform.isAndroid && !Platform.isIOS) return true;
+
+    try {
+      if (Platform.isAndroid) {
+        final manageStatus = await Permission.manageExternalStorage.status;
+        if (manageStatus.isGranted) return true;
+
+        final status = await Permission.storage.status;
+        return status.isGranted;
+      } else if (Platform.isIOS) {
+        return true;
+      }
+    } catch (_) {
+      return true;
+    }
+    return true;
+  }
 
   /// Verifies and requests storage permissions on Android/iOS
   static Future<bool> checkAndRequestStoragePermission() async {
@@ -59,7 +80,7 @@ class BackupService {
     return true;
   }
 
-  /// Resolves the dedicated "ClassTrack/backups" or user-configured custom storage directory
+  /// Resolves the dedicated "Attendly/backups" or user-configured custom storage directory
   static Future<Directory> getBackupDirectory({String? customPath}) async {
     if (customPath != null && customPath.trim().isNotEmpty) {
       final customDir = Directory(customPath.trim());
@@ -70,9 +91,9 @@ class BackupService {
     }
 
     if (!kIsWeb && Platform.isAndroid) {
-      // 1. Try public storage root: /storage/emulated/0/ClassTrack/backups (Visible in File Manager)
+      // 1. Try public storage root: /storage/emulated/0/Attendly/backups (Visible in File Manager)
       try {
-        final publicRoot = Directory('/storage/emulated/0/ClassTrack/backups');
+        final publicRoot = Directory('/storage/emulated/0/Attendly/backups');
         if (!await publicRoot.exists()) {
           await publicRoot.create(recursive: true);
         }
@@ -81,9 +102,9 @@ class BackupService {
         }
       } catch (_) {}
 
-      // 2. Try Documents public folder: /storage/emulated/0/Documents/ClassTrack/backups
+      // 2. Try Documents public folder: /storage/emulated/0/Documents/Attendly/backups
       try {
-        final docsDir = Directory('/storage/emulated/0/Documents/ClassTrack/backups');
+        final docsDir = Directory('/storage/emulated/0/Documents/Attendly/backups');
         if (!await docsDir.exists()) {
           await docsDir.create(recursive: true);
         }
@@ -92,14 +113,22 @@ class BackupService {
         }
       } catch (_) {}
 
-      // 3. Try Download public folder: /storage/emulated/0/Download/ClassTrack/backups
+      // 3. Try Download public folder: /storage/emulated/0/Download/Attendly/backups
       try {
-        final dlDir = Directory('/storage/emulated/0/Download/ClassTrack/backups');
+        final dlDir = Directory('/storage/emulated/0/Download/Attendly/backups');
         if (!await dlDir.exists()) {
           await dlDir.create(recursive: true);
         }
         if (await dlDir.exists()) {
           return dlDir;
+        }
+      } catch (_) {}
+
+      // Legacy fallback: check if legacy ClassTrack/backups directory exists
+      try {
+        final legacyRoot = Directory('/storage/emulated/0/ClassTrack/backups');
+        if (await legacyRoot.exists()) {
+          return legacyRoot;
         }
       } catch (_) {}
 
@@ -110,7 +139,7 @@ class BackupService {
       } catch (_) {}
 
       final baseDir = extDir ?? await getApplicationDocumentsDirectory();
-      final backupDir = Directory(p.join(baseDir.path, 'ClassTrack', 'backups'));
+      final backupDir = Directory(p.join(baseDir.path, 'Attendly', 'backups'));
       if (!await backupDir.exists()) {
         await backupDir.create(recursive: true);
       }
@@ -125,7 +154,7 @@ class BackupService {
       baseDir = Directory.systemTemp;
     }
 
-    final backupDir = Directory(p.join(baseDir.path, 'ClassTrack', 'backups'));
+    final backupDir = Directory(p.join(baseDir.path, 'Attendly', 'backups'));
     if (!await backupDir.exists()) {
       await backupDir.create(recursive: true);
     }
@@ -195,7 +224,7 @@ class BackupService {
     final dir = await getBackupDirectory(customPath: customDirectoryPath);
     final now = DateTime.now();
     final dateStr = DateFormat('yyyyMMdd_HHmmss').format(now);
-    final fileName = customFileName ?? 'classtrack_backup_$dateStr.ctbackup';
+    final fileName = customFileName ?? 'attendly_backup_$dateStr.ctbackup';
     final file = File(p.join(dir.path, fileName));
     return file.writeAsString(jsonContent, flush: true);
   }
@@ -207,7 +236,7 @@ class BackupService {
       if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) {
         return const BackupValidationResult(
           isValid: false,
-          errorMessage: 'Invalid file format: Not a valid ClassTrack backup file.',
+          errorMessage: 'Invalid file format: Not a valid Attendly backup file.',
         );
       }
 
@@ -219,10 +248,11 @@ class BackupService {
         );
       }
 
-      if (decoded['app'] != appIdentifier) {
+      final appName = decoded['app'];
+      if (appName != 'Attendly' && appName != 'ClassTrack') {
         return const BackupValidationResult(
           isValid: false,
-          errorMessage: 'Unrecognized backup file. Expected a ClassTrack backup (.ctbackup).',
+          errorMessage: 'Unrecognized backup file. Expected an Attendly backup (.ctbackup).',
         );
       }
 

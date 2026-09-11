@@ -557,6 +557,23 @@ void main() {
       expect(BackupService.validateBackup('%PDF-1.4 binary garbage').isValid, isFalse);
     });
 
+    test('validateBackup accepts both Attendly and legacy ClassTrack JSON with valid tables', () {
+      const validTables = {
+        'semesters': <Map<String, dynamic>>[],
+        'subjects': <Map<String, dynamic>>[],
+        'timetable_slots': <Map<String, dynamic>>[],
+        'attendance_records': <Map<String, dynamic>>[],
+      };
+      final attendlyJson = jsonEncode({'app': 'Attendly', 'tables': validTables});
+      expect(BackupService.validateBackup(attendlyJson).isValid, isTrue);
+
+      final classtrackJson = jsonEncode({'app': 'ClassTrack', 'tables': validTables});
+      expect(BackupService.validateBackup(classtrackJson).isValid, isTrue);
+
+      final foreignJson = jsonEncode({'app': 'Unrecognized', 'tables': validTables});
+      expect(BackupService.validateBackup(foreignJson).isValid, isFalse);
+    });
+
     test('ThemeModeNotifier persists theme selection to SQLite AppSettings', () async {
       final db = AppDatabase.inMemory();
       final container = ProviderContainer(

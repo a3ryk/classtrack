@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
@@ -71,6 +72,7 @@ class BackupState {
   final List<File> availableBackups;
   final bool isBackingUp;
   final bool isRestoring;
+  final bool hasStoragePermission;
 
   const BackupState({
     this.isAutoBackupEnabled = false,
@@ -85,6 +87,7 @@ class BackupState {
     this.availableBackups = const [],
     this.isBackingUp = false,
     this.isRestoring = false,
+    this.hasStoragePermission = true,
   });
 
   BackupState copyWith({
@@ -101,6 +104,7 @@ class BackupState {
     List<File>? availableBackups,
     bool? isBackingUp,
     bool? isRestoring,
+    bool? hasStoragePermission,
   }) {
     return BackupState(
       isAutoBackupEnabled: isAutoBackupEnabled ?? this.isAutoBackupEnabled,
@@ -115,6 +119,7 @@ class BackupState {
       availableBackups: availableBackups ?? this.availableBackups,
       isBackingUp: isBackingUp ?? this.isBackingUp,
       isRestoring: isRestoring ?? this.isRestoring,
+      hasStoragePermission: hasStoragePermission ?? this.hasStoragePermission,
     );
   }
 }
@@ -166,6 +171,9 @@ class BackupNotifier extends StateNotifier<BackupState> {
           lastBackupSummary: map['last_backup_summary'] as String?,
         );
       }
+      final hasPerm = await BackupService.hasStoragePermission();
+      if (!mounted) return;
+      state = state.copyWith(hasStoragePermission: hasPerm);
       await refreshLocalBackupsList();
     } catch (_) {
     } finally {
@@ -189,12 +197,65 @@ class BackupNotifier extends StateNotifier<BackupState> {
     await db.setSetting('backup_settings', jsonEncode(map));
   }
 
-  Future<void> setAutoBackupEnabled(bool enabled) async {
-    state = state.copyWith(isAutoBackupEnabled: enabled);
-    await _persistSettings();
-    if (enabled) {
-      unawaited(checkAndRunAutoBackup(db));
+  /// Toggles automatic backup with mandatory storage permission verification
+  Future<bool> setAutoBackupEnabled(bool enabled, {BuildContext? context}) async {
+    if (!enabled) {
+      state = state.copyWith(isAutoBackupEnabled: false);
+      await _persistSettings();
+      if (context != null && context.mounted) {
+        AppToast.info(context, 'Automatic backup disabled.');
+      }
+      return true;
     }
+
+    // Check & request storage permission (just like Backup Now and Restore)
+    final hasPermission = await BackupService.checkAndRequestStoragePermission();
+    state = state.copyWith(hasStoragePermission: hasPermission);
+
+    if (!hasPermission) {
+      if (context != null && context.mounted) {
+        AppToast.error(
+          context,
+          'Storage permission is required to enable automatic backups.',
+        );
+      }
+      // Revert/keep state as false
+      state = state.copyWith(isAutoBackupEnabled: false);
+      return false;
+    }
+
+    state = state.copyWith(isAutoBackupEnabled: true);
+    await _persistSettings();
+    await refreshLocalBackupsList();
+
+    if (context != null && context.mounted) {
+      AppToast.success(
+        context,
+        'Automatic backup enabled (${state.frequency.label}).',
+      );
+    }
+
+    unawaited(checkAndRunAutoBackup(db));
+    return true;
+  }
+
+  /// Explicitly requests storage permission (e.g. from warning banner)
+  Future<bool> requestStoragePermission(BuildContext context) async {
+    final hasPermission = await BackupService.checkAndRequestStoragePermission();
+    state = state.copyWith(hasStoragePermission: hasPermission);
+    if (!mounted) return hasPermission;
+
+    if (context.mounted) {
+      if (hasPermission) {
+        AppToast.success(context, 'Storage permission granted!');
+      } else {
+        AppToast.error(context, 'Storage permission was not granted.');
+      }
+    }
+    if (hasPermission) {
+      await refreshLocalBackupsList();
+    }
+    return hasPermission;
   }
 
   Future<void> setFrequency(AutoBackupFrequency freq) async {
@@ -211,6 +272,15 @@ class BackupNotifier extends StateNotifier<BackupState> {
   }
 
   Future<void> changeBackupDirectory(BuildContext context) async {
+    final hasPermission = await BackupService.checkAndRequestStoragePermission();
+    state = state.copyWith(hasStoragePermission: hasPermission);
+    if (!hasPermission) {
+      if (context.mounted) {
+        AppToast.error(context, 'Storage permission is required to choose a custom backup folder.');
+      }
+      return;
+    }
+
     try {
       final selectedDirectory = await FilePicker.getDirectoryPath();
       if (selectedDirectory != null && selectedDirectory.trim().isNotEmpty) {
@@ -241,11 +311,37 @@ class BackupNotifier extends StateNotifier<BackupState> {
     try {
       final dir = await BackupService.getBackupDirectory(customPath: state.customBackupDirectory);
       if (!mounted) return;
-      final files = dir
-          .listSync()
-          .whereType<File>()
-          .where((f) => f.path.endsWith('.ctbackup') || f.path.endsWith('.json'))
-          .toList();
+      final files = <File>[];
+      if (await dir.exists()) {
+        files.addAll(
+          dir
+              .listSync()
+              .whereType<File>()
+              .where((f) => f.path.endsWith('.ctbackup') || f.path.endsWith('.json')),
+        );
+      }
+
+      // Also check legacy ClassTrack/backups if dir is default and legacy directory exists
+      if (state.customBackupDirectory == null && !kIsWeb && Platform.isAndroid) {
+        try {
+          final legacyDirs = [
+            Directory('/storage/emulated/0/ClassTrack/backups'),
+            Directory('/storage/emulated/0/Download/ClassTrack/backups'),
+            Directory('/storage/emulated/0/Documents/ClassTrack/backups'),
+          ];
+          for (final legDir in legacyDirs) {
+            if (legDir.path != dir.path && await legDir.exists()) {
+              for (final f in legDir.listSync().whereType<File>()) {
+                if ((f.path.endsWith('.ctbackup') || f.path.endsWith('.json')) &&
+                    !files.any((existing) => existing.path == f.path)) {
+                  files.add(f);
+                }
+              }
+            }
+          }
+        } catch (_) {}
+      }
+
       files.sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
       if (!mounted) return;
       state = state.copyWith(
@@ -262,6 +358,7 @@ class BackupNotifier extends StateNotifier<BackupState> {
   }) async {
     // Check & request storage permission
     final hasPermission = await BackupService.checkAndRequestStoragePermission();
+    state = state.copyWith(hasStoragePermission: hasPermission);
     if (!hasPermission) {
       if (context != null && context.mounted) {
         AppToast.error(context, 'Storage permission is required to save backup snapshots.');
@@ -331,6 +428,7 @@ class BackupNotifier extends StateNotifier<BackupState> {
   Future<bool> restoreBackupFromFile(BuildContext context) async {
     // Check & request storage permission (same as Backup Now)
     final hasPermission = await BackupService.checkAndRequestStoragePermission();
+    state = state.copyWith(hasStoragePermission: hasPermission);
     if (!hasPermission) {
       if (context.mounted) {
         AppToast.error(context, 'Storage permission is required to restore backup files.');
@@ -502,6 +600,10 @@ class BackupNotifier extends StateNotifier<BackupState> {
     if (_isPerformingBackup || state.isBackingUp || state.isRestoring) return;
 
     if (!isAutoBackupDue()) return;
+
+    final hasPermission = await BackupService.hasStoragePermission();
+    state = state.copyWith(hasStoragePermission: hasPermission);
+    if (!hasPermission) return;
 
     _isPerformingBackup = true;
     try {
