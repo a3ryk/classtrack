@@ -229,7 +229,7 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
                           onTap: () {
                             showLicensePage(
                               context: context,
-                              applicationName: 'ClassTrack',
+                              applicationName: 'Attendly',
                               applicationVersion: 'v${updateState.currentVersion}',
                             );
                           },

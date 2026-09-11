@@ -766,7 +766,7 @@ void main() {
       await tester.tap(find.text('Open Dialog'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Welcome to ClassTrack'), findsOneWidget);
+      expect(find.text('Welcome to Attendly'), findsOneWidget);
       expect(find.text("I'm New Here"), findsOneWidget);
       expect(find.text("I'm Familiar"), findsOneWidget);
       expect(find.text('Have a backup file? Restore from .ctbackup'), findsOneWidget);

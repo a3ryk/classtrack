@@ -12,7 +12,7 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <application
-        android:label="ClassTrack"
+        android:label="Attendly"
         android:name="${applicationName}"
         android:enableOnBackInvokedCallback="true"
         android:requestLegacyExternalStorage="true"

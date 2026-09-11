@@ -44,7 +44,7 @@ class WidgetSyncService {
 
     if (isUnsetSemester) {
       nextClassState = 'NO_SEMESTER';
-      nextClassSubject = 'Welcome to ClassTrack';
+      nextClassSubject = 'Welcome to Attendly';
       nextClassTime = 'Tap to configure semester';
       nextClassCountdown = 'Setup Required';
       nextClassStatusDot = 0xFF3B82F6; // Blue

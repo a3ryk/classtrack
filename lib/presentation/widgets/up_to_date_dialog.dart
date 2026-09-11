@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 
 class UpToDateDialog extends StatelessWidget {
@@ -58,7 +58,7 @@ class UpToDateDialog extends StatelessWidget {
 
               // Subtitle
               Text(
-                'ClassTrack v$currentVersion is the latest version. You have all current features and enhancements.',
+                'Attendly v$currentVersion is the latest version. You have all current features and enhancements.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 12,

@@ -83,7 +83,7 @@ class _AppWalkthroughOverlayState extends State<AppWalkthroughOverlay> {
     ),
     WalkthroughStepData(
       title: '7. Profile, Backups & Exports',
-      description: 'ClassTrack is 100% offline. Generate multi-date PDF/Excel attendance registers, configure your student profile, and create encrypted .ctbackup snapshots.',
+      description: 'Attendly is 100% offline. Generate multi-date PDF/Excel attendance registers, configure your student profile, and create encrypted .ctbackup snapshots.',
       icon: Icons.security_rounded,
       targetTabIndex: 0,
       badgeText: 'OFFLINE & PRIVACY',

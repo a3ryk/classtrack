@@ -60,7 +60,7 @@ void main() {
       );
 
       expect(payload['next_class_state'], 'NO_SEMESTER');
-      expect(payload['next_class_subject'], 'Welcome to ClassTrack');
+      expect(payload['next_class_subject'], 'Welcome to Attendly');
       expect(payload['next_class_time'], 'Tap to configure semester');
       expect(payload['next_class_countdown'], 'Setup Required');
     });

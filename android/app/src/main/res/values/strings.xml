@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">ClassTrack</string>
-    <string name="widget_next_class_name">ClassTrack: Next Up</string>
+    <string name="app_name">Attendly</string>
+    <string name="widget_next_class_name">Attendly: Next Up</string>
     <string name="widget_next_class_desc">Compact pill showing your ongoing or next upcoming class</string>
-    <string name="widget_today_agenda_name">ClassTrack: Today\'s Agenda</string>
+    <string name="widget_today_agenda_name">Attendly: Today\'s Agenda</string>
     <string name="widget_today_agenda_desc">Full day schedule with quick mark present or absent actions</string>
-    <string name="widget_attendance_gauge_name">ClassTrack: Attendance Gauge</string>
+    <string name="widget_attendance_gauge_name">Attendly: Attendance Gauge</string>
     <string name="widget_attendance_gauge_desc">Visual progress gauge showing overall attendance and safe bunks</string>
 </resources>

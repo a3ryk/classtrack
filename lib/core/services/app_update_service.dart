@@ -387,7 +387,7 @@ class AppReleaseInfo {
       buildNumber: buildNumber,
       minSupportedVersion: minSupported,
       releaseDate: publishedAt.isNotEmpty ? publishedAt.split('T').first : '',
-      releaseTitle: (json['name'] ?? 'ClassTrack $tagName').toString(),
+      releaseTitle: (json['name'] ?? 'Attendly $tagName').toString(),
       changelog: changelog,
       releaseNotesMarkdown: cleanMarkdown.isNotEmpty ? cleanMarkdown : null,
       downloadUrl: apkUrl,
@@ -422,7 +422,7 @@ class AppReleaseInfo {
     final cleanVersion = tag.replaceAll(RegExp(r'^[vV]'), '');
 
     // Title
-    String title = 'ClassTrack $cleanVersion';
+    String title = 'Attendly $cleanVersion';
     final titleMatch = RegExp(r'<title>(.*?)</title>').firstMatch(entryContent);
     if (titleMatch != null) {
       title = _decodeHtmlEntities(titleMatch.group(1)!.trim());

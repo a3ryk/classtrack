@@ -13,13 +13,13 @@ void main() {
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   runApp(
     const ProviderScope(
-      child: ClasstrackApp(),
+      child: AttendlyApp(),
     ),
   );
 }
 
-class ClasstrackApp extends ConsumerWidget {
-  const ClasstrackApp({super.key});
+class AttendlyApp extends ConsumerWidget {
+  const AttendlyApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -45,7 +45,7 @@ class ClasstrackApp extends ConsumerWidget {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: overlayStyle,
       child: MaterialApp(
-        title: 'ClassTrack',
+        title: 'Attendly',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
@@ -76,3 +76,6 @@ class ClasstrackApp extends ConsumerWidget {
     );
   }
 }
+
+/// Backward compatibility alias for tests and existing integrations
+typedef ClasstrackApp = AttendlyApp;

@@ -308,7 +308,7 @@ class BackupNotifier extends StateNotifier<BackupState> {
         await SharePlus.instance.share(
           ShareParams(
             files: [XFile(file.path)],
-            text: 'ClassTrack Full Backup (${BackupService.formatDeviceTimestamp(now)})',
+            text: 'Attendly Full Backup (${BackupService.formatDeviceTimestamp(now)})',
           ),
         );
       }
@@ -486,7 +486,7 @@ class BackupNotifier extends StateNotifier<BackupState> {
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile(file.path)],
-          text: 'ClassTrack Backup (${file.path.split(Platform.pathSeparator).last})',
+          text: 'Attendly Backup (${file.path.split(Platform.pathSeparator).last})',
         ),
       );
     } catch (_) {}

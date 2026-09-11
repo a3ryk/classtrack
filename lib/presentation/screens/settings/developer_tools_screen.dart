@@ -503,7 +503,7 @@ class _DeveloperToolsScreenState extends ConsumerState<DeveloperToolsScreen> {
                                 buildNumber: 24,
                                 minSupportedVersion: '0.19.0',
                                 releaseDate: '25/08/2026',
-                                releaseTitle: 'ClassTrack v0.20.4',
+                                releaseTitle: 'Attendly v0.20.4',
                                 changelog: [
                                   '✨ Added 1-tap batch timetable setup for recurring days',
                                   '✨ Real-time dynamic attendance impact forecast on Today tab',
@@ -534,7 +534,7 @@ class _DeveloperToolsScreenState extends ConsumerState<DeveloperToolsScreen> {
                                 buildNumber: 30,
                                 minSupportedVersion: '1.0.0',
                                 releaseDate: '25/08/2026',
-                                releaseTitle: 'ClassTrack v1.0.0 Major Release',
+                                releaseTitle: 'Attendly v1.0.0 Major Release',
                                 changelog: [
                                   '⚠️ Critical database schema migration required to prevent data loss',
                                   '🧩 Complete security and encryption overhaul for offline storage',
@@ -750,7 +750,7 @@ class _DeveloperToolsScreenState extends ConsumerState<DeveloperToolsScreen> {
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile(file.path)],
-          text: 'ClassTrack SQLite Database Backup (${DateFormatter.formatDateIndian(DateTime.now())})',
+          text: 'Attendly SQLite Database Backup (${DateFormatter.formatDateIndian(DateTime.now())})',
         ),
       );
     } catch (e) {

@@ -244,7 +244,7 @@ class BackupRestoreScreen extends ConsumerWidget {
                             child: Text(
                               backupState.customBackupDirectory != null
                                   ? 'Custom Folder: ${backupState.resolvedBackupDirectoryPath ?? backupState.customBackupDirectory}'
-                                  : 'Folder: ${backupState.resolvedBackupDirectoryPath ?? "Internal Storage/ClassTrack/backups"}',
+                                  : 'Folder: ${backupState.resolvedBackupDirectoryPath ?? "Internal Storage/Attendly/backups"}',
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: backupState.customBackupDirectory != null ? FontWeight.w600 : FontWeight.w500,

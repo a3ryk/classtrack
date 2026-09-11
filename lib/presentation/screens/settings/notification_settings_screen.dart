@@ -990,7 +990,7 @@ class _BatteryInfoSheet extends StatelessWidget {
             iconColor: AppColors.accentBlue,
             iconBg: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
             title: 'Exact Scheduled Alarms',
-            description: 'The operating system wakes ClassTrack only at your class time to post the alert, then goes right back to sleep.',
+            description: 'The operating system wakes Attendly only at your class time to post the alert, then goes right back to sleep.',
             isDark: isDark,
           ),
           const SizedBox(height: 14),

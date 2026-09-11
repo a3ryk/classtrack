@@ -39,7 +39,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
             _buildSection(
               title: '1. Local-First Architecture',
               content:
-                  'ClassTrack is engineered from the ground up as a strictly offline-first application. All information—including student names, roll numbers, university selections, course subjects, attendance logs, timetables, and notes—is saved directly to your device\'s local SQLite database.',
+                  'Attendly is engineered from the ground up as a strictly offline-first application. All information—including student names, roll numbers, university selections, course subjects, attendance logs, timetables, and notes—is saved directly to your device\'s local SQLite database.',
               cardBg: cardBg,
               borderColor: borderColor,
               isDark: isDark,
@@ -79,7 +79,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
             _buildSection(
               title: '5. Open Source Software',
               content:
-                  'ClassTrack is built using open source software components under standard permissive licenses (MIT, Apache 2.0, BSD). You can inspect third-party open source licenses anytime in the Legal section.',
+                  'Attendly is built using open source software components under standard permissive licenses (MIT, Apache 2.0, BSD). You can inspect third-party open source licenses anytime in the Legal section.',
               cardBg: cardBg,
               borderColor: borderColor,
               isDark: isDark,

@@ -84,18 +84,18 @@ class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> wit
       if (pngBytes != null) {
         final tempDir = await getTemporaryDirectory();
         final sanitizedName = semName.replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '_');
-        final file = File('${tempDir.path}/ClassTrack_${sanitizedName}_QR.png');
+        final file = File('${tempDir.path}/Attendly_${sanitizedName}_QR.png');
         await file.writeAsBytes(pngBytes);
 
         await SharePlus.instance.share(
           ShareParams(
             files: [XFile(file.path)],
-            text: 'ClassTrack Timetable for $semName',
+            text: 'Attendly Timetable for $semName',
           ),
         );
       } else {
         await SharePlus.instance.share(
-          ShareParams(text: 'ClassTrack Timetable Code ($semName):\n\n$payloadCode'),
+          ShareParams(text: 'Attendly Timetable Code ($semName):\n\n$payloadCode'),
         );
       }
     } catch (e) {
@@ -235,7 +235,7 @@ class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> wit
   void _processScannedCode(String rawCode) {
     final data = _decodePayload(rawCode);
     if (data == null) {
-      AppToast.error(context, 'Invalid ClassTrack timetable code');
+      AppToast.error(context, 'Invalid Attendly timetable code');
       return;
     }
 
@@ -667,7 +667,7 @@ class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> wit
                             ),
                             const SizedBox(width: 5),
                             const Text(
-                              'ClassTrack',
+                              'Attendly',
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w800,
@@ -692,7 +692,7 @@ class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> wit
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Scan with any ClassTrack camera or photo scanner',
+                  'Scan with any Attendly camera or photo scanner',
                   style: TextStyle(
                     fontSize: 11.5,
                     color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,

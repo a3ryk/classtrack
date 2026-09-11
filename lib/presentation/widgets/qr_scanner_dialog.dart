@@ -181,7 +181,7 @@ class _QrScannerDialogState extends ConsumerState<QrScannerDialog> {
                 ),
               const SizedBox(height: 12),
               Text(
-                'Point camera at classmate\'s ClassTrack QR code',
+                'Point camera at classmate\'s Attendly QR code',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 11,

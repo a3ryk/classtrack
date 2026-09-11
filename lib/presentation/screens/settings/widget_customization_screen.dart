@@ -360,7 +360,7 @@ class _WidgetCustomizationScreenState extends ConsumerState<WidgetCustomizationS
                   const SizedBox(height: 8),
                   _buildStepRow('2', 'Select "Widgets" from the launcher menu', isDark),
                   const SizedBox(height: 8),
-                  _buildStepRow('3', 'Scroll to "ClassTrack" and choose your widget size', isDark),
+                  _buildStepRow('3', 'Scroll to "Attendly" and choose your widget size', isDark),
                   const SizedBox(height: 8),
                   _buildStepRow('4', 'Drag and place it onto your home screen', isDark),
                 ],

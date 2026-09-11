@@ -45,7 +45,7 @@ class WelcomeOnboardingScreen extends ConsumerWidget {
 
               // Title
               Text(
-                'Welcome to ClassTrack',
+                'Welcome to Attendly',
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w800,

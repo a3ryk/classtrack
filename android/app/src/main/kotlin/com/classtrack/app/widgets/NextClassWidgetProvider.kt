@@ -51,7 +51,7 @@ open class NextClassWidgetProvider : HomeWidgetProvider() {
                 ?: def
         }
 
-        val subject = getString("next_class_subject", "ClassTrack")
+        val subject = getString("next_class_subject", "Attendly")
         val time = getString("next_class_time", "Tap to open timetable")
         val room = getString("next_class_room", "")
         val countdown = getString("next_class_countdown", "Next")

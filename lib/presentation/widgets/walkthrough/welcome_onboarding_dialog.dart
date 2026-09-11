@@ -51,7 +51,7 @@ class WelcomeOnboardingDialog extends StatelessWidget {
 
             // Title
             Text(
-              'Welcome to ClassTrack',
+              'Welcome to Attendly',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w800,

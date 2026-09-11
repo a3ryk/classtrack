@@ -309,7 +309,7 @@ class _AddSubjectDialogState extends ConsumerState<AddSubjectDialog> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'If you already attended classes before using ClassTrack, enter them here.',
+                          'If you already attended classes before using Attendly, enter them here.',
                           style: TextStyle(fontSize: 11, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
                         ),
                         const SizedBox(height: 8),

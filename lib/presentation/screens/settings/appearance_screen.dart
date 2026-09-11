@@ -45,7 +45,7 @@ class _AppearanceScreenState extends ConsumerState<AppearanceScreen> {
     AestheticTheme(
       id: 'classic_indigo',
       title: 'Classic Indigo',
-      subtitle: 'Signature ClassTrack aesthetic',
+      subtitle: 'Signature Attendly aesthetic',
       icon: '🎓',
       palette: [Color(0xFF6366F1), Color(0xFF3B82F6), Color(0xFF0F172A)],
       isDefault: true,

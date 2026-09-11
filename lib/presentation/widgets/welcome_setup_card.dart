@@ -103,7 +103,7 @@ class WelcomeSetupCard extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Welcome to ClassTrack',
+                      'Welcome to Attendly',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
