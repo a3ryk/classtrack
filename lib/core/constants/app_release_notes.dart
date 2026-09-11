@@ -4,20 +4,38 @@ import '../services/app_update_service.dart';
 class AppReleaseNotes {
   AppReleaseNotes._();
 
-  static const String currentVersion = '1.0.0-alpha.11';
+  static const String currentVersion = '1.0.0-alpha.12';
 
   static final Map<String, AppReleaseInfo> _releases = {
+    '1.0.0-alpha.12': const AppReleaseInfo(
+      latestVersion: '1.0.0-alpha.12',
+      buildNumber: 12,
+      minSupportedVersion: '1.0.0-alpha.11',
+      releaseDate: 'September 2026',
+      releaseTitle: 'Attendly v1.0.0-alpha.12 (Brand Identity Overhaul, Permission-Guarded Backups, Developer Release Inspector & Markdown Updater)',
+      changelog: [
+        '✨ Brand Identity Overhaul: Complete rebrand to Attendly across the entire application, system notifications, widgets, and backup schemas.',
+        '✨ Modern Launcher App Icon: Sleek new adaptive icon geometry with clean contrast and seamless integration across dark and light home screens.',
+        '✨ Automatic Backup Storage Permission Guard: Switch toggle now strictly verifies and requests Android storage permissions before activation, eliminating silent phantom backups and ensuring .ctbackup files write directly to public storage.',
+        '✨ Backward Compatible Backups: Seamlessly discovers and restores both Attendly and legacy backups (.ctbackup) without data loss.',
+        '✨ Developer Release Inspector: Explore, preview, and test any GitHub release notes directly inside the updater UI with bypass mode for mandatory update testing.',
+        '✨ Markdown Changelog & UI Polish: Floating sparkle header icon, clean text-only Done action, and direct checkmark badges without distracting container clutter.',
+        '✨ Clean Privacy Policy: Overhauled layout with minimal styling, eliminated em-dash artifacts, and optimized legibility.',
+      ],
+      isMandatory: false,
+      warningMessage: null,
+    ),
     '1.0.0-alpha.11': const AppReleaseInfo(
       latestVersion: '1.0.0-alpha.11',
       buildNumber: 11,
       minSupportedVersion: '1.0.0-alpha.11',
       releaseDate: 'September 2026',
-      releaseTitle: 'ClassTrack v1.0.0-alpha.11 (Home Screen Widgets, Crash-Proof Deserialization, Transition Wizard & Design Overhaul)',
+      releaseTitle: 'Attendly v1.0.0-alpha.11 (Home Screen Widgets, Crash-Proof Deserialization, Transition Wizard & Design Overhaul)',
       changelog: [
         '✨ Home Screen Widgets Suite: Next Up Live Pill, Today\'s Agenda (with direct attendance actions), and Attendance Gauge (with real progress bar)',
         '✨ Crash-Proof Deserialization: Polymorphic type-safe pattern matching on Android SharedPreferences eliminating Long-to-Integer ClassCastException runtime crashes',
         '✨ In-App Widget Customization Studio: Granular background opacity slider, responsive non-truncating segmented switcher, theme palettes, and realistic wallpaper backdrops',
-        '✨ Authentic Figma Design System Tokens: Replaced AI slop saturated neons with crisp ClassTrack design tokens (#1C1D22 card dark, #27282F pill dark, #2E3039 border, #10B981 emerald, #3B82F6 blue)',
+        '✨ Authentic Figma Design System Tokens: Replaced AI slop saturated neons with crisp Attendly design tokens (#1C1D22 card dark, #27282F pill dark, #2E3039 border, #10B981 emerald, #3B82F6 blue)',
         '✨ Semester Archiving & 3-Step Transition Wizard: Milestone report card, smart term name sequencer, selective subject carry-over with clean baselines, and 60 FPS shared-axis transitions',
         '✨ Semester Setup Guards: Block and guide users to create an active semester first when tapping timetable setup options on Attendance and WelcomeSetupCard',
         '✨ Classmate QR Scanner Fix: Unified QR scanning behavior on Analytics screen directly to dedicated scanner and automatic onboarding',
@@ -31,7 +49,7 @@ class AppReleaseNotes {
       buildNumber: 10,
       minSupportedVersion: '1.0.0-alpha.10',
       releaseDate: 'September 2026',
-      releaseTitle: 'ClassTrack v1.0.0-alpha.10 (Production Class Notifications, Lock Screen Actions & Safe Simulation)',
+      releaseTitle: 'Attendly v1.0.0-alpha.10 (Production Class Notifications, Lock Screen Actions & Safe Simulation)',
       changelog: [
         '✨ Real-Time Notification Attendance: Mark Present, Absent, or Cancelled directly from Android notifications with instant multi-isolate synchronization to Today and Calendar views',
         '✨ Lock Screen Attendance Actions: Quick attendance marking directly from lock screen or status bar without requiring device unlock or PIN entry',
@@ -50,7 +68,7 @@ class AppReleaseNotes {
       buildNumber: 9,
       minSupportedVersion: '1.0.0-alpha.9',
       releaseDate: 'September 2026',
-      releaseTitle: 'ClassTrack v1.0.0-alpha.9 (Extra Class Management & Fluid Animations)',
+      releaseTitle: 'Attendly v1.0.0-alpha.9 (Extra Class Management & Fluid Animations)',
       changelog: [
         '✨ Zero-Drop Changelog Parsing: In-app updater preserves complete release notes with bullet formatting and bold title recognition across GitHub API, Atom feed, and local manifest',
         '✨ Full Extra Class Management: Edit schedule timings, rooms, notes, or delete one-off extra classes directly from Today & Calendar screens with instant database and UI sync',
@@ -66,7 +84,7 @@ class AppReleaseNotes {
       buildNumber: 8,
       minSupportedVersion: '1.0.0-alpha.8',
       releaseDate: 'September 2026',
-      releaseTitle: 'ClassTrack v1.0.0-alpha.8 (GitHub Releases Engine, Calendar Slider & Subject Picker)',
+      releaseTitle: 'Attendly v1.0.0-alpha.8 (GitHub Releases Engine, Calendar Slider & Subject Picker)',
       changelog: [
         '✨ Multi-Tier GitHub Releases Priority: In-app updater checks published GitHub Releases first with rate-limit-free Atom feed fallback and hardware ABI detection (ARM64, ARMv7, x86_64, Universal)',
         '✨ Fluid Extra Class Bottom Sheet: Replaced awkward dialog popup with a tactile 320ms bottom slider sheet with side-by-side time pickers and immediate database commit',
@@ -83,7 +101,7 @@ class AppReleaseNotes {
       buildNumber: 7,
       minSupportedVersion: '1.0.0-alpha.7',
       releaseDate: 'September 2026',
-      releaseTitle: 'ClassTrack v1.0.0-alpha.7 (Notifications Hub & Multi-Channel Fix)',
+      releaseTitle: 'Attendly v1.0.0-alpha.7 (Notifications Hub & Multi-Channel Fix)',
       changelog: [
         '✨ Android Multi-Channel Sound & Vibration Routing: Registered 4 dedicated Android system channels (all, sound only, vibrate only, silent) dynamically resolving notifications according to preferences, fixing Android OS channel lock',
         '✨ Redesigned Notifications Hub: Streamlined single-word "Notifications" title across App Bar and settings menu, eliminating all redundant secondary subtext and clutter',
@@ -100,7 +118,7 @@ class AppReleaseNotes {
       buildNumber: 6,
       minSupportedVersion: '1.0.0-alpha.6',
       releaseDate: 'September 2026',
-      releaseTitle: 'ClassTrack v1.0.0-alpha.6 (Telegram Theme Transitions & Appearance Hub)',
+      releaseTitle: 'Attendly v1.0.0-alpha.6 (Telegram Theme Transitions & Appearance Hub)',
       changelog: [
         '✨ Dedicated Appearance & Themes Hub: Unified minimalist appearance screen with live interactive attendance hero, AMOLED Pure OLED Black toggle, and match-device schedule',
         '✨ Telegram-Style Radial Theme Transitions: Center-locked circular wave emanating outward for Dark and inward for Light with tuned 650ms momentum',
@@ -121,7 +139,7 @@ class AppReleaseNotes {
       buildNumber: 5,
       minSupportedVersion: '1.0.0-alpha.5',
       releaseDate: 'September 2026',
-      releaseTitle: 'ClassTrack v1.0.0-alpha.5 (Multi-Room Timetables & Smart Schedule Management)',
+      releaseTitle: 'Attendly v1.0.0-alpha.5 (Multi-Room Timetables & Smart Schedule Management)',
       changelog: [
         '✨ Dedicated Full-Screen Schedule & Room Managers: Full-screen Subject Room Manager and Reschedule Session screens replacing cramped dialog modals',
         '✨ Multi-Room Timetable Resolution: Support for subjects held across different classrooms on different days (e.g., Mon/Wed/Fri in Room 101, Tue/Thu in Lab B) with 1-tap bulk apply',
@@ -142,7 +160,7 @@ class AppReleaseNotes {
       buildNumber: 4,
       minSupportedVersion: '1.0.0-alpha.4',
       releaseDate: 'September 2026',
-      releaseTitle: 'ClassTrack v1.0.0-alpha.4 (Schedule Engine & Room Fixes)',
+      releaseTitle: 'Attendly v1.0.0-alpha.4 (Schedule Engine & Room Fixes)',
       changelog: [
         '✨ Complete Room & Class Name Persistence: Fixed Drift SQLite column updates so editing, clearing, or removing rooms, teachers, and course codes persists instantly to the database',
         '✨ Dynamic Subject Renaming Synchronization: Renaming a subject now immediately refreshes all Weekly Timetable slots, Today class cards, and Extra Classes across the entire app',
@@ -161,7 +179,7 @@ class AppReleaseNotes {
       buildNumber: 3,
       minSupportedVersion: '1.0.0-alpha.1',
       releaseDate: 'September 2026',
-      releaseTitle: 'ClassTrack v1.0.0-alpha.3 (Performance & Full Screens)',
+      releaseTitle: 'Attendly v1.0.0-alpha.3 (Performance & Full Screens)',
       changelog: [
         '✨ 120FPS Smooth Theme Transitions: Hardware-accelerated radial animations with zero frame drop jitter',
         '✨ Dedicated Full-Screen Schedule Editors: Full-screen Add/Edit Subject, Batch Add Slots, and Class Slot editors replacing cramped dialog modals',
@@ -178,7 +196,7 @@ class AppReleaseNotes {
       buildNumber: 2,
       minSupportedVersion: '1.0.0-alpha.1',
       releaseDate: 'August 2026',
-      releaseTitle: 'ClassTrack v1.0.0-alpha.2 (Timetable Sharing & OCR)',
+      releaseTitle: 'Attendly v1.0.0-alpha.2 (Timetable Sharing & OCR)',
       changelog: [
         '✨ High-Res QR Timetable Share: Instant schedule sync with sharable QR card images and batch import preview',
         '✨ AI Timetable Scanner: Convert photos and documents into timetable slots with on-device OCR',
@@ -194,7 +212,7 @@ class AppReleaseNotes {
       buildNumber: 1,
       minSupportedVersion: '1.0.0-alpha.1',
       releaseDate: 'August 2026',
-      releaseTitle: 'ClassTrack v1.0.0-alpha.1 (Foundational Release)',
+      releaseTitle: 'Attendly v1.0.0-alpha.1 (Foundational Release)',
       changelog: [
         '✨ Live Today Dashboard: Real-time lecture countdowns & 1-tap attendance marking',
         '✨ Weekly Timetable Engine: Multi-day batch repeat and custom course category tagging',

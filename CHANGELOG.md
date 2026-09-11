@@ -5,6 +5,26 @@ All notable changes to **ClassTrack** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-alpha.12] - 2026-09-12
+
+### 🌟 Brand Identity Overhaul (Attendly & New App Icon)
+- **Brand Rebranding to Attendly**: Officially renamed the app from ClassTrack to **Attendly** across the entire UI, settings, dialogs, widgets, database backups, notifications, and metadata while preserving internal package stability.
+- **Brand New App Icon**: Modernized application launcher icon with clean geometry, dark/light adaptive icon support, and refined asset bundling for Android launchers.
+- **Dual Brand Compatibility**: Full backward compatibility ensuring existing `.ctbackup` files and `ClassTrack` backup directories remain restorable and discoverable.
+
+### 🛡️ Automatic Backup Storage Permission Guard
+- **Strict Storage Permission Guard**: Toggling Automatic Backup switch now checks and requests storage permission on Android, preventing phantom "UI-only" backups into hidden sandboxes.
+- **Permission Revocation Safe**: Background auto-backup checks verify storage permissions before saving to prevent crashes and hidden writes, providing an in-app 1-tap "Grant" recovery banner.
+- **Public Directory Storage**: Directly targets `/storage/emulated/0/Attendly/backups` with fallback discovery for legacy `ClassTrack/backups`.
+
+### 🛠️ Developer Release Inspector & Markdown Updater Polish
+- **Developer Release Inspector**: Dedicated GitHub release inspector in Developer Options allowing developers and testers to pull, inspect, and preview any release notes with a testing bypass for mandatory version locks.
+- **Markdown Changelog Rendering Improvements**: GitHub Flavored Markdown parser enhancements for update screens and release notes.
+- **Visual Simplification**: Clean floating sparkle icon without box tint, clean text-only "Done" button, and direct checkmark badges without surrounding circular container clutter.
+- **Minimalist Privacy Policy**: Clean, focused layout without em-dash artifacts or clutter.
+
+---
+
 ## [1.0.0-alpha.11] - 2026-09-11
 
 ### ✨ Features & Architecture
