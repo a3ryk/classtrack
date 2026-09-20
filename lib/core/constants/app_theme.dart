@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
+import 'app_theme_tokens.dart';
+import '../theme/app_theme_registry.dart';
 
 /// Ultra-Minimalist Production Theme Architecture
 class AppTheme {
@@ -409,6 +411,216 @@ class AppTheme {
       labelLarge: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: primaryText),
       labelMedium: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500, color: secondaryText),
       labelSmall: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: secondaryText),
+    );
+  }
+
+  static TextTheme _buildCuteTextTheme(Color primaryText, Color secondaryText) {
+    return TextTheme(
+      displayLarge: GoogleFonts.quicksand(fontSize: 30, fontWeight: FontWeight.bold, color: primaryText, letterSpacing: -0.5),
+      displayMedium: GoogleFonts.quicksand(fontSize: 24, fontWeight: FontWeight.bold, color: primaryText, letterSpacing: -0.5),
+      displaySmall: GoogleFonts.quicksand(fontSize: 20, fontWeight: FontWeight.bold, color: primaryText),
+      headlineLarge: GoogleFonts.quicksand(fontSize: 20, fontWeight: FontWeight.w700, color: primaryText),
+      headlineMedium: GoogleFonts.quicksand(fontSize: 17, fontWeight: FontWeight.w700, color: primaryText),
+      headlineSmall: GoogleFonts.quicksand(fontSize: 15, fontWeight: FontWeight.w700, color: primaryText),
+      titleLarge: GoogleFonts.quicksand(fontSize: 15, fontWeight: FontWeight.w700, color: primaryText),
+      titleMedium: GoogleFonts.quicksand(fontSize: 14, fontWeight: FontWeight.w700, color: primaryText),
+      titleSmall: GoogleFonts.quicksand(fontSize: 13, fontWeight: FontWeight.w600, color: secondaryText),
+      bodyLarge: GoogleFonts.quicksand(fontSize: 15, fontWeight: FontWeight.w600, color: primaryText),
+      bodyMedium: GoogleFonts.quicksand(fontSize: 14, fontWeight: FontWeight.w500, color: primaryText),
+      bodySmall: GoogleFonts.quicksand(fontSize: 12, fontWeight: FontWeight.w500, color: secondaryText),
+      labelLarge: GoogleFonts.quicksand(fontSize: 13, fontWeight: FontWeight.w700, color: primaryText),
+      labelMedium: GoogleFonts.quicksand(fontSize: 12, fontWeight: FontWeight.w600, color: secondaryText),
+      labelSmall: GoogleFonts.quicksand(fontSize: 11, fontWeight: FontWeight.w600, color: secondaryText),
+    );
+  }
+
+  /// Extensible theme builder delegating to registered theme styles
+  static ThemeData buildTheme({
+    required String styleId,
+    required Brightness brightness,
+    bool pureOledBlack = false,
+  }) {
+    if (AppThemeRegistry.isCute(styleId)) {
+      return _buildCuteTheme(brightness: brightness, pureOledBlack: pureOledBlack);
+    }
+
+    if (brightness == Brightness.dark) {
+      if (pureOledBlack) {
+        return darkTheme.copyWith(
+          scaffoldBackgroundColor: Colors.black,
+          extensions: [AppThemeTokens.classicDark.copyWith(scaffoldBg: Colors.black)],
+        );
+      }
+      return darkTheme.copyWith(extensions: [AppThemeTokens.classicDark]);
+    }
+    return lightTheme.copyWith(extensions: [AppThemeTokens.classicLight]);
+  }
+
+  static ThemeData _buildCuteTheme({
+    required Brightness brightness,
+    bool pureOledBlack = false,
+  }) {
+    final isDark = brightness == Brightness.dark;
+    final tokens = isDark ? AppThemeTokens.cuteSproutDark : AppThemeTokens.cuteSproutLight;
+    final scaffoldBg = (isDark && pureOledBlack) ? Colors.black : tokens.scaffoldBg;
+    final primaryText = tokens.textPrimary;
+    final secondaryText = tokens.textSecondary;
+
+    final colorScheme = isDark
+        ? ColorScheme.dark(
+            primary: tokens.primaryAccent,
+            onPrimary: tokens.scaffoldBg,
+            primaryContainer: tokens.cardBg,
+            onPrimaryContainer: tokens.textPrimary,
+            secondary: tokens.secondaryAccent,
+            onSecondary: Colors.white,
+            surface: tokens.cardBg,
+            onSurface: tokens.textPrimary,
+            error: tokens.absentColor,
+            onError: Colors.black,
+            outline: tokens.cardBorder,
+          )
+        : ColorScheme.light(
+            primary: tokens.primaryAccent,
+            onPrimary: Colors.white,
+            primaryContainer: tokens.cardBg,
+            onPrimaryContainer: tokens.textPrimary,
+            secondary: tokens.secondaryAccent,
+            onSecondary: Colors.white,
+            surface: tokens.cardBg,
+            onSurface: tokens.textPrimary,
+            error: tokens.absentColor,
+            onError: Colors.white,
+            outline: tokens.cardBorder,
+          );
+
+    return ThemeData(
+      useMaterial3: true,
+      colorScheme: colorScheme,
+      scaffoldBackgroundColor: scaffoldBg,
+      extensions: [
+        pureOledBlack && isDark ? tokens.copyWith(scaffoldBg: Colors.black) : tokens,
+      ],
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.windows: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.linux: CupertinoPageTransitionsBuilder(),
+        },
+      ),
+      textTheme: _buildCuteTextTheme(primaryText, secondaryText),
+      appBarTheme: AppBarTheme(
+        backgroundColor: scaffoldBg,
+        elevation: 0,
+        centerTitle: false,
+        scrolledUnderElevation: 0,
+        iconTheme: IconThemeData(color: primaryText, size: 20),
+        titleTextStyle: GoogleFonts.quicksand(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: primaryText,
+        ),
+      ),
+      cardTheme: CardThemeData(
+        color: tokens.cardBg,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(tokens.cardRadius),
+          side: BorderSide(color: tokens.cardBorder, width: 1),
+        ),
+        margin: EdgeInsets.zero,
+      ),
+      dividerTheme: DividerThemeData(
+        color: tokens.cardBorder,
+        thickness: 1,
+        space: 1,
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: tokens.cardBg,
+        surfaceTintColor: Colors.transparent,
+        titleTextStyle: GoogleFonts.quicksand(
+          fontSize: 18,
+          fontWeight: FontWeight.w800,
+          color: primaryText,
+        ),
+        contentTextStyle: GoogleFonts.quicksand(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          color: secondaryText,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(tokens.sheetRadius),
+          side: BorderSide(color: tokens.cardBorder, width: 1),
+        ),
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: tokens.cardBg,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(tokens.sheetRadius)),
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          elevation: 0,
+          backgroundColor: tokens.primaryAccent,
+          foregroundColor: isDark ? const Color(0xFF122419) : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(tokens.buttonRadius)),
+          textStyle: GoogleFonts.quicksand(fontWeight: FontWeight.bold, fontSize: 13.5),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(tokens.buttonRadius)),
+          side: BorderSide(color: tokens.cardBorder),
+          textStyle: GoogleFonts.quicksand(fontWeight: FontWeight.w600, fontSize: 13),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: tokens.primaryAccent,
+          textStyle: GoogleFonts.quicksand(fontWeight: FontWeight.w700),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: isDark ? const Color(0xFF244533) : const Color(0xFFF4F8F1),
+        hintStyle: TextStyle(
+          color: tokens.textMuted,
+          fontSize: 13.5,
+          fontWeight: FontWeight.normal,
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: tokens.cardBorder),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: tokens.cardBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: tokens.primaryAccent, width: 1.5),
+        ),
+      ),
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: scaffoldBg,
+        selectedItemColor: tokens.primaryAccent,
+        unselectedItemColor: tokens.textMuted,
+        type: BottomNavigationBarType.fixed,
+        elevation: 0,
+        selectedLabelStyle: GoogleFonts.quicksand(fontSize: 11, fontWeight: FontWeight.w700),
+        unselectedLabelStyle: GoogleFonts.quicksand(fontSize: 11, fontWeight: FontWeight.w600),
+      ),
+      snackBarTheme: const SnackBarThemeData(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 }

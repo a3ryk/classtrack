@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../presentation/providers/theme_provider.dart';
+import '../../presentation/providers/app_theme_style_provider.dart';
 
 /// Global controller to trigger soothing circular theme transitions
 class ThemeTransition {
@@ -38,6 +39,25 @@ class ThemeTransition {
 
     await state.startTransition(ref, newMode, origin: origin);
   }
+
+  /// Triggers a circular radial wave theme style change originating from [origin]
+  static Future<void> switchThemeStyle(
+    BuildContext context,
+    WidgetRef ref,
+    String newStyleId, {
+    Offset? origin,
+    VoidCallback? onComplete,
+  }) async {
+    final state = _state;
+    if (state == null) {
+      await ref.read(appThemeStyleProvider.notifier).setThemeStyle(newStyleId);
+      onComplete?.call();
+      return;
+    }
+    if (state.isAnimating) return;
+
+    await state.startStyleTransition(ref, newStyleId, origin: origin, onComplete: onComplete);
+  }
 }
 
 /// Root widget that wraps the application to provide soothing radial theme transitions
@@ -60,6 +80,9 @@ class ThemeTransitionWrapperState extends ConsumerState<ThemeTransitionWrapper>
   bool _isRevealingDark = true;
   bool _isCapturing = false;
   bool _isTransitionActive = false;
+  bool _isStyleTransition = false;
+  Color _styleWaveColor = const Color(0xFF7CB342);
+  VoidCallback? _onStyleTransitionComplete;
 
   /// Returns true if a transition is in progress and visually active
   bool get isAnimating =>
@@ -78,7 +101,10 @@ class ThemeTransitionWrapperState extends ConsumerState<ThemeTransitionWrapper>
       curve: Curves.easeInOutCubic,
     )..addStatusListener((status) {
         if (status == AnimationStatus.completed) {
+          final cb = _onStyleTransitionComplete;
+          _onStyleTransitionComplete = null;
           _cleanupSnapshot();
+          cb?.call();
         }
       });
   }
@@ -86,6 +112,7 @@ class ThemeTransitionWrapperState extends ConsumerState<ThemeTransitionWrapper>
   void _cleanupSnapshot() {
     _isCapturing = false;
     _isTransitionActive = false;
+    _isStyleTransition = false;
     final old = _capturedImage;
     if (_capturedImage != null) {
       setState(() {
@@ -178,6 +205,78 @@ class ThemeTransitionWrapperState extends ConsumerState<ThemeTransitionWrapper>
     }
   }
 
+  /// Triggers a soothing circular radial wave reveal when switching theme style
+  Future<void> startStyleTransition(
+    WidgetRef ref,
+    String newStyleId, {
+    Offset? origin,
+    VoidCallback? onComplete,
+  }) async {
+    if (isAnimating) return;
+    _cleanupSnapshot();
+
+    try {
+      final currentStyle = ref.read(appThemeStyleProvider);
+      if (currentStyle == newStyleId) {
+        onComplete?.call();
+        return;
+      }
+
+      final waveColor = newStyleId == 'cute_sprout'
+          ? const Color(0xFF7CB342)
+          : const Color(0xFF6366F1);
+
+      _isCapturing = true;
+
+      final boundary = _boundaryKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) {
+        _isCapturing = false;
+        await ref.read(appThemeStyleProvider.notifier).setThemeStyle(newStyleId);
+        onComplete?.call();
+        return;
+      }
+
+      final size = MediaQuery.maybeOf(context)?.size ?? Size.zero;
+      final devicePixelRatio = MediaQuery.maybeOf(context)?.devicePixelRatio ??
+          WidgetsBinding.instance.platformDispatcher.views.first.devicePixelRatio;
+      final defaultOrigin = Offset(size.width / 2, size.height / 2);
+
+      final image = await boundary.toImage(pixelRatio: devicePixelRatio);
+      if (!mounted) {
+        image.dispose();
+        _isCapturing = false;
+        return;
+      }
+
+      setState(() {
+        _capturedImage = image;
+        _origin = origin ?? defaultOrigin;
+        _isStyleTransition = true;
+        _styleWaveColor = waveColor;
+        _onStyleTransitionComplete = onComplete;
+        _isTransitionActive = true;
+      });
+
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) {
+          _cleanupSnapshot();
+          return;
+        }
+        await ref.read(appThemeStyleProvider.notifier).setThemeStyle(newStyleId);
+        if (mounted) {
+          _isCapturing = false;
+          _animController.forward(from: 0.0);
+        } else {
+          _cleanupSnapshot();
+        }
+      });
+    } catch (_) {
+      _cleanupSnapshot();
+      await ref.read(appThemeStyleProvider.notifier).setThemeStyle(newStyleId);
+      onComplete?.call();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -198,12 +297,19 @@ class ThemeTransitionWrapperState extends ConsumerState<ThemeTransitionWrapper>
                   animation: _animation,
                   builder: (context, _) {
                     return CustomPaint(
-                      painter: _RadialRevealPainter(
-                        image: _capturedImage!,
-                        progress: _animation.value,
-                        origin: _origin,
-                        isRevealingDark: _isRevealingDark,
-                      ),
+                      painter: _isStyleTransition
+                          ? _StyleRadialRevealPainter(
+                              image: _capturedImage!,
+                              progress: _animation.value,
+                              origin: _origin,
+                              accentColor: _styleWaveColor,
+                            )
+                          : _RadialRevealPainter(
+                              image: _capturedImage!,
+                              progress: _animation.value,
+                              origin: _origin,
+                              isRevealingDark: _isRevealingDark,
+                            ),
                     );
                   },
                 ),
@@ -212,6 +318,77 @@ class ThemeTransitionWrapperState extends ConsumerState<ThemeTransitionWrapper>
           ),
       ],
     );
+  }
+}
+
+class _StyleRadialRevealPainter extends CustomPainter {
+  final ui.Image image;
+  final double progress;
+  final Offset origin;
+  final Color accentColor;
+
+  _StyleRadialRevealPainter({
+    required this.image,
+    required this.progress,
+    required this.origin,
+    required this.accentColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (progress >= 1.0) return;
+
+    final maxDx = math.max(origin.dx, size.width - origin.dx);
+    final maxDy = math.max(origin.dy, size.height - origin.dy);
+    final maxRadius = math.sqrt(maxDx * maxDx + maxDy * maxDy) * 1.05;
+    final currentRadius = maxRadius * progress;
+
+    final double masterOpacity = progress > 0.88
+        ? (1.0 - (progress - 0.88) / 0.12).clamp(0.0, 1.0)
+        : 1.0;
+
+    canvas.save();
+
+    // Outer rectangle minus expanding circle at origin (reveals new theme underneath)
+    final path = Path()
+      ..addRect(Rect.fromLTWH(0, 0, size.width, size.height))
+      ..addOval(Rect.fromCircle(center: origin, radius: currentRadius))
+      ..fillType = PathFillType.evenOdd;
+
+    canvas.clipPath(path);
+
+    final srcRect = Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble());
+    final dstRect = Rect.fromLTWH(0, 0, size.width, size.height);
+    final paint = Paint()
+      ..filterQuality = FilterQuality.medium
+      ..color = Colors.white.withValues(alpha: masterOpacity);
+
+    canvas.drawImageRect(image, srcRect, dstRect, paint);
+    canvas.restore();
+
+    // Glowing ripple wave front along the perimeter
+    if (currentRadius > 0 && progress < 0.95) {
+      final ringAlpha = (1.0 - progress).clamp(0.0, 1.0) * 0.75;
+      final ringPaint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3.5
+        ..color = accentColor.withValues(alpha: ringAlpha);
+      canvas.drawCircle(origin, currentRadius, ringPaint);
+
+      final glowPaint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 8.0
+        ..color = accentColor.withValues(alpha: ringAlpha * 0.35);
+      canvas.drawCircle(origin, currentRadius, glowPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _StyleRadialRevealPainter oldDelegate) {
+    return oldDelegate.progress != progress ||
+        oldDelegate.image != image ||
+        oldDelegate.origin != origin ||
+        oldDelegate.accentColor != accentColor;
   }
 }
 
