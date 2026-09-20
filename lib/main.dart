@@ -6,6 +6,7 @@ import 'core/constants/app_theme.dart';
 import 'core/ui/theme_transition_wrapper.dart';
 import 'presentation/providers/app_state_provider.dart';
 import 'presentation/providers/theme_provider.dart';
+import 'presentation/providers/app_theme_style_provider.dart';
 import 'presentation/screens/main_shell.dart';
 
 void main() {
@@ -24,6 +25,7 @@ class AttendlyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
+    final themeStyle = ref.watch(appThemeStyleProvider);
     final initAsync = ref.watch(appInitializationProvider);
 
     final isDark = themeMode == ThemeMode.dark ||
@@ -47,8 +49,8 @@ class AttendlyApp extends ConsumerWidget {
       child: MaterialApp(
         title: 'Attendly',
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
+        theme: AppTheme.buildTheme(styleId: themeStyle, brightness: Brightness.light),
+        darkTheme: AppTheme.buildTheme(styleId: themeStyle, brightness: Brightness.dark),
         themeMode: themeMode,
         themeAnimationDuration: Duration.zero,
         locale: const Locale('en', 'IN'),

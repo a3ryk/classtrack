@@ -589,6 +589,11 @@ final realtimeClockProvider = StreamProvider<DateTime>((ref) {
 });
 
 // ==========================================
+// 8.6. MAIN SHELL ACTIVE TAB PROVIDER
+// ==========================================
+final mainShellTabProvider = StateProvider<int>((ref) => 0);
+
+// ==========================================
 // 9. DYNAMIC SUBJECTS PROVIDER (SQLite Persisted)
 // ==========================================
 final subjectsProvider = StateNotifierProvider<SubjectsNotifier, List<SubjectEntity>>((ref) {
