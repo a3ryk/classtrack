@@ -10,7 +10,7 @@ class AppReleaseNotes {
     '2.0.0-alpha.1': const AppReleaseInfo(
       latestVersion: '2.0.0-alpha.1',
       buildNumber: 15,
-      minSupportedVersion: '1.0.0-alpha.13',
+      minSupportedVersion: '0.0.1',
       releaseDate: 'September 2026',
       releaseTitle: 'Attendly v2.0.0-alpha.1 (Package Identity & Signature Modernization)',
       changelog: [
