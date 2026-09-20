@@ -1,4 +1,4 @@
-package com.classtrack.app
+﻿package com.attendly
 
 import android.content.Intent
 import android.net.Uri
@@ -12,7 +12,7 @@ import java.io.File
 import android.provider.Settings
 
 class MainActivity : FlutterActivity() {
-    private val CHANNEL = "com.classtrack.app/package_installer"
+    private val CHANNEL = "com.attendly/package_installer"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)

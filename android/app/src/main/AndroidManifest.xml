@@ -73,9 +73,9 @@
             </intent-filter>
         </receiver>
 
-        <!-- ClassTrack Home Screen Widgets -->
+        <!-- Attendly Home Screen Widgets -->
         <receiver
-            android:name="com.classtrack.app.widgets.NextClassWidgetProvider"
+            android:name="com.attendly.widgets.NextClassWidgetProvider"
             android:label="@string/widget_next_class_name"
             android:exported="true">
             <intent-filter>
@@ -87,7 +87,7 @@
         </receiver>
 
         <receiver
-            android:name="com.classtrack.app.widgets.TodayAgendaWidgetProvider"
+            android:name="com.attendly.widgets.TodayAgendaWidgetProvider"
             android:label="@string/widget_today_agenda_name"
             android:exported="true">
             <intent-filter>
@@ -99,7 +99,7 @@
         </receiver>
 
         <receiver
-            android:name="com.classtrack.app.widgets.AttendanceGaugeWidgetProvider"
+            android:name="com.attendly.widgets.AttendanceGaugeWidgetProvider"
             android:label="@string/widget_attendance_gauge_name"
             android:exported="true">
             <intent-filter>
@@ -111,10 +111,10 @@
         </receiver>
 
         <receiver
-            android:name="com.classtrack.app.widgets.WidgetActionReceiver"
+            android:name="com.attendly.widgets.WidgetActionReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.classtrack.app.widgets.ACTION_MARK_ATTENDANCE" />
+                <action android:name="com.attendly.widgets.ACTION_MARK_ATTENDANCE" />
             </intent-filter>
         </receiver>
     </application>

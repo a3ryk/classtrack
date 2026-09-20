@@ -1,10 +1,10 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:classtrack/core/services/widget_sync_service.dart';
-import 'package:classtrack/domain/entities/attendance_stats.dart';
-import 'package:classtrack/domain/entities/class_session_entity.dart';
-import 'package:classtrack/domain/entities/semester_entity.dart';
-import 'package:classtrack/domain/entities/widget_settings_entity.dart';
-import 'package:classtrack/domain/services/schedule_engine.dart';
+﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:attendly/core/services/widget_sync_service.dart';
+import 'package:attendly/domain/entities/attendance_stats.dart';
+import 'package:attendly/domain/entities/class_session_entity.dart';
+import 'package:attendly/domain/entities/semester_entity.dart';
+import 'package:attendly/domain/entities/widget_settings_entity.dart';
+import 'package:attendly/domain/services/schedule_engine.dart';
 
 void main() {
   group('WidgetSyncService Payload & Edge Case Tests', () {

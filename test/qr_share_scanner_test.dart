@@ -1,13 +1,13 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:classtrack/data/database/app_database.dart';
-import 'package:classtrack/presentation/providers/app_state_provider.dart';
-import 'package:classtrack/presentation/screens/share/qr_share_scanner_screen.dart';
-import 'package:classtrack/presentation/widgets/welcome_setup_card.dart';
+import 'package:attendly/data/database/app_database.dart';
+import 'package:attendly/presentation/providers/app_state_provider.dart';
+import 'package:attendly/presentation/screens/share/qr_share_scanner_screen.dart';
+import 'package:attendly/presentation/widgets/welcome_setup_card.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

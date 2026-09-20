@@ -120,7 +120,7 @@ class NotificationService {
   static final StreamController<String> onTestNotificationAction =
       StreamController<String>.broadcast();
 
-  static const String isolateActionPortName = 'classtrack_notification_action_port';
+  static const String isolateActionPortName = 'attendly_notification_action_port';
   ReceivePort? _actionReceivePort;
 
   /// Sets up cross-isolate communication so actions executed in background isolates
@@ -170,26 +170,26 @@ class NotificationService {
   static const int generalNotificationId = 1004;
   static const int updateNotificationId = 1005;
 
-  static const String exportChannelId = 'classtrack_exports';
+  static const String exportChannelId = 'attendly_exports';
   static const String exportChannelName = 'Export & Reports';
 
-  static const String backupChannelId = 'classtrack_backups';
+  static const String backupChannelId = 'attendly_backups';
   static const String backupChannelName = 'Backups & Sync';
 
-  static const String generalChannelId = 'classtrack_general';
-  static const String generalChannelName = 'ClassTrack Alerts';
+  static const String generalChannelId = 'attendly_general';
+  static const String generalChannelName = 'Attendly Alerts';
 
-  static const String updateChannelId = 'classtrack_updates';
+  static const String updateChannelId = 'attendly_updates';
   static const String updateChannelName = 'App Updates';
 
-  static const String classRemindersChannelId = 'classtrack_class_reminders';
+  static const String classRemindersChannelId = 'attendly_class_reminders';
   static const String classRemindersChannelName = 'Class Reminders & Attendance';
 
   // Dedicated sound & vibration channels for Android 8+
-  static const String channelRemindersAll = 'classtrack_reminders_all';
-  static const String channelRemindersSoundOnly = 'classtrack_reminders_sound';
-  static const String channelRemindersVibrateOnly = 'classtrack_reminders_vibrate';
-  static const String channelRemindersSilent = 'classtrack_reminders_silent';
+  static const String channelRemindersAll = 'attendly_reminders_all';
+  static const String channelRemindersSoundOnly = 'attendly_reminders_sound';
+  static const String channelRemindersVibrateOnly = 'attendly_reminders_vibrate';
+  static const String channelRemindersSilent = 'attendly_reminders_silent';
 
   /// Resolves the exact system notification channel based on user sound & vibrate preferences
   static String resolveChannelId({required bool sound, required bool vibrate}) {
@@ -449,7 +449,7 @@ class NotificationService {
         autoCancel: true,
         category: AndroidNotificationCategory.reminder,
         visibility: NotificationVisibility.public,
-        groupKey: 'classtrack_reminders_group',
+        groupKey: 'attendly_reminders_group',
         groupAlertBehavior: GroupAlertBehavior.children,
       );
 
@@ -543,7 +543,7 @@ class NotificationService {
         autoCancel: true,
         category: AndroidNotificationCategory.reminder,
         visibility: NotificationVisibility.public,
-        groupKey: 'classtrack_reminders_group',
+        groupKey: 'attendly_reminders_group',
         groupAlertBehavior: GroupAlertBehavior.children,
       );
 

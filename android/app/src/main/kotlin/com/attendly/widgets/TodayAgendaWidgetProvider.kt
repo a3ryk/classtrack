@@ -1,4 +1,4 @@
-package com.classtrack.app.widgets
+﻿package com.attendly.widgets
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
@@ -7,8 +7,8 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.view.View
 import android.widget.RemoteViews
-import com.classtrack.app.MainActivity
-import com.classtrack.app.R
+import com.attendly.MainActivity
+import com.attendly.R
 import es.antonborri.home_widget.HomeWidgetLaunchIntent
 import es.antonborri.home_widget.HomeWidgetProvider
 import org.json.JSONArray

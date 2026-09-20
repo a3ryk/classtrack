@@ -1,5 +1,5 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:classtrack/domain/entities/widget_settings_entity.dart';
+﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:attendly/domain/entities/widget_settings_entity.dart';
 
 void main() {
   group('WidgetSettingsEntity Serialization & Defaults Tests', () {

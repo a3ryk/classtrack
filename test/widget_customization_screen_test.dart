@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:classtrack/core/constants/app_theme_tokens.dart';
-import 'package:classtrack/presentation/screens/settings/widget_customization_screen.dart';
+import 'package:attendly/core/constants/app_theme_tokens.dart';
+import 'package:attendly/presentation/screens/settings/widget_customization_screen.dart';
 
 void main() {
   testWidgets('WidgetCustomizationScreen renders preview, opacity slider, themes, and toggles without overflow on 320px screen', (WidgetTester tester) async {

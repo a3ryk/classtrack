@@ -1,15 +1,15 @@
-package com.classtrack.app.widgets
+﻿package com.attendly.widgets
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
-import com.classtrack.app.MainActivity
+import com.attendly.MainActivity
 
 class WidgetActionReceiver : BroadcastReceiver() {
 
     companion object {
-        const val ACTION_MARK_ATTENDANCE = "com.classtrack.app.widgets.ACTION_MARK_ATTENDANCE"
+        const val ACTION_MARK_ATTENDANCE = "com.attendly.widgets.ACTION_MARK_ATTENDANCE"
         const val EXTRA_SESSION_ID = "extra_session_id"
         const val EXTRA_OUTCOME = "extra_outcome"
     }

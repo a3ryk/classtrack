@@ -15,7 +15,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.classtrack.app"
+    namespace = "com.attendly"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -30,7 +30,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.classtrack.app"
+        applicationId = "com.attendly"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -58,6 +58,8 @@ android {
                     candidate3
                 }
                 storePassword = storePasswordVal.trim()
+                enableV1Signing = true
+                enableV2Signing = true
             }
         }
     }

@@ -1167,7 +1167,7 @@ class AppUpdateService {
   }
 
   static const MethodChannel _installerChannel =
-      MethodChannel('com.classtrack.app/package_installer');
+      MethodChannel('com.attendly/package_installer');
 
   /// Queries Android device's hardware supported ABIs in preference order
   static Future<List<String>> getDeviceSupportedAbis() async {

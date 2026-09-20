@@ -34,7 +34,7 @@ enum WidgetThemeMode {
       case WidgetThemeMode.midnight:
         return 0xFF60A5FA; // Light Blue
       case WidgetThemeMode.emerald:
-        return 0xFF10B981; // ClassTrack Emerald
+        return 0xFF10B981; // Attendly Emerald
       case WidgetThemeMode.rose:
         return 0xFFFB7185; // Soft Rose
       case WidgetThemeMode.sunset:
@@ -45,7 +45,7 @@ enum WidgetThemeMode {
   int get cardBackgroundColorValue {
     switch (this) {
       case WidgetThemeMode.system:
-        return 0xFF1C1D22; // ClassTrack Card Dark
+        return 0xFF1C1D22; // Attendly Card Dark
       case WidgetThemeMode.amoled:
         return 0xFF000000; // Pitch Black
       case WidgetThemeMode.midnight:

@@ -1,6 +1,7 @@
-# Classtrack — Offline-First University Attendance App
+# Attendly — Offline-First Student Attendance & Schedule App
 
-**Classtrack** is a fast, offline-first mobile application built with **Flutter & Dart** designed for university students in India (supporting FYUGP, FYIMP under NEP 2020, Gauhati University, Delhi University, Mumbai University, etc.) and adaptable to any academic system worldwide.
+**Attendly** is a fast, offline-first mobile application built with **Flutter & Dart** designed for university students in India (supporting FYUGP, FYIMP under NEP 2020, Gauhati University, Delhi University, Mumbai University, etc.) and adaptable to any academic system worldwide.
+
 
 ---
 

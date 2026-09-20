@@ -1,6 +1,6 @@
 ﻿import 'package:flutter_test/flutter_test.dart';
-import 'package:classtrack/domain/entities/semester_entity.dart';
-import 'package:classtrack/domain/services/semester_sequencer.dart';
+import 'package:attendly/domain/entities/semester_entity.dart';
+import 'package:attendly/domain/services/semester_sequencer.dart';
 
 void main() {
   group('SemesterSequencer.suggestNextTermName', () {

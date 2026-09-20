@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
@@ -7,15 +7,15 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
-import 'package:classtrack/core/services/app_update_service.dart';
-import 'package:classtrack/core/services/notification_service.dart';
-import 'package:classtrack/data/database/app_database.dart';
-import 'package:classtrack/domain/entities/class_session_entity.dart';
-import 'package:classtrack/domain/entities/notification_preferences_entity.dart';
+import 'package:attendly/core/services/app_update_service.dart';
+import 'package:attendly/core/services/notification_service.dart';
+import 'package:attendly/data/database/app_database.dart';
+import 'package:attendly/domain/entities/class_session_entity.dart';
+import 'package:attendly/domain/entities/notification_preferences_entity.dart';
 import 'package:drift/drift.dart' hide isNotNull, isNull;
-import 'package:classtrack/domain/services/class_notification_scheduler.dart';
-import 'package:classtrack/presentation/providers/app_state_provider.dart';
-import 'package:classtrack/presentation/screens/settings/notification_settings_screen.dart';
+import 'package:attendly/domain/services/class_notification_scheduler.dart';
+import 'package:attendly/presentation/providers/app_state_provider.dart';
+import 'package:attendly/presentation/screens/settings/notification_settings_screen.dart';
 
 void main() {
   setUpAll(() {

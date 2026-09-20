@@ -1,16 +1,16 @@
-﻿# ClassTrack In-App Updater Guide
+# Attendly In-App Updater Guide
 
-A production-ready, secure, and customizable In-App Update system for **ClassTrack**.
+A production-ready, secure, and customizable In-App Update system for **Attendly**.
 
 ---
 
 ## 1. Overview & Architecture
 
-The ClassTrack In-App Updater allows the application to automatically or manually check for new app releases, compare versions using semantic versioning, display interactive release notes (changelogs), and provide direct downloads or store links without requiring third-party proprietary services.
+The Attendly In-App Updater allows the application to automatically or manually check for new app releases, compare versions using semantic versioning, display interactive release notes (changelogs), and provide direct downloads or store links without requiring third-party proprietary services.
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│               ClassTrack App (Client)                  │
+│               Attendly App (Client)                    │
 │                                                        │
 │  Settings > Check for Updates                          │
 │         │                                              │

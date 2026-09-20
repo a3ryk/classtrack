@@ -1,17 +1,17 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drift/drift.dart' hide isNotNull, isNull;
-import 'package:classtrack/core/constants/app_theme.dart';
-import 'package:classtrack/data/database/app_database.dart';
-import 'package:classtrack/domain/entities/class_session_entity.dart';
-import 'package:classtrack/domain/entities/semester_entity.dart';
-import 'package:classtrack/domain/entities/subject_entity.dart';
-import 'package:classtrack/domain/services/schedule_engine.dart';
-import 'package:classtrack/presentation/providers/app_state_provider.dart';
-import 'package:classtrack/presentation/screens/schedule/add_edit_slot_screen.dart';
-import 'package:classtrack/presentation/screens/schedule/batch_add_slots_screen.dart';
-import 'package:classtrack/presentation/screens/share/qr_share_scanner_screen.dart';
+import 'package:attendly/core/constants/app_theme.dart';
+import 'package:attendly/data/database/app_database.dart';
+import 'package:attendly/domain/entities/class_session_entity.dart';
+import 'package:attendly/domain/entities/semester_entity.dart';
+import 'package:attendly/domain/entities/subject_entity.dart';
+import 'package:attendly/domain/services/schedule_engine.dart';
+import 'package:attendly/presentation/providers/app_state_provider.dart';
+import 'package:attendly/presentation/screens/schedule/add_edit_slot_screen.dart';
+import 'package:attendly/presentation/screens/schedule/batch_add_slots_screen.dart';
+import 'package:attendly/presentation/screens/share/qr_share_scanner_screen.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 

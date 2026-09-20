@@ -34,7 +34,7 @@ class DeveloperAuthService {
   static bool verifyQrPayload(String rawPayload, String? activeCustomHash) {
     try {
       final uri = Uri.tryParse(rawPayload.trim());
-      if (uri == null || uri.scheme != 'classtrack' || uri.host != 'dev-unlock') {
+      if (uri == null || (uri.scheme != 'attendly' && uri.scheme != 'classtrack') || uri.host != 'dev-unlock') {
         return false;
       }
       final token = uri.queryParameters['hash'];
@@ -55,7 +55,7 @@ class DeveloperAuthService {
     final targetHash = (activeCustomHash != null && activeCustomHash.isNotEmpty)
         ? activeCustomHash
         : kDefaultDevPasscodeHash;
-    return 'classtrack://dev-unlock?hash=$targetHash';
+    return 'attendly://dev-unlock?hash=$targetHash';
   }
 }
 

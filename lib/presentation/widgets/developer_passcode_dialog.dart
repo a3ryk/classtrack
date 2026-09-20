@@ -180,7 +180,7 @@ class _DeveloperPasscodeDialogState extends ConsumerState<DeveloperPasscodeDialo
                 color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
               ),
               decoration: InputDecoration(
-                hintText: 'classtrack://dev-unlock?hash=...',
+                hintText: 'attendly://dev-unlock?hash=...',
                 hintStyle: TextStyle(
                   fontSize: 12.5,
                   fontWeight: FontWeight.normal,

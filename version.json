@@ -1,25 +1,25 @@
 {
-  "latest_version": "1.0.0-alpha.14",
-  "build_number": 14,
+  "latest_version": "2.0.0-alpha.1",
+  "build_number": 15,
   "min_supported_version": "1.0.0-alpha.13",
   "release_date": "2026-09-20",
-  "release_title": "ClassTrack v1.0.0-alpha.14 (Performance & UI Polish Patch)",
+  "release_title": "Attendly v2.0.0-alpha.1 (Package Identity & Signature Modernization)",
   "changelog": [
-    "✨ Smooth Day Swiping: Horizontal swipe navigation across schedule days on the Today screen with instant cubic curve glide back to today.",
-    "✨ Bottom Navbar Clearance Fix: Reduced excessive bottom clearance void from 105px to 16px across Analytics, Settings, Timetable, and Today screens.",
-    "✨ Share & Scan Performance: Eliminated route opening jitter and frame drops with deferred camera and QR matrix initialization.",
-    "✨ Classic Display & Widgets Consolidation: Unified Display Options and Home Screen Widgets into a single card in the classic theme.",
-    "✨ What-If Simulator Range Expansion: Simulator counters now start at 1 and support projections up to 30 sessions.",
-    "✨ Timetable Stability: Fixed null-safe subject code casting and standardized uniform day pill heights."
+    "✨ Package Migration: Migrated package identifier and Android namespace to com.attendly across all native manifests and Kotlin source trees.",
+    "✨ Production Keystore Modernization: Generated 2048-bit RSA release signing certificate valid through 2054 with verified SHA-256 fingerprinting.",
+    "✨ Dual Scheme Signing (v1 + v2): Activated APK signature schemes v1 and v2, preventing installation cancellations across Samsung, Xiaomi, Oppo, and Vivo devices.",
+    "✨ Dart Package Ecosystem: Renamed internal Dart package to attendly with 100% test suite verification across all 214 tests.",
+    "✨ System Channels & Providers: Synchronized package installer channel, home widget providers, notification channels, and attendly:// deep links.",
+    "✨ Export & Backup Naming: Standardized Excel registers, PDF reports, and JSON backups to attendly_* file schemas."
   ],
-  "download_url": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.14/ClassTrack-v1.0.0-alpha.14.apk",
+  "download_url": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.1/Attendly-v2.0.0-alpha.1.apk",
   "abi_assets": {
-    "arm64-v8a": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.14/app-arm64-v8a-release.apk",
-    "armeabi-v7a": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.14/app-armeabi-v7a-release.apk",
-    "x86_64": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.14/app-x86_64-release.apk",
-    "universal": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.14/ClassTrack-v1.0.0-alpha.14.apk"
+    "arm64-v8a": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.1/app-arm64-v8a-release.apk",
+    "armeabi-v7a": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.1/app-armeabi-v7a-release.apk",
+    "x86_64": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.1/app-x86_64-release.apk",
+    "universal": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.1/Attendly-v2.0.0-alpha.1.apk"
   },
-  "release_page_url": "https://github.com/a3ryk/classtrack/releases/tag/v1.0.0-alpha.14",
+  "release_page_url": "https://github.com/a3ryk/classtrack/releases/tag/v2.0.0-alpha.1",
   "is_mandatory": false,
   "warning_message": null
 }

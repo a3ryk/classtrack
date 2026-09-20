@@ -1,12 +1,12 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:classtrack/data/database/app_database.dart';
-import 'package:classtrack/domain/entities/semester_entity.dart';
-import 'package:classtrack/presentation/providers/app_state_provider.dart';
-import 'package:classtrack/presentation/widgets/archived_semester_report_sheet.dart';
-import 'package:classtrack/presentation/widgets/semester_transition_wizard.dart';
-import 'package:classtrack/presentation/screens/today/today_screen.dart';
+import 'package:attendly/data/database/app_database.dart';
+import 'package:attendly/domain/entities/semester_entity.dart';
+import 'package:attendly/presentation/providers/app_state_provider.dart';
+import 'package:attendly/presentation/widgets/archived_semester_report_sheet.dart';
+import 'package:attendly/presentation/widgets/semester_transition_wizard.dart';
+import 'package:attendly/presentation/screens/today/today_screen.dart';
 
 void main() {
   group('Database Layer: Semester Transition & Archiving', () {

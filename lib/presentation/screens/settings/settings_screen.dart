@@ -919,7 +919,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   icon: Icons.spa_rounded,
                   iconBg: isDark ? const Color(0xFF163424) : const Color(0xFFEAF8E7),
                   iconColor: isDark ? const Color(0xFF8BC34A) : const Color(0xFF2E7D32),
-                  title: 'About Classtrack',
+                  title: 'About Attendly',
                   subtitle: 'Version ${updateState.currentVersion}',
                   tokens: tokens,
                   isDark: isDark,

@@ -1,17 +1,17 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drift/drift.dart' hide isNotNull, isNull;
-import 'package:classtrack/core/constants/app_theme.dart';
-import 'package:classtrack/data/database/app_database.dart';
-import 'package:classtrack/domain/entities/attendance_stats.dart';
-import 'package:classtrack/domain/entities/semester_entity.dart';
-import 'package:classtrack/domain/entities/subject_entity.dart';
-import 'package:classtrack/domain/services/schedule_engine.dart';
-import 'package:classtrack/presentation/providers/app_state_provider.dart';
-import 'package:classtrack/presentation/screens/attendance/attendance_screen.dart';
-import 'package:classtrack/presentation/screens/schedule/add_edit_subject_screen.dart';
-import 'package:classtrack/presentation/widgets/sprout_what_if_simulator_sheet.dart';
+import 'package:attendly/core/constants/app_theme.dart';
+import 'package:attendly/data/database/app_database.dart';
+import 'package:attendly/domain/entities/attendance_stats.dart';
+import 'package:attendly/domain/entities/semester_entity.dart';
+import 'package:attendly/domain/entities/subject_entity.dart';
+import 'package:attendly/domain/services/schedule_engine.dart';
+import 'package:attendly/presentation/providers/app_state_provider.dart';
+import 'package:attendly/presentation/screens/attendance/attendance_screen.dart';
+import 'package:attendly/presentation/screens/schedule/add_edit_subject_screen.dart';
+import 'package:attendly/presentation/widgets/sprout_what_if_simulator_sheet.dart';
 
 class FakeActiveSemesterNotifier extends ActiveSemesterNotifier {
   FakeActiveSemesterNotifier(SemesterEntity sem) : super(AppDatabase.inMemory()) {

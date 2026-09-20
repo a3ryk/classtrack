@@ -266,17 +266,17 @@ class WidgetSyncService {
       await HomeWidget.updateWidget(
         name: nextClassProviderName,
         androidName: 'widgets.$nextClassProviderName',
-        qualifiedAndroidName: 'com.classtrack.app.widgets.$nextClassProviderName',
+        qualifiedAndroidName: 'com.attendly.widgets.$nextClassProviderName',
       );
       await HomeWidget.updateWidget(
         name: todayAgendaProviderName,
         androidName: 'widgets.$todayAgendaProviderName',
-        qualifiedAndroidName: 'com.classtrack.app.widgets.$todayAgendaProviderName',
+        qualifiedAndroidName: 'com.attendly.widgets.$todayAgendaProviderName',
       );
       await HomeWidget.updateWidget(
         name: attendanceGaugeProviderName,
         androidName: 'widgets.$attendanceGaugeProviderName',
-        qualifiedAndroidName: 'com.classtrack.app.widgets.$attendanceGaugeProviderName',
+        qualifiedAndroidName: 'com.attendly.widgets.$attendanceGaugeProviderName',
       );
 
       return true;

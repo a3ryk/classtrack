@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
-import 'package:classtrack/core/services/app_update_service.dart';
-import 'package:classtrack/presentation/widgets/update_available_dialog.dart';
-import 'package:classtrack/presentation/screens/settings/update_screen.dart';
-import 'package:classtrack/presentation/screens/settings/privacy_policy_screen.dart';
-import 'package:classtrack/presentation/widgets/up_to_date_dialog.dart';
-import 'package:classtrack/core/constants/app_release_notes.dart';
+import 'package:attendly/core/services/app_update_service.dart';
+import 'package:attendly/presentation/widgets/update_available_dialog.dart';
+import 'package:attendly/presentation/screens/settings/update_screen.dart';
+import 'package:attendly/presentation/screens/settings/privacy_policy_screen.dart';
+import 'package:attendly/presentation/widgets/up_to_date_dialog.dart';
+import 'package:attendly/core/constants/app_release_notes.dart';
 
 void main() {
   group('AppUpdateService Release & ABI Tests', () {
@@ -445,7 +445,7 @@ Full details in [PR #42](https://github.com/a3ryk/classtrack/pull/42).
           reason: 'Release ${release.latestVersion} title contains ClassTrack: "${release.releaseTitle}"',
         );
         expect(
-          release.releaseTitle.startsWith('Attendly v1.0.0-alpha.'),
+          release.releaseTitle.startsWith('Attendly v'),
           isTrue,
           reason: 'Release ${release.latestVersion} should start with Attendly: "${release.releaseTitle}"',
         );

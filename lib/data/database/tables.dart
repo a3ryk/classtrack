@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
 
-/// Database Table Definitions for Classtrack (Offline-First Architecture)
+/// Database Table Definitions for Attendly (Offline-First Architecture)
 
 @DataClassName('SemesterData')
 class Semesters extends Table {

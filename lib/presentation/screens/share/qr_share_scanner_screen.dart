@@ -694,7 +694,7 @@ class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> wit
                           ),
                         const SizedBox(height: 14),
 
-                        // ClassTrack App Name & Branding Below QR
+                        // Attendly App Name & Branding Below QR
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           mainAxisAlignment: MainAxisAlignment.center,

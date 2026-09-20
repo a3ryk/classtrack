@@ -573,7 +573,7 @@ class _AddEditSubjectScreenState extends ConsumerState<AddEditSubjectScreen> {
                             ),
                             const SizedBox(height: 5),
                             Text(
-                              'If you already attended sessions before using ClassTrack, enter your counts below.',
+                              'If you already attended sessions before using Attendly, enter your counts below.',
                               style: TextStyle(
                                 fontSize: 11.5,
                                 color: tokens.textSecondary,

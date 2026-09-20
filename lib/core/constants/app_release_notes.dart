@@ -4,15 +4,32 @@ import '../services/app_update_service.dart';
 class AppReleaseNotes {
   AppReleaseNotes._();
 
-  static const String currentVersion = '1.0.0-alpha.14';
+  static const String currentVersion = '2.0.0-alpha.1';
 
   static final Map<String, AppReleaseInfo> _releases = {
+    '2.0.0-alpha.1': const AppReleaseInfo(
+      latestVersion: '2.0.0-alpha.1',
+      buildNumber: 15,
+      minSupportedVersion: '1.0.0-alpha.13',
+      releaseDate: 'September 2026',
+      releaseTitle: 'Attendly v2.0.0-alpha.1 (Package Identity & Signature Modernization)',
+      changelog: [
+        '✨ Package Migration: Migrated package identifier and Android namespace to com.attendly across all native manifests and Kotlin source trees.',
+        '✨ Production Keystore Modernization: Generated 2048-bit RSA release signing certificate valid through 2054 with verified SHA-256 fingerprinting.',
+        '✨ Dual Scheme Signing (v1 + v2): Activated APK signature schemes v1 and v2, preventing installation cancellations across Samsung, Xiaomi, Oppo, and Vivo devices.',
+        '✨ Dart Package Ecosystem: Renamed internal Dart package to attendly with 100% test suite verification across all 214 tests.',
+        '✨ System Channels & Providers: Synchronized package installer channel, home widget providers, notification channels, and attendly:// deep links.',
+        '✨ Export & Backup Naming: Standardized Excel registers, PDF reports, and JSON backups to attendly_* file schemas.',
+      ],
+      isMandatory: false,
+      warningMessage: null,
+    ),
     '1.0.0-alpha.14': const AppReleaseInfo(
       latestVersion: '1.0.0-alpha.14',
       buildNumber: 14,
       minSupportedVersion: '1.0.0-alpha.13',
       releaseDate: 'September 2026',
-      releaseTitle: 'ClassTrack v1.0.0-alpha.14 (Performance & UI Polish Patch)',
+      releaseTitle: 'Attendly v1.0.0-alpha.14 (Performance & UI Polish Patch)',
       changelog: [
         '✨ Smooth Day Swiping: Horizontal swipe navigation across schedule days on the Today screen with instant cubic curve glide back to today.',
         '✨ Bottom Navbar Clearance Fix: Reduced excessive bottom clearance void from 105px to 16px across Analytics, Settings, Timetable, and Today screens.',
@@ -29,7 +46,7 @@ class AppReleaseNotes {
       buildNumber: 13,
       minSupportedVersion: '1.0.0-alpha.13',
       releaseDate: 'September 2026',
-      releaseTitle: 'ClassTrack v1.0.0-alpha.13 (Sprout Theme Suite)',
+      releaseTitle: 'Attendly v1.0.0-alpha.13 (Sprout Theme Suite)',
       changelog: [
         '✨ Sprout & Mochi Theme Suite: Pastel marshmallow aesthetics, soft sage green tokens, and organic squircles.',
         '✨ Interactive 3D Mascot Companions: Time-aware expressive 3D mascot art across Home, Timetable, Analytics, and Settings.',

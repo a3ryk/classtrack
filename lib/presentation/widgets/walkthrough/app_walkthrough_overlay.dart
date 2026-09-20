@@ -87,7 +87,7 @@ class _AppWalkthroughOverlayState extends State<AppWalkthroughOverlay> {
       WalkthroughStepData(
         title: isCute ? '7. Settings, Mascot & Profile' : '7. Profile, Backups & Exports',
         description: isCute
-            ? 'Classtrack is 100% offline. Customize your academic mascot companion, generate multi-date attendance registers, and configure backups.'
+            ? 'Attendly is 100% offline. Customize your academic mascot companion, generate multi-date attendance registers, and configure backups.'
             : 'Attendly is 100% offline. Generate multi-date PDF/Excel attendance registers, configure your student profile, and create encrypted .ctbackup snapshots.',
         icon: isCute ? Icons.spa_rounded : Icons.security_rounded,
         targetTabIndex: isCute ? 4 : 0,

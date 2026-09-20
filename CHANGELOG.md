@@ -5,6 +5,18 @@ All notable changes to **ClassTrack** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0-alpha.1] - 2026-09-20
+
+### Package Identity & Signature Modernization
+- **Package Identifier Migration**: Transitioned Android package identity and namespace from `com.classtrack.app` to `com.attendly` across AndroidManifest, Kotlin sources, iOS build settings, and ProGuard configuration.
+- **Production Keystore Generation**: Established dedicated 2048-bit RSA production release keystore with cryptographic validity extending through 2054.
+- **Dual Scheme Signing (v1 + v2)**: Configured dual JAR (v1) and full-APK (v2) signature schemes, resolving silent installation cancellations on Samsung (Auto Blocker), Xiaomi (HyperOS/MIUI), Oppo, and Vivo devices.
+- **Dart Ecosystem Alignment**: Renamed internal Dart package to `attendly` with 100% test suite verification across all 214 tests.
+- **Method Channels & Providers**: Synchronized in-app package installer channel, home screen widget provider classes, system notification channel IDs, and deep links.
+- **Export & Backup Naming**: Standardized Excel registers, PDF reports, and JSON database backups to `attendly_*` filenames.
+
+---
+
 ## [1.0.0-alpha.14] - 2026-09-20
 
 ### 🚀 Performance & UI Polish Patch

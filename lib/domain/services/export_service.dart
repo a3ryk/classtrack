@@ -244,7 +244,7 @@ class ExportService {
     if (bytes == null) throw Exception('Failed to encode Excel file.');
 
     final tempDir = await getTemporaryDirectory();
-    final filePath = '${tempDir.path}/classtrack_${semester.name.replaceAll(" ", "_")}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+    final filePath = '${tempDir.path}/attendly_${semester.name.replaceAll(" ", "_")}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
     final file = File(filePath);
     await file.writeAsBytes(bytes);
 
@@ -476,9 +476,10 @@ class ExportService {
 
     onProgress?.call(0.9, 'Saving PDF document...');
     final tempDir = await getTemporaryDirectory();
-    final filePath = '${tempDir.path}/classtrack_report_${semester.name.replaceAll(" ", "_")}_${DateTime.now().millisecondsSinceEpoch}.pdf';
+    final filePath = '${tempDir.path}/attendly_report_${semester.name.replaceAll(" ", "_")}_${DateTime.now().millisecondsSinceEpoch}.pdf';
     final file = File(filePath);
     await file.writeAsBytes(await pdf.save());
+
 
     onProgress?.call(1.0, 'Export complete!');
     await NotificationService.instance.showExportCompleteNotification(
@@ -559,7 +560,7 @@ class ExportService {
     onProgress?.call(0.8, 'Writing JSON file...');
     final jsonStr = const JsonEncoder.withIndent('  ').convert(payload);
     final tempDir = await getTemporaryDirectory();
-    final filePath = '${tempDir.path}/classtrack_backup_${DateTime.now().millisecondsSinceEpoch}.json';
+    final filePath = '${tempDir.path}/attendly_backup_${DateTime.now().millisecondsSinceEpoch}.json';
     final file = File(filePath);
     await file.writeAsString(jsonStr);
 

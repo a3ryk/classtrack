@@ -21,10 +21,10 @@
 # SQLite rules
 -keep class org.sqlite.** { *; }
 
-# ClassTrack Home Screen Widgets & HomeWidget plugin
--keep class com.classtrack.app.widgets.** { *; }
--keep class com.classtrack.app.NextClassWidgetProvider { *; }
--keep class com.classtrack.app.TodayAgendaWidgetProvider { *; }
--keep class com.classtrack.app.AttendanceGaugeWidgetProvider { *; }
+# Attendly Home Screen Widgets & HomeWidget plugin
+-keep class com.attendly.widgets.** { *; }
+-keep class com.attendly.NextClassWidgetProvider { *; }
+-keep class com.attendly.TodayAgendaWidgetProvider { *; }
+-keep class com.attendly.AttendanceGaugeWidgetProvider { *; }
 -keep class es.antonborri.home_widget.** { *; }
 
