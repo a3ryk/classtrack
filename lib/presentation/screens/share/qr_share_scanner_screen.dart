@@ -9,9 +9,11 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_theme_tokens.dart';
 import '../../../core/services/notification_service.dart';
 import '../../../core/ui/app_toast.dart';
 import '../../../core/utils/uuid_generator.dart';
@@ -525,6 +527,20 @@ class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> wit
       _cachedPayload = _encodePayload(slots, subjects, activeSem.name);
     }
     final payloadCode = _cachedPayload!;
+    final tokens = Theme.of(context).extension<AppThemeTokens>();
+    final isCute = tokens?.isCute ?? false;
+
+    if (isCute) {
+      return _buildSproutQrShareScannerScreen(
+        context: context,
+        isDark: isDark,
+        tokens: tokens,
+        activeSem: activeSem,
+        subjects: subjects,
+        slots: slots,
+        payloadCode: payloadCode,
+      );
+    }
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.bgDark : const Color(0xFFF8FAFC),
@@ -867,6 +883,549 @@ class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> wit
           fontSize: 11,
           fontWeight: FontWeight.w600,
           color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+        ),
+      ),
+    );
+  }
+
+  // ==========================================
+  // SPROUTS THEME SHARE & SCAN IMPLEMENTATION
+  // ==========================================
+
+  Widget _buildSproutQrShareScannerScreen({
+    required BuildContext context,
+    required bool isDark,
+    required AppThemeTokens? tokens,
+    required SemesterEntity activeSem,
+    required List<SubjectEntity> subjects,
+    required List<TimetableSlotItem> slots,
+    required String payloadCode,
+  }) {
+    final screenBg = isDark ? const Color(0xFF112318) : const Color(0xFFFAF7F2);
+    final cardBg = isDark ? const Color(0xFF183122) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF264A34) : const Color(0xFFDFE8DC);
+    final textPrimary = isDark ? const Color(0xFFE8F4EB) : const Color(0xFF192E21);
+    final textSecondary = isDark ? const Color(0xFF98B5A3) : const Color(0xFF526B5C);
+    final primaryAccent = tokens?.primaryAccent ?? const Color(0xFF558A50);
+
+    return Scaffold(
+      backgroundColor: screenBg,
+      appBar: AppBar(
+        backgroundColor: screenBg,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: InkWell(
+            onTap: () => Navigator.pop(context),
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: borderColor),
+              ),
+              child: Icon(Icons.arrow_back_rounded, size: 20, color: textPrimary),
+            ),
+          ),
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Share & Scan Timetable',
+              style: GoogleFonts.quicksand(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: textPrimary,
+                letterSpacing: -0.3,
+              ),
+            ),
+            Text(
+              'Instant offline timetable exchange',
+              style: GoogleFonts.quicksand(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w500,
+                color: textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+      body: Column(
+        children: [
+          // CUSTOM CAPSULE 2-TAB SWITCHER
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF142B1D) : const Color(0xFFEBE6DD),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: borderColor),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      _tabController.animateTo(0);
+                      setState(() {});
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      padding: const EdgeInsets.symmetric(vertical: 9),
+                      decoration: BoxDecoration(
+                        color: _tabController.index == 0 ? primaryAccent : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: _tabController.index == 0
+                            ? [
+                                BoxShadow(
+                                  color: primaryAccent.withValues(alpha: 0.3),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.qr_code_scanner_rounded,
+                            size: 17,
+                            color: _tabController.index == 0 ? Colors.white : textSecondary,
+                          ),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              'Export QR',
+                              style: GoogleFonts.quicksand(
+                                fontSize: 12,
+                                fontWeight: _tabController.index == 0 ? FontWeight.w700 : FontWeight.w600,
+                                color: _tabController.index == 0 ? Colors.white : textSecondary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      _tabController.animateTo(1);
+                      setState(() {});
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      padding: const EdgeInsets.symmetric(vertical: 9),
+                      decoration: BoxDecoration(
+                        color: _tabController.index == 1 ? primaryAccent : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: _tabController.index == 1
+                            ? [
+                                BoxShadow(
+                                  color: primaryAccent.withValues(alpha: 0.3),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.camera_alt_rounded,
+                            size: 17,
+                            color: _tabController.index == 1 ? Colors.white : textSecondary,
+                          ),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              'Scan Camera',
+                              style: GoogleFonts.quicksand(
+                                fontSize: 12,
+                                fontWeight: _tabController.index == 1 ? FontWeight.w700 : FontWeight.w600,
+                                color: _tabController.index == 1 ? Colors.white : textSecondary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // TAB CONTENT VIEWS
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              physics: const BouncingScrollPhysics(),
+              children: [
+                // TAB 1: SPROUT SHARE / EXPORT
+                RepaintBoundary(
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    child: Column(
+                      children: [
+                        // Badges Row
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _buildSproutPill('${subjects.length} Subjects', cardBg, borderColor, textSecondary),
+                            const SizedBox(width: 8),
+                            _buildSproutPill('${slots.length} Weekly Slots', cardBg, borderColor, textSecondary),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+
+                        // SPROUT VERIFIED TIMETABLE PASS CARD
+                        RepaintBoundary(
+                          key: _qrRepaintKey,
+                          child: Container(
+                            width: 260,
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                            decoration: BoxDecoration(
+                              color: cardBg,
+                              borderRadius: BorderRadius.circular(22),
+                              border: Border.all(color: borderColor, width: 1.4),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                // High-Density QR Image inside soft container
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: isDark ? const Color(0xFF0D1B13) : const Color(0xFFF7FAF5),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: borderColor),
+                                  ),
+                                  child: SizedBox(
+                                    width: 175,
+                                    height: 175,
+                                    child: QrImageView(
+                                      data: payloadCode,
+                                      version: QrVersions.auto,
+                                      size: 175.0,
+                                      padding: EdgeInsets.zero,
+                                      gapless: true,
+                                      eyeStyle: QrEyeStyle(
+                                        eyeShape: QrEyeShape.square,
+                                        color: isDark ? const Color(0xFFE8F4EB) : const Color(0xFF1B4332),
+                                      ),
+                                      dataModuleStyle: QrDataModuleStyle(
+                                        dataModuleShape: QrDataModuleShape.square,
+                                        color: isDark ? const Color(0xFFE8F4EB) : const Color(0xFF1B4332),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+
+                                // Branding
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      width: 18,
+                                      height: 18,
+                                      decoration: BoxDecoration(
+                                        color: primaryAccent,
+                                        borderRadius: BorderRadius.circular(5),
+                                      ),
+                                      child: const Center(
+                                        child: Icon(Icons.school_rounded, size: 11, color: Colors.white),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Attendly',
+                                      style: GoogleFonts.quicksand(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w800,
+                                        color: textPrimary,
+                                        letterSpacing: -0.3,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  '100% Offline Timetable & Attendance',
+                                  style: GoogleFonts.quicksand(
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Scan with any Attendly camera or photo scanner',
+                          style: GoogleFonts.quicksand(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w500,
+                            color: textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+
+                        // Quick Action Buttons
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                  side: BorderSide(color: borderColor),
+                                ),
+                                icon: Icon(Icons.copy_rounded, size: 16, color: textPrimary),
+                                label: Text(
+                                  'Copy Code',
+                                  style: GoogleFonts.quicksand(fontSize: 12.5, fontWeight: FontWeight.w700, color: textPrimary),
+                                ),
+                                onPressed: () {
+                                  Clipboard.setData(ClipboardData(text: payloadCode));
+                                  AppToast.success(context, 'Timetable share code copied to clipboard!');
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: primaryAccent,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                  elevation: 0,
+                                ),
+                                icon: _isSharingQrImage
+                                    ? const SizedBox(
+                                        width: 15,
+                                        height: 15,
+                                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                      )
+                                    : const Icon(Icons.share_rounded, size: 16),
+                                label: Text(
+                                  _isSharingQrImage ? 'Generating...' : 'Share QR Image',
+                                  style: GoogleFonts.quicksand(fontSize: 12.5, fontWeight: FontWeight.w700),
+                                ),
+                                onPressed: _isSharingQrImage
+                                    ? null
+                                    : () => _shareQrImage(activeSem.name, payloadCode),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+
+                        // Privacy Guarantee Badge
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: primaryAccent.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: primaryAccent.withValues(alpha: 0.2),
+                              width: 1.0,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.shield_rounded, size: 18, color: primaryAccent),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  '100% Private: Only subjects and schedule times are shared. Your personal attendance and profile never leave your device.',
+                                  style: GoogleFonts.quicksand(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                    color: textSecondary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // TAB 2: SPROUT SCANNER
+                _scannerController != null
+                    ? Stack(
+                        children: [
+                          MobileScanner(
+                            controller: _scannerController!,
+                            onDetect: _onQrDetected,
+                          ),
+
+                          // Viewfinder Helper Badge
+                          Positioned(
+                            top: 20,
+                            left: 20,
+                            right: 20,
+                            child: Center(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.65),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Text(
+                                  'Align classmate\'s QR code within frame',
+                                  style: GoogleFonts.quicksand(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          // Scanner Viewfinder Overlay
+                          Center(
+                            child: Container(
+                              width: 250,
+                              height: 250,
+                              decoration: BoxDecoration(
+                                border: Border.all(color: primaryAccent, width: 3.0),
+                                borderRadius: BorderRadius.circular(24),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: primaryAccent.withValues(alpha: 0.25),
+                                    blurRadius: 16,
+                                    spreadRadius: 2,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                          // Bottom Controls Bar
+                          Positioned(
+                            bottom: 24,
+                            left: 20,
+                            right: 20,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                InkWell(
+                                  onTap: () {
+                                    setState(() => _isTorchOn = !_isTorchOn);
+                                    _scannerController?.toggleTorch();
+                                  },
+                                  borderRadius: BorderRadius.circular(14),
+                                  child: Container(
+                                    width: 48,
+                                    height: 48,
+                                    decoration: BoxDecoration(
+                                      color: Colors.black87,
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    child: Icon(
+                                      _isTorchOn ? Icons.flash_on_rounded : Icons.flash_off_rounded,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                  ),
+                                ),
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.black87,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                    elevation: 0,
+                                  ),
+                                  icon: const Icon(Icons.photo_library_rounded, size: 18),
+                                  label: Text(
+                                    'Scan Image',
+                                    style: GoogleFonts.quicksand(fontSize: 12.5, fontWeight: FontWeight.w700),
+                                  ),
+                                  onPressed: _pickImageAndScan,
+                                ),
+                                InkWell(
+                                  onTap: () async {
+                                    final data = await Clipboard.getData('text/plain');
+                                    if (!context.mounted) return;
+                                    if (data != null && data.text != null) {
+                                      _processScannedCode(data.text!);
+                                    } else {
+                                      AppToast.info(context, 'Clipboard is empty');
+                                    }
+                                  },
+                                  borderRadius: BorderRadius.circular(14),
+                                  child: Container(
+                                    width: 48,
+                                    height: 48,
+                                    decoration: BoxDecoration(
+                                      color: Colors.black87,
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    child: const Icon(Icons.paste_rounded, color: Colors.white, size: 20),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      )
+                    : const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSproutPill(String text, Color cardBg, Color borderColor, Color textSecondary) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor),
+      ),
+      child: Text(
+        text,
+        style: GoogleFonts.quicksand(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: textSecondary,
         ),
       ),
     );

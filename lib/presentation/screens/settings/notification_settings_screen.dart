@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_theme_tokens.dart';
 import '../../../core/services/notification_service.dart';
 import '../../../core/ui/app_toast.dart';
 import '../../../domain/entities/notification_preferences_entity.dart';
@@ -95,10 +97,24 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppThemeTokens>();
+    final isCute = tokens?.isCute ?? false;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final prefs = ref.watch(notificationPreferencesProvider);
     final notifier = ref.read(notificationPreferencesProvider.notifier);
 
+    if (isCute && tokens != null) {
+      return _buildSproutNotificationView(context, tokens, prefs, notifier, isDark);
+    }
+    return _buildClassicNotificationView(context, prefs, notifier, isDark);
+  }
+
+  Widget _buildClassicNotificationView(
+    BuildContext context,
+    NotificationPreferencesEntity prefs,
+    NotificationPreferencesNotifier notifier,
+    bool isDark,
+  ) {
     final Color groupBg = isDark ? AppColors.cardDark : Colors.white;
     final Color groupBorder = isDark ? AppColors.borderDark : const Color(0xFFE2E8F0);
     final Color dividerColor = isDark ? AppColors.borderDark.withValues(alpha: 0.6) : const Color(0xFFF1F5F9);
@@ -338,6 +354,671 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
 
           const SizedBox(height: 32),
         ],
+      ),
+    );
+  }
+
+  void _openSproutTimingSheet({
+    required BuildContext context,
+    required bool isStart,
+    required int currentMinutes,
+    required AppThemeTokens tokens,
+    required bool isDark,
+    required ValueChanged<int> onSelected,
+  }) {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      sheetAnimationStyle: AnimationStyle(
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+        duration: const Duration(milliseconds: 280),
+        reverseDuration: const Duration(milliseconds: 220),
+      ),
+      builder: (sheetContext) => RepaintBoundary(
+        child: _SproutReminderTimingSheet(
+          isStart: isStart,
+          currentMinutes: currentMinutes,
+          tokens: tokens,
+          isDark: isDark,
+          onSelected: onSelected,
+        ),
+      ),
+    );
+  }
+
+  void _openSproutBatteryInfoSheet({
+    required BuildContext context,
+    required AppThemeTokens tokens,
+    required bool isDark,
+  }) {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      sheetAnimationStyle: AnimationStyle(
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+        duration: const Duration(milliseconds: 280),
+        reverseDuration: const Duration(milliseconds: 220),
+      ),
+      builder: (sheetContext) => RepaintBoundary(
+        child: _SproutBatteryInfoSheet(
+          tokens: tokens,
+          isDark: isDark,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSproutNotificationView(
+    BuildContext context,
+    AppThemeTokens tokens,
+    NotificationPreferencesEntity prefs,
+    NotificationPreferencesNotifier notifier,
+    bool isDark,
+  ) {
+    final Color cardBg = isDark ? const Color(0xFF1B3626) : Colors.white;
+    final Color cardBorder = isDark ? const Color(0xFF274C37) : const Color(0xFFE4ECE0);
+    final Color dividerColor = isDark ? const Color(0xFF274C37).withValues(alpha: 0.6) : const Color(0xFFE4ECE0).withValues(alpha: 0.6);
+
+    return Scaffold(
+      backgroundColor: tokens.scaffoldBg,
+      appBar: AppBar(
+        backgroundColor: tokens.scaffoldBg,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leadingWidth: 104,
+        leading: InkWell(
+          onTap: () => Navigator.pop(context),
+          borderRadius: BorderRadius.circular(8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(width: 14),
+              Icon(Icons.chevron_left_rounded, size: 22, color: tokens.primaryAccent),
+              Text(
+                'Back',
+                style: GoogleFonts.quicksand(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: tokens.primaryAccent,
+                ),
+              ),
+            ],
+          ),
+        ),
+        title: Text(
+          'Notifications',
+          style: GoogleFonts.quicksand(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: tokens.textPrimary,
+          ),
+        ),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(
+              Icons.info_outline_rounded,
+              size: 22,
+              color: tokens.textSecondary,
+            ),
+            tooltip: 'Battery Info',
+            onPressed: () => _openSproutBatteryInfoSheet(
+              context: context,
+              tokens: tokens,
+              isDark: isDark,
+            ),
+          ),
+          const SizedBox(width: 6),
+        ],
+      ),
+      body: ListView(
+        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        children: [
+          // 1. HERO STATUS CARD
+          _buildSproutStatusHeroCard(prefs, tokens, cardBg, cardBorder, isDark),
+
+          // 2. CLASS REMINDERS (Zero emojis in heading)
+          _buildSproutSectionHeader('Class Reminders', tokens, topPadding: 16),
+          Container(
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: cardBorder, width: 1.0),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                _buildSproutSwitchRow(
+                  title: 'Class Reminders',
+                  subtitle: 'Automatic scheduled alerts',
+                  icon: Icons.notifications_active_rounded,
+                  iconBg: isDark ? const Color(0xFF163424) : const Color(0xFFEAF8E7),
+                  iconColor: isDark ? const Color(0xFF8BC34A) : const Color(0xFF1E6B3F),
+                  value: prefs.enabled,
+                  tokens: tokens,
+                  isDark: isDark,
+                  onChanged: (val) async {
+                    if (!val) {
+                      notifier.updatePreferences(prefs.copyWith(enabled: false));
+                      return;
+                    }
+                    notifier.updatePreferences(prefs.copyWith(enabled: true));
+                    final hasPerm = await NotificationService.checkAndRequestNotificationPermission();
+                    await _checkPermissions();
+                    if (!hasPerm) {
+                      notifier.updatePreferences(prefs.copyWith(enabled: false));
+                      if (context.mounted) {
+                        AppToast.error(context, 'Notification permission is required to receive class reminders.');
+                      }
+                    }
+                  },
+                ),
+                if (prefs.enabled) ...[
+                  Divider(height: 1, indent: 56, endIndent: 16, color: dividerColor),
+                  _buildSproutSwitchRow(
+                    title: 'Remind Before Class',
+                    subtitle: 'Notify before session starts',
+                    icon: Icons.schedule_rounded,
+                    iconBg: isDark ? const Color(0xFF132B45) : const Color(0xFFE6F0FA),
+                    iconColor: isDark ? const Color(0xFF60A5FA) : const Color(0xFF1D6FB8),
+                    value: prefs.enableClassStart,
+                    tokens: tokens,
+                    isDark: isDark,
+                    onChanged: (val) {
+                      notifier.updatePreferences(prefs.copyWith(enableClassStart: val));
+                    },
+                  ),
+                  if (prefs.enableClassStart) ...[
+                    Divider(height: 1, indent: 56, endIndent: 16, color: dividerColor),
+                    _buildSproutValueTile(
+                      title: 'Reminder Timing',
+                      subtitle: 'How early to notify before class',
+                      value: prefs.startLeadMinutes == 0 ? 'At start' : '${prefs.startLeadMinutes}m before',
+                      tokens: tokens,
+                      isDark: isDark,
+                      onTap: () => _openSproutTimingSheet(
+                        context: context,
+                        isStart: true,
+                        currentMinutes: prefs.startLeadMinutes,
+                        tokens: tokens,
+                        isDark: isDark,
+                        onSelected: (mins) {
+                          notifier.updatePreferences(prefs.copyWith(startLeadMinutes: mins));
+                        },
+                      ),
+                    ),
+                  ],
+                  Divider(height: 1, indent: 56, endIndent: 16, color: dividerColor),
+                  _buildSproutSwitchRow(
+                    title: 'Remind When Class Ends',
+                    subtitle: 'Record attendance right after class',
+                    icon: Icons.flag_rounded,
+                    iconBg: isDark ? const Color(0xFF382618) : const Color(0xFFFEF3E2),
+                    iconColor: isDark ? const Color(0xFFF59E0B) : const Color(0xFFC27803),
+                    value: prefs.enableClassEnd,
+                    tokens: tokens,
+                    isDark: isDark,
+                    onChanged: (val) {
+                      notifier.updatePreferences(prefs.copyWith(enableClassEnd: val));
+                    },
+                  ),
+                  if (prefs.enableClassEnd) ...[
+                    Divider(height: 1, indent: 56, endIndent: 16, color: dividerColor),
+                    _buildSproutValueTile(
+                      title: 'End Reminder Timing',
+                      subtitle: 'When to notify relative to class end',
+                      value: prefs.endLeadMinutes == 0 ? 'At class end' : '${prefs.endLeadMinutes}m before end',
+                      tokens: tokens,
+                      isDark: isDark,
+                      onTap: () => _openSproutTimingSheet(
+                        context: context,
+                        isStart: false,
+                        currentMinutes: prefs.endLeadMinutes,
+                        tokens: tokens,
+                        isDark: isDark,
+                        onSelected: (mins) {
+                          notifier.updatePreferences(prefs.copyWith(endLeadMinutes: mins));
+                        },
+                      ),
+                    ),
+                  ],
+                  Divider(height: 1, indent: 56, endIndent: 16, color: dividerColor),
+                  _buildSproutSwitchRow(
+                    title: 'Quick Attendance Buttons',
+                    subtitle: 'Include Present and Absent actions in alert',
+                    icon: Icons.check_circle_outline_rounded,
+                    iconBg: isDark ? const Color(0xFF2C1E3D) : const Color(0xFFF3ECF8),
+                    iconColor: isDark ? const Color(0xFFC084FC) : const Color(0xFF7E3FA3),
+                    value: prefs.enableQuickActions,
+                    tokens: tokens,
+                    isDark: isDark,
+                    onChanged: (val) {
+                      notifier.updatePreferences(prefs.copyWith(enableQuickActions: val));
+                    },
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          // 3. SOUND & FEEDBACK (Zero emojis in heading)
+          _buildSproutSectionHeader('Sound & Feedback', tokens),
+          Container(
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: cardBorder, width: 1.0),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                _buildSproutSwitchRow(
+                  title: 'Haptic Vibration',
+                  subtitle: 'Gentle vibration on reminder alerts',
+                  icon: Icons.vibration_rounded,
+                  iconBg: isDark ? const Color(0xFF382218) : const Color(0xFFFDF0E6),
+                  iconColor: isDark ? const Color(0xFFFB923C) : const Color(0xFFC85A17),
+                  value: prefs.vibrate,
+                  tokens: tokens,
+                  isDark: isDark,
+                  onChanged: (val) {
+                    notifier.updatePreferences(prefs.copyWith(vibrate: val));
+                  },
+                ),
+                Divider(height: 1, indent: 56, endIndent: 16, color: dividerColor),
+                _buildSproutSwitchRow(
+                  title: 'Alert Sound',
+                  subtitle: 'Play sound for class reminders',
+                  icon: Icons.volume_up_rounded,
+                  iconBg: isDark ? const Color(0xFF163424) : const Color(0xFFEAF8E7),
+                  iconColor: isDark ? const Color(0xFF8BC34A) : const Color(0xFF1E6B3F),
+                  value: prefs.sound,
+                  tokens: tokens,
+                  isDark: isDark,
+                  onChanged: (val) {
+                    notifier.updatePreferences(prefs.copyWith(sound: val));
+                  },
+                ),
+              ],
+            ),
+          ),
+
+          // 4. SYSTEM PERMISSIONS (Zero emojis in heading - only if needed)
+          if (!_hasNotificationPermission || !_canExactAlarms) ...[
+            _buildSproutSectionHeader('System Permissions', tokens),
+            Container(
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: cardBorder, width: 1.0),
+              ),
+              child: Column(
+                children: [
+                  if (!_hasNotificationPermission) ...[
+                    _buildSproutPermissionTile(
+                      title: 'Notification Permission',
+                      subtitle: 'Disabled • Tap to allow alerts in system settings',
+                      isDark: isDark,
+                      tokens: tokens,
+                      onTap: () async {
+                        final status = await Permission.notification.request();
+                        if (status.isPermanentlyDenied) {
+                          await openAppSettings();
+                        }
+                        await _checkPermissions();
+                      },
+                    ),
+                  ],
+                  if (!_canExactAlarms) ...[
+                    if (!_hasNotificationPermission)
+                      Divider(height: 1, indent: 56, endIndent: 16, color: dividerColor),
+                    _buildSproutPermissionTile(
+                      title: 'Exact Alarms & Reminders',
+                      subtitle: 'Restricted • Tap to allow in special app access',
+                      isDark: isDark,
+                      tokens: tokens,
+                      onTap: () async {
+                        await NotificationService.instance.requestExactAlarmsPermission();
+                        await _checkPermissions();
+                      },
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSproutStatusHeroCard(
+    NotificationPreferencesEntity prefs,
+    AppThemeTokens tokens,
+    Color cardBg,
+    Color cardBorder,
+    bool isDark,
+  ) {
+    final bool isActive = prefs.enabled;
+    final String title = isActive ? 'Reminders Active' : 'Reminders Paused';
+    final String subtitle = isActive ? 'Exact alerts scheduled' : 'All scheduled alerts muted';
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8, bottom: 4),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: cardBorder, width: 1.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: isActive
+                  ? (isDark ? const Color(0xFF163424) : const Color(0xFFEAF8E7))
+                  : (isDark ? const Color(0xFF262E28) : const Color(0xFFF1F5F9)),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              isActive ? Icons.notifications_active_rounded : Icons.notifications_off_rounded,
+              size: 20,
+              color: isActive
+                  ? (isDark ? const Color(0xFF8BC34A) : const Color(0xFF1E6B3F))
+                  : tokens.textMuted,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.quicksand(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: tokens.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: GoogleFonts.quicksand(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: tokens.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+            decoration: BoxDecoration(
+              color: isActive
+                  ? (isDark ? const Color(0xFF163424) : const Color(0xFFEAF8E7))
+                  : (isDark ? const Color(0xFF262E28) : const Color(0xFFF1F5F9)),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: isActive
+                    ? (isDark ? const Color(0xFF2C5B45) : const Color(0xFFD7F0D6))
+                    : (isDark ? const Color(0xFF3B483F) : const Color(0xFFE2E8F0)),
+                width: 1.0,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isActive) ...[
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: tokens.primaryAccent,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                ],
+                Text(
+                  isActive ? 'ON' : 'PAUSED',
+                  style: GoogleFonts.quicksand(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: isActive
+                        ? (isDark ? const Color(0xFF8BC34A) : const Color(0xFF1E6B3F))
+                        : tokens.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSproutSwitchRow({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color iconBg,
+    required Color iconColor,
+    required bool value,
+    required AppThemeTokens tokens,
+    required bool isDark,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: iconBg,
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: Icon(icon, size: 18, color: iconColor),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.quicksand(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: tokens.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: GoogleFonts.quicksand(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: tokens.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: value,
+            activeThumbColor: Colors.white,
+            activeTrackColor: tokens.primaryAccent,
+            inactiveThumbColor: Colors.white,
+            inactiveTrackColor: isDark ? const Color(0xFF274C37) : const Color(0xFFE2EAE0),
+            trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSproutValueTile({
+    required String title,
+    required String subtitle,
+    required String value,
+    required AppThemeTokens tokens,
+    required bool isDark,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(56, 10, 16, 10),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.quicksand(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: tokens.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.quicksand(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: tokens.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  value,
+                  style: GoogleFonts.quicksand(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
+                    color: tokens.primaryAccent,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Icon(Icons.chevron_right_rounded, size: 16, color: tokens.textMuted),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSproutPermissionTile({
+    required String title,
+    required String subtitle,
+    required bool isDark,
+    required AppThemeTokens tokens,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF381C1C) : const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: const Icon(Icons.warning_amber_rounded, size: 18, color: Color(0xFFEF4444)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.quicksand(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
+                      color: tokens.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.quicksand(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFFEF4444),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, size: 18, color: tokens.textMuted),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSproutSectionHeader(
+    String title,
+    AppThemeTokens tokens, {
+    double topPadding = 20,
+    double bottomPadding = 8,
+  }) {
+    return Padding(
+      padding: EdgeInsets.only(left: 4, top: topPadding, bottom: bottomPadding),
+      child: Text(
+        title.toUpperCase(),
+        style: GoogleFonts.quicksand(
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.8,
+          color: tokens.textMuted,
+        ),
       ),
     );
   }
@@ -990,7 +1671,7 @@ class _BatteryInfoSheet extends StatelessWidget {
             iconColor: AppColors.accentBlue,
             iconBg: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
             title: 'Exact Scheduled Alarms',
-            description: 'The operating system wakes Attendly only at your class time to post the alert, then goes right back to sleep.',
+            description: 'The operating system wakes Classtrack only at your class time to post the alert, then goes right back to sleep.',
             isDark: isDark,
           ),
           const SizedBox(height: 14),
@@ -1098,3 +1779,502 @@ class _BatteryInfoSheet extends StatelessWidget {
     );
   }
 }
+
+/// Tactile Sprouts theme bottom sheet explaining battery efficiency and zero-drain architecture
+class _SproutBatteryInfoSheet extends StatelessWidget {
+  final AppThemeTokens tokens;
+  final bool isDark;
+
+  const _SproutBatteryInfoSheet({
+    required this.tokens,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final sheetBg = isDark ? const Color(0xFF1B3626) : Colors.white;
+    final borderCol = isDark ? const Color(0xFF274C37) : const Color(0xFFE4ECE0);
+
+    return Container(
+      padding: EdgeInsets.fromLTRB(20, 12, 20, MediaQuery.of(context).viewInsets.bottom + 24),
+      decoration: BoxDecoration(
+        color: sheetBg,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        border: Border.all(color: borderCol, width: 1.0),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Drag handle
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF274C37) : const Color(0xFFD4DEC7),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Did You Know?',
+                style: GoogleFonts.quicksand(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.3,
+                  color: tokens.textPrimary,
+                ),
+              ),
+              InkWell(
+                onTap: () => Navigator.pop(context),
+                borderRadius: BorderRadius.circular(999),
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF163424) : const Color(0xFFF0F6EE),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isDark ? const Color(0xFF274C37) : const Color(0xFFE4ECE0),
+                      width: 0.8,
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.close_rounded,
+                    size: 18,
+                    color: tokens.textMuted,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Cute pill badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF163424) : const Color(0xFFEAF8E7),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: isDark ? const Color(0xFF2E593E) : const Color(0xFFD7F0D6),
+                width: 1.0,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.bolt_rounded,
+                  size: 15,
+                  color: isDark ? const Color(0xFF8BC34A) : const Color(0xFF2E7D32),
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  '100% Battery Friendly',
+                  style: GoogleFonts.quicksand(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? const Color(0xFF8BC34A) : const Color(0xFF1E6B3F),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Class reminders consume 0% extra battery throughout your day.',
+            style: GoogleFonts.quicksand(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w500,
+              color: tokens.textSecondary,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // 3 Feature points
+          _buildSproutFeaturePoint(
+            icon: Icons.alarm_on_rounded,
+            iconColor: isDark ? const Color(0xFF8BC34A) : const Color(0xFF2E7D32),
+            iconBg: isDark ? const Color(0xFF163424) : const Color(0xFFEAF8E7),
+            title: 'Exact Scheduled Alarms',
+            description: 'The operating system wakes Classtrack only at your class time to post the alert, then goes right back to sleep.',
+            tokens: tokens,
+            isDark: isDark,
+          ),
+          const SizedBox(height: 14),
+          _buildSproutFeaturePoint(
+            icon: Icons.power_off_rounded,
+            iconColor: isDark ? const Color(0xFF60A5FA) : const Color(0xFF1D6FB8),
+            iconBg: isDark ? const Color(0xFF132B45) : const Color(0xFFE6F0FA),
+            title: 'Never Runs in the Background',
+            description: 'No background services, persistent workers, or location checks. When you close the app, it stays completely inactive.',
+            tokens: tokens,
+            isDark: isDark,
+          ),
+          const SizedBox(height: 14),
+          _buildSproutFeaturePoint(
+            icon: Icons.battery_saver_rounded,
+            iconColor: isDark ? const Color(0xFFFB923C) : const Color(0xFFC85A17),
+            iconBg: isDark ? const Color(0xFF382218) : const Color(0xFFFDF0E6),
+            title: 'Zero Idle CPU Usage',
+            description: 'You get 100% on-time attendance reminders without any noticeable impact on battery life.',
+            tokens: tokens,
+            isDark: isDark,
+          ),
+          const SizedBox(height: 24),
+
+          // "Got It" Button
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton(
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: tokens.primaryAccent,
+                foregroundColor: isDark ? const Color(0xFF0F2618) : Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              child: Text(
+                'Got It',
+                style: GoogleFonts.quicksand(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSproutFeaturePoint({
+    required IconData icon,
+    required Color iconColor,
+    required Color iconBg,
+    required String title,
+    required String description,
+    required AppThemeTokens tokens,
+    required bool isDark,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: iconBg,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: iconColor.withValues(alpha: isDark ? 0.3 : 0.2),
+              width: 1.0,
+            ),
+          ),
+          child: Icon(icon, size: 20, color: iconColor),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.quicksand(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w700,
+                  color: tokens.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                description,
+                style: GoogleFonts.quicksand(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w500,
+                  color: tokens.textSecondary,
+                  height: 1.35,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Tactile Sprouts theme bottom sheet for timing selection
+class _SproutReminderTimingSheet extends StatefulWidget {
+  final bool isStart;
+  final int currentMinutes;
+  final AppThemeTokens tokens;
+  final bool isDark;
+  final ValueChanged<int> onSelected;
+
+  const _SproutReminderTimingSheet({
+    required this.isStart,
+    required this.currentMinutes,
+    required this.tokens,
+    required this.isDark,
+    required this.onSelected,
+  });
+
+  @override
+  State<_SproutReminderTimingSheet> createState() => _SproutReminderTimingSheetState();
+}
+
+class _SproutReminderTimingSheetState extends State<_SproutReminderTimingSheet> {
+  late double _selectedMinutes;
+
+  List<int> get _presets => widget.isStart ? const [0, 5, 10, 15, 30] : const [0, 5, 10, 15];
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedMinutes = widget.currentMinutes.clamp(0, 60).toDouble();
+  }
+
+  void _updateMinutes(double mins) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      _selectedMinutes = mins.clamp(0.0, 60.0);
+    });
+  }
+
+  void _save() {
+    HapticFeedback.lightImpact();
+    final selected = _selectedMinutes.round();
+    Navigator.pop(context);
+    Future.delayed(const Duration(milliseconds: 220), () {
+      widget.onSelected(selected);
+    });
+  }
+
+  String _formatHero(int mins) {
+    if (mins == 0) {
+      return widget.isStart ? 'At class start' : 'At class end';
+    }
+    return '$mins min before';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = widget.tokens;
+    final isDark = widget.isDark;
+    final int currentInt = _selectedMinutes.round();
+    final sheetBg = isDark ? const Color(0xFF1B3626) : Colors.white;
+    final borderCol = isDark ? const Color(0xFF274C37) : const Color(0xFFE4ECE0);
+
+    return Container(
+      padding: EdgeInsets.fromLTRB(20, 12, 20, MediaQuery.of(context).viewInsets.bottom + 24),
+      decoration: BoxDecoration(
+        color: sheetBg,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        border: Border.all(color: borderCol, width: 1.0),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Drag handle
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF274C37) : const Color(0xFFD4DEC7),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                widget.isStart ? 'Start Reminder' : 'End Reminder',
+                style: GoogleFonts.quicksand(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: tokens.textPrimary,
+                ),
+              ),
+              IconButton(
+                icon: Icon(
+                  Icons.close_rounded,
+                  size: 20,
+                  color: tokens.textSecondary,
+                ),
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // Big Hero Text Display
+          Center(
+            child: Text(
+              _formatHero(currentInt),
+              style: GoogleFonts.quicksand(
+                fontSize: 32,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.5,
+                color: tokens.textPrimary,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Quick Preset Pills
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: _presets.map((preset) {
+              final isSel = currentInt == preset;
+              final label = preset == 0
+                  ? (widget.isStart ? 'At start' : 'At end')
+                  : '${preset}m';
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: InkWell(
+                  onTap: () => _updateMinutes(preset.toDouble()),
+                  borderRadius: BorderRadius.circular(999),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: isSel
+                          ? tokens.primaryAccent
+                          : (isDark ? const Color(0xFF163424) : const Color(0xFFF0F6EE)),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: isSel
+                            ? tokens.primaryAccent
+                            : (isDark ? const Color(0xFF274C37) : const Color(0xFFE4ECE0)),
+                        width: 1.0,
+                      ),
+                    ),
+                    child: Text(
+                      label,
+                      style: GoogleFonts.quicksand(
+                        fontSize: 12,
+                        fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
+                        color: isSel
+                            ? (isDark ? const Color(0xFF0F2618) : Colors.white)
+                            : tokens.textPrimary,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 20),
+
+          // Slider with Steppers Row
+          Row(
+            children: [
+              IconButton(
+                icon: Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF163424) : const Color(0xFFF0F6EE),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: borderCol, width: 0.8),
+                  ),
+                  child: Icon(Icons.remove_rounded, size: 18, color: tokens.textPrimary),
+                ),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: currentInt > 0 ? () => _updateMinutes(_selectedMinutes - 1) : null,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: SliderTheme(
+                  data: SliderThemeData(
+                    trackHeight: 6,
+                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+                    activeTrackColor: tokens.primaryAccent,
+                    inactiveTrackColor: isDark ? const Color(0xFF274C37) : const Color(0xFFE2EAE0),
+                    thumbColor: tokens.primaryAccent,
+                    overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+                  ),
+                  child: Slider(
+                    value: _selectedMinutes,
+                    min: 0.0,
+                    max: 60.0,
+                    divisions: 60,
+                    onChanged: _updateMinutes,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF163424) : const Color(0xFFF0F6EE),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: borderCol, width: 0.8),
+                  ),
+                  child: Icon(Icons.add_rounded, size: 18, color: tokens.textPrimary),
+                ),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: currentInt < 60 ? () => _updateMinutes(_selectedMinutes + 1) : null,
+              ),
+            ],
+          ),
+          const SizedBox(height: 22),
+
+          // Save Action
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton(
+              onPressed: _save,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: tokens.primaryAccent,
+                foregroundColor: isDark ? const Color(0xFF0F2618) : Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: Text(
+                'Save',
+                style: GoogleFonts.quicksand(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+

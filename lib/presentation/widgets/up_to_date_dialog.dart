@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/app_theme_tokens.dart';
 import '../../core/services/app_update_service.dart';
 import '../screens/settings/update_screen.dart';
 
@@ -36,16 +38,24 @@ class UpToDateDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppThemeTokens>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardBg = isDark ? const Color(0xFF18181B) : Colors.white;
-    final borderColor = isDark ? AppColors.borderDark : const Color(0xFFE2E8F0);
+    final isCute = tokens?.isCute == true;
+
+    final cardBg = isCute
+        ? (isDark ? const Color(0xFF13261B) : const Color(0xFFFAF7F2))
+        : (isDark ? const Color(0xFF18181B) : Colors.white);
+    final borderColor = isCute
+        ? (isDark ? const Color(0xFF274C37) : const Color(0xFFE4ECE0))
+        : (isDark ? AppColors.borderDark : const Color(0xFFE2E8F0));
+    final borderRadius = isCute ? 28.0 : 16.0;
 
     return Dialog(
       backgroundColor: cardBg,
       surfaceTintColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(borderRadius),
         side: BorderSide(color: borderColor, width: 0.8),
       ),
       child: ConstrainedBox(
@@ -75,16 +85,24 @@ class UpToDateSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppThemeTokens>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardBg = isDark ? const Color(0xFF18181B) : Colors.white;
-    final borderColor = isDark ? AppColors.borderDark : const Color(0xFFE2E8F0);
+    final isCute = tokens?.isCute == true;
+
+    final cardBg = isCute
+        ? (isDark ? const Color(0xFF13261B) : const Color(0xFFFAF7F2))
+        : (isDark ? const Color(0xFF18181B) : Colors.white);
+    final borderColor = isCute
+        ? (isDark ? const Color(0xFF274C37) : const Color(0xFFE4ECE0))
+        : (isDark ? AppColors.borderDark : const Color(0xFFE2E8F0));
+    final radius = isCute ? 32.0 : 20.0;
 
     return Container(
       width: double.infinity,
       constraints: const BoxConstraints(maxWidth: 480),
       decoration: BoxDecoration(
         color: cardBg,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(radius)),
         border: Border(top: BorderSide(color: borderColor, width: 0.8)),
       ),
       child: SafeArea(
@@ -142,7 +160,16 @@ class _UpToDateContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppThemeTokens>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    if (tokens?.isCute == true) {
+      return _buildSproutContent(context, tokens!, isDark);
+    }
+    return _buildClassicContent(context, isDark);
+  }
+
+  Widget _buildClassicContent(BuildContext context, bool isDark) {
     final borderColor = isDark ? AppColors.borderDark : const Color(0xFFE2E8F0);
     final greenAccent = isDark ? AppColors.presentGreenDark : AppColors.presentGreen;
     final brandBlue = AppColors.accentBlue;
@@ -309,6 +336,220 @@ class _UpToDateContent extends StatelessWidget {
                     child: const Text(
                       'Done',
                       style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSproutContent(
+    BuildContext context,
+    AppThemeTokens tokens,
+    bool isDark,
+  ) {
+    final cardBg = isDark ? const Color(0xFF1B3626) : Colors.white;
+    final cardBorder = isDark ? const Color(0xFF274C37) : const Color(0xFFE4ECE0);
+    final badgeBg = isDark ? const Color(0xFF163424) : const Color(0xFFEAF8E7);
+    final badgeBorder = isDark ? const Color(0xFF2C5B45) : const Color(0xFFD7F0D6);
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        22,
+        isBottomSheet ? 12 : 24,
+        22,
+        isBottomSheet ? 28 : 22,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          if (isBottomSheet) ...[
+            Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF274C37) : const Color(0xFFD4DEC7),
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+          ],
+
+          // Green checkmark in squircle badge
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: badgeBg,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: badgeBorder, width: 1.0),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Center(
+              child: Icon(
+                Icons.check_rounded,
+                size: 28,
+                color: tokens.primaryAccent,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Title
+          Text(
+            'You\'re on the Latest Version',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.quicksand(
+              fontSize: 19,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.4,
+              color: tokens.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 6),
+
+          // Subtitle
+          Text(
+            'Attendly is up to date and running the latest stable build with all features and performance optimizations.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.quicksand(
+              fontSize: 12.5,
+              height: 1.45,
+              fontWeight: FontWeight.w500,
+              color: tokens.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 18),
+
+          // Minimalist Metadata Container
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: cardBorder, width: 1.0),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.03),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Wrap(
+              alignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                  decoration: BoxDecoration(
+                    color: badgeBg,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: badgeBorder, width: 1.0),
+                  ),
+                  child: Text(
+                    'LATEST',
+                    style: GoogleFonts.quicksand(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                      color: isDark ? const Color(0xFF8BC34A) : const Color(0xFF1E6B3F),
+                    ),
+                  ),
+                ),
+                Text(
+                  'v$currentVersion',
+                  style: GoogleFonts.quicksand(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: tokens.textPrimary,
+                  ),
+                ),
+                Text(
+                  '•',
+                  style: GoogleFonts.quicksand(
+                    fontSize: 13,
+                    color: tokens.textMuted,
+                  ),
+                ),
+                Text(
+                  _formatCheckedTime(lastCheckedTime),
+                  style: GoogleFonts.quicksand(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: tokens.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Actions (Zero emojis!)
+          Row(
+            children: [
+              // 1. "What's New" Button (Tactile Outlined Squircle, zero emojis!)
+              Expanded(
+                child: SizedBox(
+                  height: 48,
+                  child: OutlinedButton(
+                    onPressed: () => _openWhatsNew(context),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: tokens.primaryAccent,
+                      side: BorderSide(
+                        color: cardBorder,
+                        width: 1.0,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: Text(
+                      'What\'s New',
+                      style: GoogleFonts.quicksand(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+
+              // 2. "Done" Button (Solid Filled Squircle in tokens.primaryAccent)
+              Expanded(
+                child: SizedBox(
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: tokens.primaryAccent,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: Text(
+                      'Done',
+                      style: GoogleFonts.quicksand(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
                 ),

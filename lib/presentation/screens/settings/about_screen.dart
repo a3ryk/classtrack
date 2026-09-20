@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_theme_tokens.dart';
 import '../../../core/ui/app_toast.dart';
 import '../../../core/ui/brand_social_icons.dart';
 import '../../../core/ui/tactile_button.dart';
@@ -12,6 +14,7 @@ import '../../../core/services/app_update_service.dart';
 import '../../widgets/developer_passcode_dialog.dart';
 import 'update_screen.dart';
 import 'privacy_policy_screen.dart';
+import 'licenses_screen.dart';
 
 class AboutScreen extends ConsumerStatefulWidget {
   const AboutScreen({super.key});
@@ -87,9 +90,17 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppThemeTokens>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final updateState = ref.watch(appUpdateProvider);
 
+    if (tokens?.isCute == true) {
+      return _buildSproutAboutView(context, tokens!, updateState, isDark);
+    }
+    return _buildClassicAboutView(context, updateState, isDark);
+  }
+
+  Widget _buildClassicAboutView(BuildContext context, AppUpdateState updateState, bool isDark) {
     final groupBg = isDark ? AppColors.cardDark : Colors.white;
     final groupBorder = isDark ? AppColors.borderDark : const Color(0xFFE2E8F0);
     final dividerColor = isDark ? AppColors.borderDark.withValues(alpha: 0.6) : const Color(0xFFF1F5F9);
@@ -227,10 +238,13 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
                             color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
                           ),
                           onTap: () {
-                            showLicensePage(
-                              context: context,
-                              applicationName: 'Attendly',
-                              applicationVersion: 'v${updateState.currentVersion}',
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => LicensesScreen(
+                                  currentVersion: updateState.currentVersion,
+                                ),
+                              ),
                             );
                           },
                         ),
@@ -304,6 +318,375 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSproutAboutView(
+    BuildContext context,
+    AppThemeTokens tokens,
+    AppUpdateState updateState,
+    bool isDark,
+  ) {
+    final Color cardBg = isDark ? const Color(0xFF1B3626) : Colors.white;
+    final Color cardBorder = isDark ? const Color(0xFF274C37) : const Color(0xFFE4ECE0);
+    final Color dividerColor = isDark ? const Color(0xFF274C37) : const Color(0xFFF0ECE1);
+    final Color scaffoldBg = tokens.scaffoldBg;
+
+    return Scaffold(
+      backgroundColor: scaffoldBg,
+      appBar: AppBar(
+        backgroundColor: scaffoldBg,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leadingWidth: 100,
+        leading: InkWell(
+          onTap: () => Navigator.pop(context),
+          borderRadius: BorderRadius.circular(8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(width: 14),
+              Icon(Icons.chevron_left_rounded, size: 22, color: tokens.primaryAccent),
+              Text(
+                'Back',
+                style: GoogleFonts.quicksand(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: tokens.primaryAccent,
+                ),
+              ),
+            ],
+          ),
+        ),
+        title: Text(
+          'About',
+          style: GoogleFonts.quicksand(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: tokens.textPrimary,
+          ),
+        ),
+        centerTitle: true,
+      ),
+      body: SafeArea(
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          children: [
+            // 1. APP & UPDATES (Zero emojis in heading)
+            _buildSproutAboutSectionHeader('App & Updates', tokens, topPadding: 16),
+            Container(
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: cardBorder, width: 1.0),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  _buildSproutTile(
+                    title: 'Version',
+                    subtitle: 'Stable ${updateState.currentVersion} (${DateTime.now().year})',
+                    tokens: tokens,
+                    isDark: isDark,
+                    onTap: _handleVersionTap,
+                  ),
+                  Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
+                  _buildSproutTile(
+                    title: 'Check for updates',
+                    subtitle: 'Verify the latest available release',
+                    tokens: tokens,
+                    isDark: isDark,
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (updateState.isChecking)
+                          SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: tokens.primaryAccent,
+                            ),
+                          )
+                        else if (updateState.hasUpdate)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF163424) : const Color(0xFFEAF8E7),
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(
+                                color: isDark ? const Color(0xFF2C5B45) : const Color(0xFFD7F0D6),
+                                width: 1.0,
+                              ),
+                            ),
+                            child: Text(
+                              'Update Available',
+                              style: GoogleFonts.quicksand(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: isDark ? const Color(0xFF8BC34A) : const Color(0xFF1E6B3F),
+                              ),
+                            ),
+                          ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          size: 18,
+                          color: tokens.textMuted,
+                        ),
+                      ],
+                    ),
+                    onTap: () {
+                      ref.read(appUpdateProvider.notifier).checkForUpdates(
+                            context: context,
+                            manualTrigger: true,
+                          );
+                    },
+                  ),
+                  Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
+                  _buildSproutTile(
+                    title: 'What\'s new',
+                    subtitle: 'Latest additions & fixes',
+                    tokens: tokens,
+                    isDark: isDark,
+                    onTap: () => _showWhatsNewDialog(context, isDark),
+                  ),
+                ],
+              ),
+            ),
+
+            // 2. LEGAL & DATA ETHICS (Zero emojis in heading)
+            _buildSproutAboutSectionHeader('Legal & Data Ethics', tokens),
+            Container(
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: cardBorder, width: 1.0),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  _buildSproutTile(
+                    title: 'Open source licenses',
+                    subtitle: 'Third-party software libraries & credits',
+                    tokens: tokens,
+                    isDark: isDark,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => LicensesScreen(
+                            currentVersion: updateState.currentVersion,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
+                  _buildSproutTile(
+                    title: 'Privacy Policy',
+                    subtitle: '100% offline data protection & telemetry guarantees',
+                    tokens: tokens,
+                    isDark: isDark,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const PrivacyPolicyScreen()),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+
+            // 3. COMMUNITY & SOURCE (Zero emojis in heading)
+            _buildSproutAboutSectionHeader('Community & Source', tokens),
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: cardBorder, width: 1.0),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildSproutSocialButton(
+                    svgString: BrandSocialIcons.websiteSvg,
+                    tooltip: 'Website',
+                    url: 'https://example.com',
+                    tokens: tokens,
+                    cardBorder: cardBorder,
+                    isDark: isDark,
+                  ),
+                  _buildSproutSocialButton(
+                    svgString: BrandSocialIcons.discordSvg,
+                    tooltip: 'Discord',
+                    url: 'https://example.com/discord',
+                    tokens: tokens,
+                    cardBorder: cardBorder,
+                    isDark: isDark,
+                  ),
+                  _buildSproutSocialButton(
+                    svgString: BrandSocialIcons.xTwitterSvg,
+                    tooltip: 'X (Twitter)',
+                    url: 'https://example.com/x',
+                    tokens: tokens,
+                    cardBorder: cardBorder,
+                    isDark: isDark,
+                  ),
+                  _buildSproutSocialButton(
+                    svgString: BrandSocialIcons.redditSvg,
+                    tooltip: 'Reddit',
+                    url: 'https://example.com/reddit',
+                    tokens: tokens,
+                    cardBorder: cardBorder,
+                    isDark: isDark,
+                  ),
+                  _buildSproutSocialButton(
+                    svgString: BrandSocialIcons.githubSvg,
+                    tooltip: 'GitHub',
+                    url: 'https://example.com/github',
+                    tokens: tokens,
+                    cardBorder: cardBorder,
+                    isDark: isDark,
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSproutTile({
+    required String title,
+    String? subtitle,
+    Widget? trailing,
+    required AppThemeTokens tokens,
+    required bool isDark,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.quicksand(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: tokens.textPrimary,
+                      ),
+                    ),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: GoogleFonts.quicksand(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: tokens.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (trailing != null)
+                trailing
+              else
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 18,
+                  color: tokens.textMuted,
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSproutSocialButton({
+    required String svgString,
+    required String tooltip,
+    required String url,
+    required AppThemeTokens tokens,
+    required Color cardBorder,
+    required bool isDark,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: TapScaleContainer(
+        onTap: () => _launchExternalUrl(url),
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF163424) : const Color(0xFFF0F6EE),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: cardBorder, width: 0.8),
+          ),
+          alignment: Alignment.center,
+          child: BrandSocialIcons.icon(
+            svgString: svgString,
+            color: tokens.primaryAccent,
+            size: 19,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSproutAboutSectionHeader(
+    String title,
+    AppThemeTokens tokens, {
+    double topPadding = 20,
+    double bottomPadding = 8,
+  }) {
+    return Padding(
+      padding: EdgeInsets.only(left: 4, top: topPadding, bottom: bottomPadding),
+      child: Text(
+        title.toUpperCase(),
+        style: GoogleFonts.quicksand(
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.8,
+          color: tokens.textMuted,
         ),
       ),
     );
