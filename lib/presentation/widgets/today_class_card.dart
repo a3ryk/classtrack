@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/app_theme_tokens.dart';
 import '../../core/utils/date_formatter.dart';
 import '../../domain/entities/class_session_entity.dart';
 import '../providers/app_state_provider.dart';
@@ -51,6 +52,9 @@ class TodayClassCard extends ConsumerWidget {
     ref.watch(realtimeClockProvider);
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tokens = Theme.of(context).extension<AppThemeTokens>();
+    final isCute = tokens?.isCute ?? false;
+    final cardRadius = isCute ? 20.0 : 14.0;
     final isHoliday = session.attendanceOutcome == 'HOLIDAY' || session.status == 'HOLIDAY';
     final liveStatus = (session.attendanceOutcome == 'CANCELLED' || isHoliday) ? null : _getLiveStatus();
 
@@ -59,7 +63,7 @@ class TodayClassCard extends ConsumerWidget {
       final hex = session.colorHex.replaceAll('#', '');
       stripeColor = Color(int.parse('FF$hex', radix: 16));
     } catch (_) {
-      stripeColor = AppColors.accentIndigoLight;
+      stripeColor = isCute ? const Color(0xFF7CB342) : AppColors.accentIndigoLight;
     }
 
     final String subtitleText = [
@@ -74,13 +78,21 @@ class TodayClassCard extends ConsumerWidget {
         session.componentType,
     ].join('  •  ');
 
+    final presentIcon = isCute ? Icons.spa_rounded : Icons.check_rounded;
+    final absentIcon = isCute ? Icons.cancel_rounded : Icons.close_rounded;
+    final cancelledIcon = isCute ? Icons.remove_circle_rounded : Icons.block_rounded;
+    final presentColor = isCute ? (tokens?.presentColor ?? AppColors.presentGreen) : AppColors.presentGreen;
+    final absentColor = isCute ? (tokens?.absentColor ?? AppColors.absentRed) : AppColors.absentRed;
+    final cancelledColor = isCute ? (tokens?.cancelledColor ?? AppColors.cancelledViolet) : AppColors.cancelledViolet;
+    final buttonRadius = BorderRadius.circular(isCute ? 999 : 8);
+
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(cardRadius),
       child: Container(
         decoration: BoxDecoration(
           color: isDark ? AppColors.cardDark : Colors.white,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(cardRadius),
           border: Border.all(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0), width: 0.8),
         ),
         child: Stack(
@@ -91,10 +103,10 @@ class TodayClassCard extends ConsumerWidget {
               top: 14,
               bottom: 14,
               child: Container(
-                width: 3.5,
+                width: isCute ? 4.5 : 3.5,
                 decoration: BoxDecoration(
                   color: isHoliday ? const Color(0xFFD97706) : stripeColor,
-                  borderRadius: const BorderRadius.horizontal(right: Radius.circular(4)),
+                  borderRadius: BorderRadius.horizontal(right: Radius.circular(isCute ? 999 : 4)),
                 ),
               ),
             ),
@@ -115,7 +127,7 @@ class TodayClassCard extends ConsumerWidget {
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
                             color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                            letterSpacing: -0.2,
+                            letterSpacing: isCute ? -0.1 : -0.2,
                           ),
                         ),
                       ),
@@ -125,7 +137,7 @@ class TodayClassCard extends ConsumerWidget {
                           margin: const EdgeInsets.only(left: 6),
                           decoration: BoxDecoration(
                             color: isDark ? const Color(0xFF78350F).withValues(alpha: 0.4) : const Color(0xFFFEF3C7),
-                            borderRadius: BorderRadius.circular(5),
+                            borderRadius: BorderRadius.circular(isCute ? 999 : 5),
                             border: Border.all(
                               color: isDark ? const Color(0xFFB45309).withValues(alpha: 0.4) : const Color(0xFFFDE68A),
                               width: 0.7,
@@ -155,11 +167,11 @@ class TodayClassCard extends ConsumerWidget {
                             color: liveStatus.startsWith('🟢')
                                 ? (isDark ? const Color(0xFF064E3B).withValues(alpha: 0.5) : const Color(0xFFDCFCE7))
                                 : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
-                            borderRadius: BorderRadius.circular(5),
+                            borderRadius: BorderRadius.circular(isCute ? 999 : 5),
                             border: Border.all(
                               color: liveStatus.startsWith('🟢')
                                    ? (isDark ? const Color(0xFF059669).withValues(alpha: 0.4) : const Color(0xFF86EFAC))
-                                  : (isDark ? AppColors.borderDark : const Color(0xFFCBD5E1)),
+                                   : (isDark ? AppColors.borderDark : const Color(0xFFCBD5E1)),
                               width: 0.7,
                             ),
                           ),
@@ -197,7 +209,7 @@ class TodayClassCard extends ConsumerWidget {
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: isDark ? const Color(0xFF78350F).withValues(alpha: 0.25) : const Color(0xFFFEF3C7),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(isCute ? 999 : 8),
                         border: Border.all(
                           color: isDark ? const Color(0xFFB45309).withValues(alpha: 0.4) : const Color(0xFFFDE68A),
                           width: 0.8,
@@ -231,7 +243,7 @@ class TodayClassCard extends ConsumerWidget {
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: isDark ? AppColors.pillDark : const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(isCute ? 999 : 8),
                         border: Border.all(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0), width: 0.8),
                       ),
                       child: Row(
@@ -262,11 +274,12 @@ class TodayClassCard extends ConsumerWidget {
                         Expanded(
                           child: _FigmaActionButton(
                             label: 'Present',
-                            icon: Icons.check_rounded,
+                            icon: presentIcon,
                             isSelected: session.attendanceOutcome == 'PRESENT',
-                            activeColor: AppColors.presentGreen,
+                            activeColor: presentColor,
                             idleBgColor: isDark ? const Color(0xFF064E3B).withValues(alpha: 0.25) : AppColors.presentContainerLight,
                             idleTextColor: isDark ? AppColors.presentGreenDark : AppColors.presentGreenText,
+                            borderRadius: buttonRadius,
                             onTap: () => onOutcomeChanged('PRESENT'),
                           ),
                         ),
@@ -274,11 +287,12 @@ class TodayClassCard extends ConsumerWidget {
                         Expanded(
                           child: _FigmaActionButton(
                             label: 'Absent',
-                            icon: Icons.close_rounded,
+                            icon: absentIcon,
                             isSelected: session.attendanceOutcome == 'ABSENT',
-                            activeColor: AppColors.absentRed,
+                            activeColor: absentColor,
                             idleBgColor: isDark ? const Color(0xFF4C0519).withValues(alpha: 0.25) : AppColors.absentContainerLight,
                             idleTextColor: isDark ? const Color(0xFFFB7185) : AppColors.absentRedText,
+                            borderRadius: buttonRadius,
                             onTap: () => onOutcomeChanged('ABSENT'),
                           ),
                         ),
@@ -286,11 +300,12 @@ class TodayClassCard extends ConsumerWidget {
                         Expanded(
                           child: _FigmaActionButton(
                             label: 'Cancelled',
-                            icon: Icons.block_rounded,
+                            icon: cancelledIcon,
                             isSelected: session.attendanceOutcome == 'CANCELLED',
-                            activeColor: AppColors.cancelledViolet,
+                            activeColor: cancelledColor,
                             idleBgColor: isDark ? const Color(0xFF2E1065).withValues(alpha: 0.25) : AppColors.cancelledContainerLight,
                             idleTextColor: isDark ? const Color(0xFFA78BFA) : AppColors.cancelledVioletText,
+                            borderRadius: buttonRadius,
                             onTap: () => onOutcomeChanged('CANCELLED'),
                           ),
                         ),
@@ -314,6 +329,7 @@ class _FigmaActionButton extends StatelessWidget {
   final Color idleBgColor;
   final Color idleTextColor;
   final VoidCallback onTap;
+  final BorderRadius? borderRadius;
 
   const _FigmaActionButton({
     required this.label,
@@ -323,22 +339,24 @@ class _FigmaActionButton extends StatelessWidget {
     required this.idleBgColor,
     required this.idleTextColor,
     required this.onTap,
+    this.borderRadius,
   });
 
   @override
   Widget build(BuildContext context) {
+    final radius = borderRadius ?? BorderRadius.circular(8);
     return InkWell(
       onTap: () {
         HapticFeedback.lightImpact();
         onTap();
       },
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: radius,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8),
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: isSelected ? activeColor : idleBgColor,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: radius,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,

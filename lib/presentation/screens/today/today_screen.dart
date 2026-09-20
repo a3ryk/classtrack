@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_theme_tokens.dart';
 import '../../../core/ui/app_toast.dart';
 import '../../../core/ui/tactile_button.dart';
 import '../../../core/utils/date_formatter.dart';
@@ -22,6 +24,7 @@ import '../schedule/manage_subject_slots_screen.dart';
 import '../schedule/reschedule_session_screen.dart';
 import '../schedule/subject_room_manager_screen.dart';
 import '../settings/settings_screen.dart';
+import 'sprout_today_view.dart';
 
 class TodayScreen extends ConsumerStatefulWidget {
   const TodayScreen({super.key});
@@ -139,6 +142,23 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppThemeTokens>();
+    final isCute = tokens?.isCute ?? false;
+
+    if (isCute) {
+      return SproutTodayView(
+        selectedDate: _selectedDate,
+        onDateChanged: (newDate) {
+          setState(() {
+            _selectedDate = newDate;
+          });
+        },
+        onGoToToday: _goToToday,
+        onPickDate: _pickDate,
+        onSessionTap: (session, dateIso) => _showSessionActionSheet(context, session, dateIso),
+      );
+    }
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final String selectedDateIso = DateFormatter.toIsoDate(_selectedDate);
     final sessions = ref.watch(resolvedDayScheduleProvider(_selectedDate));
@@ -378,7 +398,18 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
   }
 
   void _showSessionActionSheet(BuildContext context, ClassSessionEntity session, String dateIso) {
+    final tokens = Theme.of(context).extension<AppThemeTokens>();
+    final isCute = tokens?.isCute ?? false;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    if (isCute && tokens != null) {
+      _showSproutSessionActionSheet(context, session, dateIso, tokens, isDark);
+    } else {
+      _showClassicSessionActionSheet(context, session, dateIso, isDark);
+    }
+  }
+
+  void _showClassicSessionActionSheet(BuildContext context, ClassSessionEntity session, String dateIso, bool isDark) {
     final isExtra = session.sessionSource == 'EXTRA';
 
     showModalBottomSheet(
@@ -704,6 +735,469 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
       },
     );
   }
+
+  void _showSproutSessionActionSheet(
+    BuildContext context,
+    ClassSessionEntity session,
+    String dateIso,
+    AppThemeTokens tokens,
+    bool isDark,
+  ) {
+    final isExtra = session.sessionSource == 'EXTRA';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return SafeArea(
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF163424) : const Color(0xFFFAF9F5),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: isDark ? const Color(0xFF2E593E) : const Color(0xFFE9E5DB),
+                width: 1.2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.08),
+                  blurRadius: 24,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Drag handle
+                  Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF2E593E) : const Color(0xFFD8DED4),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Session Type Badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: isExtra
+                          ? (isDark ? const Color(0xFF382D12) : const Color(0xFFFEF3C7))
+                          : (isDark ? const Color(0xFF164130) : const Color(0xFFEAF8E7)),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: isExtra
+                            ? (isDark ? const Color(0xFF78350F) : const Color(0xFFFDE68A))
+                            : (isDark ? const Color(0xFF2C5B45) : const Color(0xFFD7F0D6)),
+                        width: 1.0,
+                      ),
+                    ),
+                    child: Text(
+                      isExtra ? '⚡ Extra Session' : '🌱 Timetable Slot',
+                      style: GoogleFonts.quicksand(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: isExtra
+                            ? (isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309))
+                            : (isDark ? const Color(0xFFEAF8EA) : const Color(0xFF1E6B3F)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Header: Subject name
+                  Text(
+                    session.subjectName,
+                    style: GoogleFonts.quicksand(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                      color: tokens.textPrimary,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+
+                  // Subtitle: Time & Room
+                  Text(
+                    [
+                      '${DateFormatter.formatTime12h(session.startTime)} – ${DateFormatter.formatTime12h(session.endTime)}',
+                      if (session.room != null && session.room!.trim().isNotEmpty) 'Room ${session.room}',
+                    ].join('  •  '),
+                    style: GoogleFonts.quicksand(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: tokens.textSecondary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 18),
+
+                  // Action Cards
+                  if (isExtra) ...[
+                    _buildSproutActionCard(
+                      context: context,
+                      tokens: tokens,
+                      isDark: isDark,
+                      icon: Icons.edit_calendar_rounded,
+                      iconBg: isDark ? const Color(0xFF164130) : const Color(0xFFEAF8E7),
+                      iconColor: isDark ? const Color(0xFF81C784) : const Color(0xFF2E7D32),
+                      title: 'Edit Extra Class',
+                      subtitle: 'Change time, subject, or room',
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        Navigator.pop(ctx);
+                        TimeOfDay parseTime(String t) {
+                          try {
+                            final parts = t.split(':');
+                            return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+                          } catch (_) {
+                            return const TimeOfDay(hour: 10, minute: 0);
+                          }
+                        }
+
+                        AddExtraClassSheet.show(
+                          context,
+                          dateIso: dateIso,
+                          editExtraId: session.sourceRefId ?? session.id,
+                          initialSubjectId: session.subjectComponentId,
+                          initialStartTime: parseTime(session.startTime),
+                          initialEndTime: parseTime(session.endTime),
+                          initialRoom: session.room,
+                        );
+                      },
+                    ),
+                    _buildSproutActionCard(
+                      context: context,
+                      tokens: tokens,
+                      isDark: isDark,
+                      isDanger: true,
+                      icon: Icons.delete_outline_rounded,
+                      iconBg: isDark ? const Color(0xFF4C0519) : const Color(0xFFFFE4E6),
+                      iconColor: isDark ? const Color(0xFFFA7268) : const Color(0xFFE11D48),
+                      title: 'Delete Extra Class',
+                      subtitle: 'Permanently remove session & attendance',
+                      onTap: () async {
+                        HapticFeedback.lightImpact();
+                        Navigator.pop(ctx);
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (dialogCtx) => AlertDialog(
+                            backgroundColor: isDark ? const Color(0xFF1B3626) : Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            title: Text(
+                              'Delete Extra Class?',
+                              style: GoogleFonts.quicksand(
+                                fontWeight: FontWeight.w800,
+                                color: tokens.textPrimary,
+                              ),
+                            ),
+                            content: Text(
+                              'Are you sure you want to delete this extra class? This will also remove any attendance recorded for it.',
+                              style: GoogleFonts.quicksand(
+                                fontSize: 13.5,
+                                color: tokens.textSecondary,
+                              ),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(dialogCtx, false),
+                                child: Text('Cancel', style: GoogleFonts.quicksand(fontWeight: FontWeight.w700)),
+                              ),
+                              FilledButton(
+                                onPressed: () => Navigator.pop(dialogCtx, true),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: const Color(0xFFE11D48),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                                child: Text('Delete', style: GoogleFonts.quicksand(fontWeight: FontWeight.w700)),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirm == true) {
+                          final extraId = session.sourceRefId ?? session.id;
+                          await ref.read(extraClassesProvider.notifier).deleteExtraClass(extraId);
+                          if (context.mounted) {
+                            AppToast.info(context, 'Extra class deleted');
+                          }
+                        }
+                      },
+                    ),
+                  ] else ...[
+                    _buildSproutActionCard(
+                      context: context,
+                      tokens: tokens,
+                      isDark: isDark,
+                      icon: Icons.edit_calendar_rounded,
+                      iconBg: isDark ? const Color(0xFF164130) : const Color(0xFFEAF8E7),
+                      iconColor: isDark ? const Color(0xFF81C784) : const Color(0xFF2E7D32),
+                      title: 'Change room / time today',
+                      subtitle: 'Single-day adjustment',
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        Navigator.pop(ctx);
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (context.mounted) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => RescheduleSessionScreen(
+                                  session: session,
+                                  dateIso: dateIso,
+                                ),
+                              ),
+                            );
+                          }
+                        });
+                      },
+                    ),
+                    _buildSproutActionCard(
+                      context: context,
+                      tokens: tokens,
+                      isDark: isDark,
+                      icon: Icons.meeting_room_outlined,
+                      iconBg: isDark ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF),
+                      iconColor: isDark ? const Color(0xFF60A5FA) : const Color(0xFF1D4ED8),
+                      title: 'Manage subject rooms',
+                      subtitle: 'Default room for all days',
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        final subjects = ref.read(subjectsProvider);
+                        final sub = subjects.firstWhere(
+                          (s) => s.id == session.subjectComponentId,
+                          orElse: () => SubjectEntity(
+                            id: session.subjectComponentId,
+                            semesterId: session.semesterId,
+                            name: session.subjectName,
+                            category: session.category,
+                            credits: 3,
+                            targetAttendancePct: 75.0,
+                            baselineHeld: 0,
+                            baselineAttended: 0,
+                            isArchived: false,
+                            colorHex: session.colorHex,
+                            components: [],
+                          ),
+                        );
+                        Navigator.pop(ctx);
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (context.mounted) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => SubjectRoomManagerScreen(
+                                  subject: sub,
+                                  initialRoom: session.room,
+                                ),
+                              ),
+                            );
+                          }
+                        });
+                      },
+                    ),
+                    _buildSproutActionCard(
+                      context: context,
+                      tokens: tokens,
+                      isDark: isDark,
+                      icon: Icons.edit_note_rounded,
+                      iconBg: isDark ? const Color(0xFF2E1065).withValues(alpha: 0.5) : const Color(0xFFF3E8FF),
+                      iconColor: isDark ? const Color(0xFFC084FC) : const Color(0xFF7E22CE),
+                      title: 'Edit weekly schedule',
+                      subtitle: 'Recurring timetable slot',
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        Navigator.pop(ctx);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AddEditSlotScreen(
+                              existingSlot: session,
+                              initialDayOfWeek: session.dayOfWeek ?? DateFormatter.getDayOfWeek(DateTime.now()),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    _buildSproutActionCard(
+                      context: context,
+                      tokens: tokens,
+                      isDark: isDark,
+                      isDanger: true,
+                      icon: Icons.delete_outline_rounded,
+                      iconBg: isDark ? const Color(0xFF4C0519) : const Color(0xFFFFE4E6),
+                      iconColor: isDark ? const Color(0xFFFA7268) : const Color(0xFFE11D48),
+                      title: 'Remove for today only',
+                      subtitle: 'Erase from today\'s schedule',
+                      onTap: () async {
+                        HapticFeedback.lightImpact();
+                        Navigator.pop(ctx);
+                        if (session.sourceRefId != null) {
+                          await ref.read(scheduleExceptionsProvider.notifier).addOrUpdateException(
+                            timetableSlotId: session.sourceRefId!,
+                            exceptionDate: dateIso,
+                            actionType: 'CANCELLED',
+                          );
+                          if (context.mounted) {
+                            AppToast.info(context, 'Removed ${session.subjectName} for today');
+                          }
+                        }
+                      },
+                    ),
+                    _buildSproutActionCard(
+                      context: context,
+                      tokens: tokens,
+                      isDark: isDark,
+                      icon: Icons.tune_rounded,
+                      iconBg: isDark ? const Color(0xFF1B382B) : const Color(0xFFF0FDF4),
+                      iconColor: isDark ? const Color(0xFF4ADE80) : const Color(0xFF16A34A),
+                      title: 'Manage all slots',
+                      subtitle: 'View & customize all slots',
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        Navigator.pop(ctx);
+                        final subjects = ref.read(subjectsProvider);
+                        final sub = subjects.firstWhere(
+                          (s) => s.id == session.subjectComponentId,
+                          orElse: () => SubjectEntity(
+                            id: session.subjectComponentId,
+                            semesterId: session.semesterId,
+                            name: session.subjectName,
+                            category: session.category,
+                            credits: 3,
+                            targetAttendancePct: 75.0,
+                            baselineHeld: 0,
+                            baselineAttended: 0,
+                            isArchived: false,
+                            colorHex: session.colorHex,
+                            components: [],
+                          ),
+                        );
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ManageSubjectSlotsScreen(subject: sub),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSproutActionCard({
+    required BuildContext context,
+    required AppThemeTokens tokens,
+    required bool isDark,
+    required IconData icon,
+    required Color iconBg,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    bool isDanger = false,
+  }) {
+    final bgColor = isDanger
+        ? (isDark ? const Color(0xFF3F141B) : const Color(0xFFFFF1F2))
+        : (isDark ? const Color(0xFF1B3626) : Colors.white);
+
+    final borderColor = isDanger
+        ? (isDark ? const Color(0xFF5C1D24) : const Color(0xFFFECDD3))
+        : (isDark ? const Color(0xFF274C37) : const Color(0xFFEDEAE2));
+
+    final titleColor = isDanger
+        ? (isDark ? const Color(0xFFFA7268) : const Color(0xFFBE123C))
+        : tokens.textPrimary;
+
+    final subtitleColor = isDanger
+        ? (isDark ? const Color(0xFFFCA5A5) : const Color(0xFFE11D48).withValues(alpha: 0.8))
+        : tokens.textSecondary;
+
+    final chevronColor = isDanger
+        ? (isDark ? const Color(0xFFFA7268).withValues(alpha: 0.6) : const Color(0xFFFB7185))
+        : (isDark ? const Color(0xFF6E8D77) : const Color(0xFF8BA392));
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(18),
+          child: Ink(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: borderColor, width: 1.0),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: iconBg,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: Icon(icon, size: 17, color: iconColor),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        title,
+                        style: GoogleFonts.quicksand(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700,
+                          color: titleColor,
+                        ),
+                      ),
+                      const SizedBox(height: 1),
+                      Text(
+                        subtitle,
+                        style: GoogleFonts.quicksand(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: subtitleColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 18,
+                  color: chevronColor,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _TodayDatePageContent extends ConsumerWidget {
@@ -756,6 +1250,9 @@ class _TodayDatePageContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tokens = Theme.of(context).extension<AppThemeTokens>();
+    final isCute = tokens?.isCute ?? false;
+    final cardRadius = isCute ? 20.0 : 14.0;
     final String dateIso = DateFormatter.toIsoDate(date);
     final sessions = ref.watch(resolvedDayScheduleProvider(date));
     final overallStats = ref.watch(overallStatsProvider);
@@ -782,7 +1279,7 @@ class _TodayDatePageContent extends ConsumerWidget {
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             color: isDark ? AppColors.cardDark : Colors.white,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(cardRadius),
             border: Border.all(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0), width: 0.8),
           ),
           child: Row(
@@ -1175,22 +1672,40 @@ class _TodayDatePageContent extends ConsumerWidget {
           )
         else if (sessions.isEmpty)
           Container(
-            padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
+            padding: EdgeInsets.symmetric(vertical: isCute ? 28 : 36, horizontal: 20),
             decoration: BoxDecoration(
               color: isDark ? AppColors.cardDark : Colors.white,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(cardRadius),
               border: Border.all(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0), width: 0.8),
             ),
             alignment: Alignment.center,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  Icons.event_available_outlined,
-                  size: 34,
-                  color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
-                ),
-                const SizedBox(height: 10),
+                if (isCute) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(18),
+                    child: Image.asset(
+                      'assets/images/mascot_sprout.jpg',
+                      width: 72,
+                      height: 72,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => const Icon(
+                        Icons.spa_rounded,
+                        size: 42,
+                        color: Color(0xFF7CB342),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ] else ...[
+                  Icon(
+                    Icons.event_available_outlined,
+                    size: 34,
+                    color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                  ),
+                  const SizedBox(height: 10),
+                ],
                 Text(
                   _getEmptyStateTitle(date: date),
                   style: TextStyle(
@@ -1199,9 +1714,12 @@ class _TodayDatePageContent extends ConsumerWidget {
                     color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                   ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 4),
                 Text(
-                  'Enjoy your free time or check other dates.',
+                  isCute
+                      ? 'All caught up for today! Time to relax and recharge 🌱'
+                      : 'Enjoy your free time or check other dates.',
+                  textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 12,
                     color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
