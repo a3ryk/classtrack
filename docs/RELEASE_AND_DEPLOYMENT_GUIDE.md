@@ -1,6 +1,6 @@
-﻿# ClassTrack Production Release & Deployment Guide
+# Attendly Production Release & Deployment Guide
 
-This guide provides step-by-step instructions for building, signing, and releasing ClassTrack for **GitHub Releases (Direct APK & In-App Auto-Updating)** and **Google Play Store (App Bundle / AAB)**.
+This guide provides step-by-step instructions for building, signing, and releasing Attendly for **GitHub Releases (Direct APK & In-App Auto-Updating)** and **Google Play Store (App Bundle / AAB)**.
 
 ---
 
@@ -20,10 +20,10 @@ version: 1.0.0+1
 Ensure the default version check URL points to your official repository:
 ```dart
 static const String defaultVersionCheckUrl =
-    'https://raw.githubusercontent.com/<YOUR_GITHUB_ORG_OR_USER>/classtrack/main/version.json';
+    'https://raw.githubusercontent.com/<YOUR_GITHUB_ORG_OR_USER>/attendly/main/version.json';
 
 static const String defaultGithubOwner = '<YOUR_GITHUB_USER>';
-static const String defaultGithubRepo = 'classtrack';
+static const String defaultGithubRepo = 'attendly';
 ```
 
 ### C. Permissions Verification (`android/app/src/main/AndroidManifest.xml`)
@@ -75,7 +75,7 @@ Generates a single standalone `.apk` that works on all Android devices (ARM64, A
 flutter build apk --release
 ```
 **Output File**: `build/app/outputs/flutter-apk/app-release.apk`
-*Rename this file to `ClassTrack-v1.0.0.apk` before uploading to GitHub Releases.*
+*Rename this file to `Attendly-v1.0.0.apk` before uploading to GitHub Releases.*
 
 ### ⚡ Option B: Split-per-ABI APKs (Smaller file size ~15MB each)
 Generates architecture-specific lightweight APKs:
@@ -111,9 +111,9 @@ flutter build appbundle --release
    ```
 3. Go to **GitHub -> Releases -> Draft a new release**:
    - **Tag**: `v1.0.0`
-   - **Release Title**: `ClassTrack v1.0.0`
+   - **Release Title**: `Attendly v1.0.0`
    - **Release Notes / Changelog**: Use bullet points starting with `✨` for features and `🧩` for fixes.
-   - **Attach Binaries**: Upload `ClassTrack-v1.0.0.apk`.
+   - **Attach Binaries**: Upload `Attendly-v1.0.0.apk`.
 4. Update `version.json` in your repository root with the new release details.
 
 ---

@@ -1,6 +1,6 @@
 # Attendly Theme Customization & Asset Management Guide
 
-Attendly features a modular, configuration-driven theme and asset system. Developers can introduce complete custom themes—including custom 3D navigation icons, screen-specific mascot illustrations, and fine-grained color palettes—without editing core widget code.
+Attendly features a modular, configuration-driven theme and asset system. Developers can introduce complete custom themes (including custom 3D navigation icons, screen-specific mascot illustrations, and fine-grained color palettes) without editing core widget code.
 
 ---
 

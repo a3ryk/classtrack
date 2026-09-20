@@ -1,12 +1,12 @@
-﻿# ClassTrack Versioning, Channels & Manifest Guide
+# Attendly Versioning, Channels & Manifest Guide
 
-This document defines the semantic versioning standard, multi-channel release streams (Alpha, Beta, Production), database schema migration rules, and the `version.json` remote manifest schema for ClassTrack.
+This document defines the semantic versioning standard, multi-channel release streams (Alpha, Beta, Production), database schema migration rules, and the `version.json` remote manifest schema for Attendly.
 
 ---
 
 ## 1. Semantic Versioning Specification
 
-ClassTrack follows standard Semantic Versioning combined with Flutter's integer build number:
+Attendly follows standard Semantic Versioning combined with Flutter's integer build number:
 
 $$\text{Version Format} = \text{MAJOR}.\text{MINOR}.\text{PATCH}+\text{BUILD}$$
 
@@ -39,7 +39,7 @@ The app polls `version.json` hosted on your GitHub repository (or CDN) to check 
   "build_number": 43,
   "min_supported_version": "1.0.0",
   "release_date": "2026-08-28",
-  "release_title": "ClassTrack v1.1.0: Supercharged Analytics & In-App Updates",
+  "release_title": "Attendly v1.1.0: Supercharged Analytics & In-App Updates",
   "changelog": [
     "✨ In-App 1-tap direct APK downloader & installer",
     "✨ System notifications for backups, restores, exports, and QR sync",
@@ -47,7 +47,7 @@ The app polls `version.json` hosted on your GitHub repository (or CDN) to check 
     "🧩 Fixed developer options full-screen onboarding navigation",
     "🧩 Cleaned up privacy policy presentation"
   ],
-  "download_url": "https://github.com/a3ryk/classtrack/releases/download/v1.1.0/ClassTrack-v1.1.0.apk",
+  "download_url": "https://github.com/a3ryk/classtrack/releases/download/v1.1.0/Attendly-v1.1.0.apk",
   "release_page_url": "https://github.com/a3ryk/classtrack/releases/tag/v1.1.0",
   "is_mandatory": false,
   "warning_message": null
@@ -70,7 +70,7 @@ The app polls `version.json` hosted on your GitHub repository (or CDN) to check 
 
 ## 4. Zero-Data-Loss Database Schema Migrations
 
-ClassTrack stores student timetables and attendance logs locally in SQLite via Drift. When releasing new versions:
+Attendly stores student timetables and attendance logs locally in SQLite via Drift. When releasing new versions:
 
 1. **Strictly Additive Changes**:
    - Always use `addColumn` or nullable columns with default values when updating database tables in `app_database.dart`.

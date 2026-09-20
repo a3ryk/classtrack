@@ -1,4 +1,4 @@
-﻿# ClassTrack GitHub Release Note & Changelog Guidelines
+# Attendly GitHub Release Note & Changelog Guidelines
 
 To ensure the in-app updater, GitHub Release pages, and changelog viewers parse and display release notes consistently without broken sections or dropped entries, all future releases must strictly follow this contract.
 
@@ -8,20 +8,20 @@ To ensure the in-app updater, GitHub Release pages, and changelog viewers parse 
 
 Format:
 ```text
-ClassTrack v<major>.<minor>.<patch>[-<prerelease>.<build>] (<Key Feature Highlights / Theme>)
+Attendly v<major>.<minor>.<patch>[-<prerelease>.<build>] (<Key Feature Highlights / Theme>)
 ```
 
 ### Rules:
-- Must begin with `ClassTrack v`.
+- Must begin with `Attendly v`.
 - Version string must strictly follow Semantic Versioning (`1.0.0-alpha.8`, `1.0.0-beta.1`, `1.0.0`).
-- The parenthesized theme must highlight 2–3 major improvements separated by commas or ampersands.
+- The parenthesized theme must highlight 2 to 3 major improvements separated by commas or ampersands.
 - Do not add emojis to the release title (emojis belong in the release body markdown).
 
 ### Examples:
-- ✅ `ClassTrack v1.0.0-alpha.8 (GitHub Releases Engine, Calendar Slider & Subject Picker)`
-- ✅ `ClassTrack v1.0.0-alpha.7 (Notifications Hub & Multi-Channel Fix)`
-- ❌ `v1.0.0-alpha.8` (Missing `ClassTrack` prefix and highlight theme)
-- ❌ `ClassTrack Update 8` (Missing semver version)
+- ✅ `Attendly v1.0.0-alpha.8 (GitHub Releases Engine, Calendar Slider & Subject Picker)`
+- ✅ `Attendly v1.0.0-alpha.7 (Notifications Hub & Multi-Channel Fix)`
+- ❌ `v1.0.0-alpha.8` (Missing `Attendly` prefix and highlight theme)
+- ❌ `Attendly Update 8` (Missing semver version)
 
 ---
 
@@ -76,6 +76,6 @@ The in-app updater implements:
    - Lines starting with `### ` containing `Feature` or `✨` switch active parser mode to `FEATURES`.
    - Lines starting with `### ` containing `Fix` or `Bug` or `🧩` switch active parser mode to `FIXES`.
 2. **Zero-Drop Guarantee**:
-   - Any item that cannot be automatically classified into fixes or features will be categorized as improvements and rendered—never hidden or dropped.
+   - Any item that cannot be automatically classified into fixes or features will be categorized as improvements and rendered, never hidden or dropped.
 3. **Clean Markdown Rendering**:
    - Strips raw markdown syntax (`**Title**: ` &rarr; styled Title + Description) to avoid displaying raw asterisks on the user's phone.

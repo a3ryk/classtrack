@@ -1,14 +1,14 @@
-# ClassTrack Release & Update Guide
+# Attendly Release & Update Guide
 
-This document outlines the standard release workflow, mandatory update controls, draft protection mechanisms, and release note formatting for ClassTrack.
+This document outlines the standard release workflow, mandatory update controls, draft protection mechanisms, and release note formatting for Attendly.
 
 ---
 
 ## 1. Overview of the Update System
 
-ClassTrack features an in-app updater and an offline release notes viewer:
+Attendly features an in-app updater and an offline release notes viewer:
 
-1. **"What's New in ClassTrack" (Offline Release Notes)**:
+1. **"What's New in Attendly" (Offline Release Notes)**:
    - Displays the features of the **currently installed version** on the user's phone.
    - Reads from [`AppReleaseNotes`](../lib/core/constants/app_release_notes.dart) with 0ms latency and 100% offline support.
 2. **"Check for Updates" (Remote Updater)**:
@@ -20,7 +20,7 @@ ClassTrack features an in-app updater and an offline release notes viewer:
 
 ## 2. Release Note Keywords & Mandatory Updates
 
-When drafting a release on GitHub, ClassTrack automatically inspects the release description (`body`) for warning tags and minimum version requirements.
+When drafting a release on GitHub, Attendly automatically inspects the release description (`body`) for warning tags and minimum version requirements.
 
 ### Keyword Reference
 
@@ -43,7 +43,7 @@ When drafting a release on GitHub, ClassTrack automatically inspects the release
 *(Use when publishing regular feature updates and bug fixes)*
 
 ```markdown
-### What's New in ClassTrack v1.0.0-alpha.4
+### What's New in Attendly v1.0.0-alpha.4
 
 ✨ **Features & Enhancements**
 - Added full-screen subject and slot editors with smooth transitions.
@@ -63,7 +63,7 @@ When drafting a release on GitHub, ClassTrack automatically inspects the release
 ```markdown
 MANDATORY: Database structure updated. Please update to continue tracking attendance.
 
-### What's New in ClassTrack v1.0.0-alpha.4
+### What's New in Attendly v1.0.0-alpha.4
 
 ✨ **Performance & Fixes**
 - Critical database migration to support custom time slots.
@@ -73,9 +73,9 @@ MANDATORY: Database structure updated. Please update to continue tracking attend
 *Or using GitHub Alert syntax:*
 ```markdown
 > [!WARNING]
-> Database migration required. You must update to keep using ClassTrack.
+> Database migration required. You must update to keep using Attendly.
 
-### What's New in ClassTrack v1.0.0-alpha.4
+### What's New in Attendly v1.0.0-alpha.4
 - 120FPS smooth animations
 - Full-screen schedule management
 ```
@@ -89,7 +89,7 @@ MANDATORY: Database structure updated. Please update to continue tracking attend
 MIN_VERSION: 1.0.0-alpha.3
 NOTICE: Users below v1.0.0-alpha.3 must update due to timetable sync protocol changes.
 
-### What's New in ClassTrack v1.0.0-alpha.4
+### What's New in Attendly v1.0.0-alpha.4
 - Added OCR timetable photo scanner
 - Added multi-sheet Excel and PDF export suite
 - 120FPS radial theme switching
@@ -114,7 +114,7 @@ When preparing a new release:
    - Go to GitHub ➔ **Releases** ➔ **Draft a new release**.
    - Set tag: `v1.0.0-alpha.4`.
    - Paste release notes (using one of the templates above).
-   - Attach `app-release.apk` as a release asset (rename to `ClassTrack-v1.0.0-alpha.4.apk`).
+   - Attach `app-release.apk` as a release asset (rename to `Attendly-v1.0.0-alpha.4.apk`).
 4. **Publish**:
    - Click **"Publish release"**.
    - The app's in-app updater will now detect the published release immediately!
