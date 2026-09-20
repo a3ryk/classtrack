@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../core/constants/app_theme_tokens.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/ui/app_toast.dart';
 import '../../core/utils/date_formatter.dart';
@@ -668,6 +670,8 @@ class _AddExtraClassSheetState extends ConsumerState<AddExtraClassSheet> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tokens = Theme.of(context).extension<AppThemeTokens>();
+    final isCute = tokens?.isCute ?? false;
     final subjects = ref.watch(subjectsProvider);
 
     DateTime parsedDate;
@@ -680,6 +684,16 @@ class _AddExtraClassSheetState extends ConsumerState<AddExtraClassSheet> {
 
     final selectedSubject = subjects.where((s) => s.id == _selectedSubjectId).firstOrNull ??
         (subjects.isNotEmpty ? subjects.first : null);
+
+    if (isCute) {
+      return _buildSproutAddExtraClassSheet(
+        context,
+        isDark,
+        subjects,
+        formattedDate,
+        selectedSubject,
+      );
+    }
 
     final subjectColor = _isNewSubject
         ? _parseSubjectColor(_newSubjectColorHex)
@@ -1419,6 +1433,481 @@ class _AddExtraClassSheetState extends ConsumerState<AddExtraClassSheet> {
                 ],
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSproutAddExtraClassSheet(
+    BuildContext context,
+    bool isDark,
+    List<SubjectEntity> subjects,
+    String formattedDate,
+    SubjectEntity? selectedSubject,
+  ) {
+    final cardBg = isDark ? const Color(0xFF183122) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF264A34) : const Color(0xFFDFE8DC);
+    final textPrimary = isDark ? const Color(0xFFE8F4EB) : const Color(0xFF192E21);
+    final textSecondary = isDark ? const Color(0xFF98B5A3) : const Color(0xFF526B5C);
+    final textMuted = isDark ? const Color(0xFF648671) : const Color(0xFF849E8E);
+    final primaryAccent = isDark ? const Color(0xFF6FA769) : const Color(0xFF558A50);
+    final dangerBg = isDark ? const Color(0xFF381A1A) : const Color(0xFFFFEBEE);
+    final dangerBorder = isDark ? const Color(0xFF5C2626) : const Color(0xFFFFCDD2);
+    final dangerText = isDark ? const Color(0xFFFF8A80) : const Color(0xFFD32F2F);
+
+    // Calculate duration
+    final startMinutes = _startTime.hour * 60 + _startTime.minute;
+    final endMinutes = _endTime.hour * 60 + _endTime.minute;
+    final durationMinutes = endMinutes > startMinutes ? endMinutes - startMinutes : (endMinutes + 24 * 60) - startMinutes;
+    final durationHours = durationMinutes ~/ 60;
+    final durationRemainingMins = durationMinutes % 60;
+    final durationString = durationHours > 0
+        ? (durationRemainingMins > 0 ? '${durationHours}h ${durationRemainingMins}m' : '${durationHours}h')
+        : '${durationRemainingMins}m';
+
+    final Color subjectColor = _isNewSubject
+        ? _parseSubjectColor(_newSubjectColorHex)
+        : (selectedSubject != null
+            ? _parseSubjectColor(selectedSubject.colorHex)
+            : primaryAccent);
+
+    return RepaintBoundary(
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(14, 0, 14, 16),
+        padding: EdgeInsets.fromLTRB(20, 14, 20, MediaQuery.of(context).viewInsets.bottom + 18),
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: borderColor, width: 1.2),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.08),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Drag handle
+                Center(
+                  child: Container(
+                    width: 38,
+                    height: 4.5,
+                    margin: const EdgeInsets.only(bottom: 14),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF264A34) : const Color(0xFFCBD5E1),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                ),
+
+                // Header
+                Row(
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: primaryAccent.withValues(alpha: isDark ? 0.25 : 0.12),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: primaryAccent.withValues(alpha: 0.3), width: 1.0),
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        widget.editExtraId != null ? Icons.edit_calendar_rounded : Icons.more_time_rounded,
+                        color: primaryAccent,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.editExtraId != null ? 'Edit Extra Class' : 'Add Extra Class',
+                            style: GoogleFonts.quicksand(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: textPrimary,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          Text(
+                            formattedDate,
+                            style: GoogleFonts.quicksand(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close_rounded, size: 20, color: textSecondary),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Subject Picker Card
+                Text(
+                  'SUBJECT',
+                  style: GoogleFonts.quicksand(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.6,
+                    color: textMuted,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                InkWell(
+                  onTap: () => _openSubjectPicker(context, subjects),
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF112318) : const Color(0xFFFAF7F2),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: borderColor),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: subjectColor,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            selectedSubject?.name ?? 'Select Subject',
+                            style: GoogleFonts.quicksand(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w800,
+                              color: textPrimary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (selectedSubject != null) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF1D3D29) : const Color(0xFFEBF4E8),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              selectedSubject.category,
+                              style: GoogleFonts.quicksand(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w700,
+                                color: primaryAccent,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                        ],
+                        Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: textSecondary),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // Class Time Cards (Start & End)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'CLASS TIME',
+                      style: GoogleFonts.quicksand(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.6,
+                        color: textMuted,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF1D3D29) : const Color(0xFFEFF5EC),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        durationString,
+                        style: GoogleFonts.quicksand(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w700,
+                          color: primaryAccent,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        onTap: _pickStartTime,
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF112318) : const Color(0xFFFAF7F2),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: borderColor),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'START TIME',
+                                style: GoogleFonts.quicksand(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: textMuted,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                DateFormatter.formatTime12h(_formatTimeOfDay(_startTime)),
+                                style: GoogleFonts.quicksand(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                  color: textPrimary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: InkWell(
+                        onTap: _pickEndTime,
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF112318) : const Color(0xFFFAF7F2),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: borderColor),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'END TIME',
+                                style: GoogleFonts.quicksand(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: textMuted,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                DateFormatter.formatTime12h(_formatTimeOfDay(_endTime)),
+                                style: GoogleFonts.quicksand(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                  color: textPrimary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+
+                // Room / Hall & Reason
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 1,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'ROOM / HALL',
+                            style: GoogleFonts.quicksand(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.6,
+                              color: textMuted,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          TextField(
+                            controller: _roomController,
+                            style: GoogleFonts.quicksand(fontSize: 13.5, fontWeight: FontWeight.w700, color: textPrimary),
+                            decoration: InputDecoration(
+                              hintText: 'e.g. 102',
+                              hintStyle: GoogleFonts.quicksand(fontSize: 12.5, color: textMuted),
+                              filled: true,
+                              fillColor: isDark ? const Color(0xFF112318) : const Color(0xFFFAF7F2),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: borderColor)),
+                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: borderColor)),
+                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: primaryAccent, width: 1.5)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 2,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'REASON (OPTIONAL)',
+                            style: GoogleFonts.quicksand(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.6,
+                              color: textMuted,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          TextField(
+                            controller: _reasonController,
+                            style: GoogleFonts.quicksand(fontSize: 13.5, fontWeight: FontWeight.w700, color: textPrimary),
+                            decoration: InputDecoration(
+                              hintText: 'e.g. Lab Make-up',
+                              hintStyle: GoogleFonts.quicksand(fontSize: 12.5, color: textMuted),
+                              filled: true,
+                              fillColor: isDark ? const Color(0xFF112318) : const Color(0xFFFAF7F2),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: borderColor)),
+                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: borderColor)),
+                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: primaryAccent, width: 1.5)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // CTA Buttons
+                if (widget.editExtraId != null) ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: _isSaving ? null : _deleteExtraClass,
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: dangerBg,
+                            foregroundColor: dangerText,
+                            side: BorderSide(color: dangerBorder),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          child: Text(
+                            'Delete',
+                            style: GoogleFonts.quicksand(fontSize: 13, fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton(
+                          onPressed: _isSaving ? null : _saveExtraClass,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryAccent,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 13),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            elevation: 0,
+                          ),
+                          child: _isSaving
+                              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              : Text(
+                                  'Save Changes',
+                                  style: GoogleFonts.quicksand(fontSize: 13.5, fontWeight: FontWeight.w800),
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ] else ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: _isSaving ? null : () => Navigator.pop(context),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          child: Text(
+                            'Cancel',
+                            style: GoogleFonts.quicksand(fontSize: 13.5, fontWeight: FontWeight.w700, color: textSecondary),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        flex: 3,
+                        child: ElevatedButton(
+                          onPressed: _isSaving ? null : _saveExtraClass,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryAccent,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            elevation: 0,
+                          ),
+                          child: _isSaving
+                              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              : Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.add_rounded, size: 18),
+                                    const SizedBox(width: 6),
+                                    Flexible(
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(
+                                          'Add Extra Class',
+                                          style: GoogleFonts.quicksand(fontSize: 13.5, fontWeight: FontWeight.w800),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
       ),

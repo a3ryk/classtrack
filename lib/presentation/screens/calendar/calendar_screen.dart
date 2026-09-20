@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../../core/constants/app_theme_tokens.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/ui/app_toast.dart';
 import '../../../core/ui/tactile_button.dart';
@@ -251,6 +253,27 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
 
     final monthYearTitle = DateFormat('MMMM yyyy').format(_viewMode == CalendarViewMode.week ? _selectedDate : _currentMonth);
     final dayHeaderTitle = DateFormat('MMMM d').format(_selectedDate);
+
+    final tokens = Theme.of(context).extension<AppThemeTokens>();
+    final isCute = tokens?.isCute ?? false;
+    if (isCute) {
+      return _buildSproutCalendarScreen(
+        context: context,
+        isDark: isDark,
+        tokens: tokens,
+        selectedDateIso: selectedDateIso,
+        isToday: isToday,
+        daySessions: daySessions,
+        holidays: holidays,
+        isSelectedDateHoliday: isSelectedDateHoliday,
+        currentHoliday: currentHoliday,
+        presentCount: presentCount,
+        totalHeld: totalHeld,
+        monthYearTitle: monthYearTitle,
+        dayHeaderTitle: dayHeaderTitle,
+        getSessionsForDay: getSessionsForDay,
+      );
+    }
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.bgDark : AppColors.bgLight,
@@ -1073,7 +1096,14 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
   }
 
   void _showQuickAttendancePicker(BuildContext context, ClassSessionEntity session, String dateIso) {
+    final tokens = Theme.of(context).extension<AppThemeTokens>();
+    final isCute = tokens?.isCute ?? false;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    if (isCute) {
+      _showSproutScheduleActionSheet(context, session, dateIso, isDark, tokens);
+      return;
+    }
+
     final isPastOrToday = dateIso.compareTo(DateFormatter.toIsoDate(DateTime.now())) <= 0;
     final isExtra = session.sessionSource == 'EXTRA';
 
@@ -1553,5 +1583,1501 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
 
   void _showDeclareHolidayDialog(BuildContext context, DateTime date) {
     DeclareHolidaySheet.show(context, initialDate: date);
+  }
+
+  // --- SPROUT THEME CALENDAR SCREEN ---
+  Widget _buildSproutCalendarScreen({
+    required BuildContext context,
+    required bool isDark,
+    required AppThemeTokens? tokens,
+    required String selectedDateIso,
+    required bool isToday,
+    required List<ClassSessionEntity> daySessions,
+    required List<HolidayItem> holidays,
+    required bool isSelectedDateHoliday,
+    required HolidayItem? currentHoliday,
+    required int presentCount,
+    required int totalHeld,
+    required String monthYearTitle,
+    required String dayHeaderTitle,
+    required List<ClassSessionEntity> Function(DateTime) getSessionsForDay,
+  }) {
+    final surfaceBg = tokens?.scaffoldBg ?? (isDark ? const Color(0xFF112318) : const Color(0xFFFAF7F2));
+    final cardBg = tokens?.cardBg ?? (isDark ? const Color(0xFF183022) : Colors.white);
+    final textPrimary = tokens?.textPrimary ?? (isDark ? const Color(0xFFE8F0EA) : const Color(0xFF1E2D24));
+    final textSecondary = tokens?.textMuted ?? (isDark ? const Color(0xFF8BA590) : const Color(0xFF5A6E5E));
+    final accentPrimary = tokens?.primaryAccent ?? (isDark ? const Color(0xFF74A87D) : const Color(0xFF2E5A36));
+    final cardBorder = tokens?.cardBorder ?? (isDark ? const Color(0xFF22422E) : const Color(0xFFE5ECE3));
+    final pillBg = isDark ? const Color(0xFF1F3827) : const Color(0xFFEBF2E8);
+
+    return Scaffold(
+      backgroundColor: surfaceBg,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top Header: Calendar Title + Quick "Today" & Mode Toggle
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Calendar',
+                      style: GoogleFonts.quicksand(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w800,
+                        color: textPrimary,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Instant "Today" Button
+                      if (!isToday)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: TapScaleContainer(
+                            onTap: () => _goToToday(),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: accentPrimary,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.today_rounded,
+                                    size: 14,
+                                    color: isDark ? const Color(0xFF112318) : Colors.white,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Today',
+                                    style: GoogleFonts.quicksand(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: isDark ? const Color(0xFF112318) : Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+
+                      // Mode Toggle Button (Week vs Month View)
+                      TapScaleContainer(
+                        onTap: _toggleViewMode,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: cardBg,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: cardBorder, width: 1.2),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                _viewMode == CalendarViewMode.week
+                                    ? Icons.calendar_view_month_rounded
+                                    : Icons.view_week_rounded,
+                                size: 15,
+                                color: accentPrimary,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                _viewMode == CalendarViewMode.week ? 'Month' : 'Week',
+                                style: GoogleFonts.quicksand(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: textPrimary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // Month Title & Navigation Arrows Row
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+              child: Row(
+                children: [
+                  // Month/Year clickable button
+                  Expanded(
+                    child: TapScaleContainer(
+                      onTap: () => _showMonthYearPickerModal(context),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                monthYearTitle,
+                                style: GoogleFonts.quicksand(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w800,
+                                  color: textPrimary,
+                                  letterSpacing: -0.2,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              size: 18,
+                              color: textSecondary,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Left & Right Arrow Navigation
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: cardBg,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: cardBorder, width: 1),
+                        ),
+                        child: TactileIconButton(
+                          icon: Icons.chevron_left_rounded,
+                          size: 30,
+                          iconSize: 20,
+                          iconColor: textPrimary,
+                          onTap: _previousPeriod,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: cardBg,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: cardBorder, width: 1),
+                        ),
+                        child: TactileIconButton(
+                          icon: Icons.chevron_right_rounded,
+                          size: 30,
+                          iconSize: 20,
+                          iconColor: textPrimary,
+                          onTap: _nextPeriod,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            // Week Strip / Month Grid with Smooth View Transition
+            AnimatedSize(
+              duration: const Duration(milliseconds: 280),
+              curve: Curves.easeOutCubic,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 220),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                child: _viewMode == CalendarViewMode.week
+                    ? _buildSproutWeekStrip(isDark, textPrimary, textSecondary, accentPrimary, cardBg, cardBorder, getSessionsForDay)
+                    : _buildSproutMonthGrid(isDark, textPrimary, textSecondary, accentPrimary, cardBg, cardBorder, getSessionsForDay),
+              ),
+            ),
+
+            const SizedBox(height: 14),
+
+            // Selected Date & Attended Status Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          dayHeaderTitle,
+                          style: GoogleFonts.quicksand(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: textPrimary,
+                            letterSpacing: -0.2,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          isSelectedDateHoliday
+                              ? 'Holiday'
+                              : (totalHeld > 0 ? 'Attended $presentCount of $totalHeld' : 'No classes'),
+                          style: GoogleFonts.quicksand(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: isSelectedDateHoliday
+                                ? const Color(0xFFD97706)
+                                : textSecondary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  if (!ref.watch(activeSemesterProvider).isUnset)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (isSelectedDateHoliday)
+                          InkWell(
+                            onTap: () async {
+                              await ref.read(holidaysProvider.notifier).removeHolidayForDate(selectedDateIso);
+                              if (context.mounted) {
+                                AppToast.info(context, 'Holiday removed for $selectedDateIso');
+                              }
+                            },
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                              margin: const EdgeInsets.only(right: 6),
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF3D2A10) : const Color(0xFFFEF3C7),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: isDark ? const Color(0xFF6B4515) : const Color(0xFFFDE68A),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.close_rounded, size: 13, color: Color(0xFFD97706)),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    'Remove',
+                                    style: GoogleFonts.quicksand(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        else
+                          InkWell(
+                            onTap: () => _showDeclareHolidayDialog(context, _selectedDate),
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                              margin: const EdgeInsets.only(right: 6),
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF3D2A10) : const Color(0xFFFEF3C7),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: isDark ? const Color(0xFF6B4515) : const Color(0xFFFDE68A),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.beach_access_rounded, size: 13, color: Color(0xFFD97706)),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    '+ Holiday',
+                                    style: GoogleFonts.quicksand(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        InkWell(
+                          onTap: () => _showAddExtraClassDialog(context, selectedDateIso),
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF173724) : const Color(0xFFE8F5E9),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: isDark ? const Color(0xFF265437) : const Color(0xFFC7E6CE),
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.add_rounded,
+                                  size: 13,
+                                  color: isDark ? const Color(0xFF74A87D) : const Color(0xFF2E5A36),
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  '+ Extra Class',
+                                  style: GoogleFonts.quicksand(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: isDark ? const Color(0xFF74A87D) : const Color(0xFF2E5A36),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+            ),
+
+            // Smooth Holiday Banner
+            AnimatedSize(
+              duration: const Duration(milliseconds: 320),
+              curve: Curves.easeOutCubic,
+              child: isSelectedDateHoliday
+                  ? Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF352410) : const Color(0xFFFEF9EE),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: isDark ? const Color(0xFF664415) : const Color(0xFFFDE68A),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.beach_access_rounded, size: 18, color: Color(0xFFD97706)),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                '${currentHoliday?.title.isNotEmpty == true ? currentHoliday!.title : "College Holiday"} • Classes suspended',
+                                style: GoogleFonts.quicksand(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Animated Session List
+            Expanded(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 240),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                transitionBuilder: (child, animation) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0.0, 0.04),
+                        end: Offset.zero,
+                      ).animate(animation),
+                      child: child,
+                    ),
+                  );
+                },
+                child: ref.watch(activeSemesterProvider).isUnset
+                    ? KeyedSubtree(
+                        key: const ValueKey('empty_unset_sem_sprout'),
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 28),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  width: 60,
+                                  height: 60,
+                                  decoration: BoxDecoration(
+                                    color: isDark ? const Color(0xFF1F3827) : const Color(0xFFE8F2E8),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Icon(
+                                    Icons.school_rounded,
+                                    size: 30,
+                                    color: accentPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'No Active Semester',
+                                  style: GoogleFonts.quicksand(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                    color: textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Set up your semester to start tracking your daily classes and attendance.',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.quicksand(
+                                    fontSize: 13,
+                                    height: 1.4,
+                                    color: textSecondary,
+                                  ),
+                                ),
+                                const SizedBox(height: 18),
+                                ElevatedButton.icon(
+                                  onPressed: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) => const EditSemesterDialog(),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.add_rounded, size: 18),
+                                  label: Text(
+                                    'Set Up Semester',
+                                    style: GoogleFonts.quicksand(fontWeight: FontWeight.w700),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: accentPrimary,
+                                    foregroundColor: isDark ? const Color(0xFF112318) : Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      )
+                    : daySessions.isEmpty
+                        ? KeyedSubtree(
+                            key: ValueKey('empty_sprout_$selectedDateIso'),
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.spa_rounded,
+                                    size: 36,
+                                    color: accentPrimary.withValues(alpha: 0.5),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'No classes recorded for this date.',
+                                    style: GoogleFonts.quicksand(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        : ListView.separated(
+                            key: ValueKey('list_sprout_$selectedDateIso'),
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+                            itemCount: daySessions.length,
+                            separatorBuilder: (context, index) => const SizedBox(height: 10),
+                            itemBuilder: (context, index) {
+                              final session = daySessions[index];
+
+                              String badgeLabel;
+                              Color badgeBg;
+                              Color badgeTextColor;
+                              IconData badgeIcon;
+
+                              switch (session.attendanceOutcome) {
+                                case 'PRESENT':
+                                  badgeLabel = 'Present';
+                                  badgeBg = isDark ? const Color(0xFF143720) : const Color(0xFFE8F5E9);
+                                  badgeTextColor = isDark ? const Color(0xFF74A87D) : const Color(0xFF2E5A36);
+                                  badgeIcon = Icons.check_rounded;
+                                  break;
+                                case 'ABSENT':
+                                  badgeLabel = 'Absent';
+                                  badgeBg = isDark ? const Color(0xFF3E1C1C) : const Color(0xFFFDECEB);
+                                  badgeTextColor = isDark ? const Color(0xFFE57373) : const Color(0xFFD9534F);
+                                  badgeIcon = Icons.close_rounded;
+                                  break;
+                                case 'CANCELLED':
+                                  badgeLabel = 'Cancelled';
+                                  badgeBg = isDark ? const Color(0xFF2B1B47) : const Color(0xFFF3E8FF);
+                                  badgeTextColor = isDark ? const Color(0xFFA78BFA) : const Color(0xFF7C3AED);
+                                  badgeIcon = Icons.block_rounded;
+                                  break;
+                                case 'HOLIDAY':
+                                  badgeLabel = 'Holiday';
+                                  badgeBg = isDark ? const Color(0xFF3D2A10) : const Color(0xFFFEF3C7);
+                                  badgeTextColor = isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309);
+                                  badgeIcon = Icons.beach_access_rounded;
+                                  break;
+                                default:
+                                  badgeLabel = 'Pending';
+                                  badgeBg = pillBg;
+                                  badgeTextColor = textSecondary;
+                                  badgeIcon = Icons.schedule_rounded;
+                              }
+
+                              final bool isPastOrToday = selectedDateIso.compareTo(DateFormatter.toIsoDate(DateTime.now())) <= 0;
+                              final bool isExtra = session.sessionSource == 'EXTRA';
+
+                              Color sessionColor;
+                              try {
+                                final hex = session.colorHex.replaceAll('#', '');
+                                sessionColor = Color(int.parse('0xFF$hex'));
+                              } catch (_) {
+                                sessionColor = accentPrimary;
+                              }
+
+                              return InkWell(
+                                onTap: (isPastOrToday || isExtra)
+                                    ? () => _showQuickAttendancePicker(context, session, selectedDateIso)
+                                    : null,
+                                borderRadius: BorderRadius.circular(16),
+                                child: Container(
+                                  padding: const EdgeInsets.all(14),
+                                  decoration: BoxDecoration(
+                                    color: cardBg,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: cardBorder, width: 1.2),
+                                    boxShadow: isDark
+                                        ? null
+                                        : [
+                                            BoxShadow(
+                                              color: Colors.black.withValues(alpha: 0.02),
+                                              blurRadius: 4,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      // Colored accent bar
+                                      Container(
+                                        width: 4,
+                                        height: 38,
+                                        decoration: BoxDecoration(
+                                          color: sessionColor,
+                                          borderRadius: BorderRadius.circular(2),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              session.subjectName,
+                                              style: GoogleFonts.quicksand(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w700,
+                                                color: textPrimary,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 3),
+                                            Builder(
+                                              builder: (context) {
+                                                final String subtitle = [
+                                                  '${session.startTime} – ${session.endTime}',
+                                                  if (session.room != null && session.room!.isNotEmpty)
+                                                    (session.room!.toLowerCase().contains('room') || session.room!.toLowerCase().contains('lab')
+                                                        ? session.room!
+                                                        : 'Room ${session.room}')
+                                                  else if (session.teacherName != null && session.teacherName!.isNotEmpty)
+                                                    session.teacherName!
+                                                  else
+                                                    session.componentType,
+                                                ].join('  •  ');
+
+                                                return Row(
+                                                  children: [
+                                                    Icon(Icons.schedule_rounded, size: 12, color: textSecondary),
+                                                    const SizedBox(width: 4),
+                                                    Expanded(
+                                                      child: Text(
+                                                        subtitle,
+                                                        style: GoogleFonts.quicksand(
+                                                          fontSize: 11.5,
+                                                          fontWeight: FontWeight.w600,
+                                                          color: textSecondary,
+                                                        ),
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                    ),
+                                                    if (isExtra) ...[
+                                                      const SizedBox(width: 6),
+                                                      Container(
+                                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                                        decoration: BoxDecoration(
+                                                          color: isDark ? const Color(0xFF265437) : const Color(0xFFE8F5E9),
+                                                          borderRadius: BorderRadius.circular(5),
+                                                        ),
+                                                        child: Text(
+                                                          'Extra',
+                                                          style: GoogleFonts.quicksand(
+                                                            fontSize: 9.5,
+                                                            fontWeight: FontWeight.w700,
+                                                            color: isDark ? const Color(0xFF74A87D) : const Color(0xFF2E5A36),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ],
+                                                );
+                                              },
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
+                                        decoration: BoxDecoration(
+                                          color: badgeBg,
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(badgeIcon, size: 12, color: badgeTextColor),
+                                            const SizedBox(width: 3.5),
+                                            Text(
+                                              badgeLabel,
+                                              style: GoogleFonts.quicksand(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w700,
+                                                color: badgeTextColor,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- SPROUT WEEK STRIP WIDGET ---
+  Widget _buildSproutWeekStrip(
+    bool isDark,
+    Color textPrimary,
+    Color textSecondary,
+    Color accentPrimary,
+    Color cardBg,
+    Color cardBorder,
+    List<ClassSessionEntity> Function(DateTime) getSessionsForDay,
+  ) {
+    final weekDays = List.generate(7, (index) => _weekStartDate.add(Duration(days: index)));
+    final weekdayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: List.generate(7, (index) {
+          final date = weekDays[index];
+          final isSelected = date.year == _selectedDate.year &&
+              date.month == _selectedDate.month &&
+              date.day == _selectedDate.day;
+          final isDateToday = DateFormatter.toIsoDate(date) == DateFormatter.toIsoDate(DateTime.now());
+
+          final sessionsForDate = getSessionsForDay(date);
+
+          Color? dotColor;
+          if (sessionsForDate.isNotEmpty) {
+            if (sessionsForDate.any((s) => s.attendanceOutcome == 'ABSENT')) {
+              dotColor = const Color(0xFFD9534F);
+            } else if (sessionsForDate.any((s) => s.attendanceOutcome == 'PRESENT')) {
+              dotColor = const Color(0xFF3B7A57);
+            } else if (sessionsForDate.any((s) => s.attendanceOutcome == 'HOLIDAY' || s.status == 'HOLIDAY')) {
+              dotColor = const Color(0xFFD97706);
+            } else if (sessionsForDate.any((s) => s.attendanceOutcome == 'CANCELLED')) {
+              dotColor = const Color(0xFF8E7CC3);
+            } else {
+              dotColor = isDark ? const Color(0xFF6B8070) : const Color(0xFF94A3B8);
+            }
+          }
+
+          return Expanded(
+            child: InkWell(
+              onTap: () {
+                setState(() {
+                  _selectedDate = date;
+                });
+              },
+              borderRadius: BorderRadius.circular(14),
+              child: Column(
+                children: [
+                  Text(
+                    weekdayLabels[index],
+                    style: GoogleFonts.quicksand(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeOutBack,
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? accentPrimary
+                          : (isDateToday ? accentPrimary.withValues(alpha: 0.12) : Colors.transparent),
+                      borderRadius: BorderRadius.circular(12),
+                      border: isDateToday && !isSelected
+                          ? Border.all(color: accentPrimary, width: 1.5)
+                          : null,
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      '${date.day}',
+                      style: GoogleFonts.quicksand(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: isSelected
+                            ? (isDark ? const Color(0xFF112318) : Colors.white)
+                            : textPrimary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    width: 4.5,
+                    height: 4.5,
+                    decoration: BoxDecoration(
+                      color: dotColor ?? Colors.transparent,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  // --- SPROUT FULL MONTH GRID WIDGET ---
+  Widget _buildSproutMonthGrid(
+    bool isDark,
+    Color textPrimary,
+    Color textSecondary,
+    Color accentPrimary,
+    Color cardBg,
+    Color cardBorder,
+    List<ClassSessionEntity> Function(DateTime) getSessionsForDay,
+  ) {
+    final firstDayOfMonth = DateTime(_currentMonth.year, _currentMonth.month, 1);
+    final lastDayOfMonth = DateTime(_currentMonth.year, _currentMonth.month + 1, 0);
+
+    final weekdayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+    final int startOffset = firstDayOfMonth.weekday % 7;
+    final int totalDays = lastDayOfMonth.day;
+    final int totalCells = ((startOffset + totalDays) / 7.0).ceil() * 7;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: weekdayLabels.map((lbl) {
+              return SizedBox(
+                width: 40,
+                child: Text(
+                  lbl,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.quicksand(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: textSecondary,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 8),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: totalCells,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7,
+              mainAxisSpacing: 6,
+              crossAxisSpacing: 6,
+              childAspectRatio: 0.95,
+            ),
+            itemBuilder: (context, index) {
+              final int dayNumber = index - startOffset + 1;
+              if (dayNumber < 1 || dayNumber > totalDays) {
+                return const SizedBox.shrink();
+              }
+
+              final date = DateTime(_currentMonth.year, _currentMonth.month, dayNumber);
+              final isSelected = date.year == _selectedDate.year &&
+                  date.month == _selectedDate.month &&
+                  date.day == _selectedDate.day;
+              final isDateToday = DateFormatter.toIsoDate(date) == DateFormatter.toIsoDate(DateTime.now());
+
+              final sessionsForDate = getSessionsForDay(date);
+
+              Color? dotColor;
+              if (sessionsForDate.isNotEmpty) {
+                if (sessionsForDate.any((s) => s.attendanceOutcome == 'ABSENT')) {
+                  dotColor = const Color(0xFFD9534F);
+                } else if (sessionsForDate.any((s) => s.attendanceOutcome == 'PRESENT')) {
+                  dotColor = const Color(0xFF3B7A57);
+                } else if (sessionsForDate.any((s) => s.attendanceOutcome == 'HOLIDAY' || s.status == 'HOLIDAY')) {
+                  dotColor = const Color(0xFFD97706);
+                } else if (sessionsForDate.any((s) => s.attendanceOutcome == 'CANCELLED')) {
+                  dotColor = const Color(0xFF8E7CC3);
+                } else {
+                  dotColor = isDark ? const Color(0xFF6B8070) : const Color(0xFF94A3B8);
+                }
+              }
+
+              return InkWell(
+                onTap: () {
+                  setState(() {
+                    _selectedDate = date;
+                    _weekStartDate = _selectedDate.subtract(Duration(days: _selectedDate.weekday % 7));
+                  });
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      curve: Curves.easeOutBack,
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? accentPrimary
+                            : (isDateToday ? accentPrimary.withValues(alpha: 0.12) : Colors.transparent),
+                        borderRadius: BorderRadius.circular(10),
+                        border: isDateToday && !isSelected
+                            ? Border.all(color: accentPrimary, width: 1.5)
+                            : null,
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '$dayNumber',
+                        style: GoogleFonts.quicksand(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: isSelected
+                              ? (isDark ? const Color(0xFF112318) : Colors.white)
+                              : textPrimary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Container(
+                      width: 4,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: dotColor ?? Colors.transparent,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- SPROUT SCHEDULE ACTION BOTTOM SHEET ---
+  void _showSproutScheduleActionSheet(
+    BuildContext context,
+    ClassSessionEntity session,
+    String dateIso,
+    bool isDark,
+    AppThemeTokens? tokens,
+  ) {
+    final isPastOrToday = dateIso.compareTo(DateFormatter.toIsoDate(DateTime.now())) <= 0;
+    final isExtra = session.sessionSource == 'EXTRA';
+
+    final cardBg = tokens?.cardBg ?? (isDark ? const Color(0xFF183022) : Colors.white);
+    final textPrimary = tokens?.textPrimary ?? (isDark ? const Color(0xFFE8F0EA) : const Color(0xFF1E2D24));
+    final textSecondary = tokens?.textMuted ?? (isDark ? const Color(0xFF8BA590) : const Color(0xFF5A6E5E));
+    final accentPrimary = tokens?.primaryAccent ?? (isDark ? const Color(0xFF74A87D) : const Color(0xFF2E5A36));
+    final pillBg = isDark ? const Color(0xFF1F3827) : const Color(0xFFEBF2E8);
+    final cardBorder = tokens?.cardBorder ?? (isDark ? const Color(0xFF22422E) : const Color(0xFFE5ECE3));
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: cardBg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.85,
+            ),
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: cardBorder,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Header
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              session.subjectName,
+                              style: GoogleFonts.quicksand(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              isExtra
+                                  ? '${DateFormatter.formatTime12h(session.startTime)} – ${DateFormatter.formatTime12h(session.endTime)}  •  $dateIso  •  Extra Class'
+                                  : '${DateFormatter.formatTime12h(session.startTime)} – ${DateFormatter.formatTime12h(session.endTime)}  •  $dateIso',
+                              style: GoogleFonts.quicksand(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.close_rounded, size: 20, color: textSecondary),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 1-TAP ATTENDANCE BUTTONS (if today or past)
+                  if (isPastOrToday) ...[
+                    Text(
+                      'MARK ATTENDANCE',
+                      style: GoogleFonts.quicksand(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.8,
+                        color: textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: session.attendanceOutcome == 'PRESENT'
+                                  ? accentPrimary
+                                  : (isDark ? const Color(0xFF143720) : const Color(0xFFE8F5E9)),
+                              foregroundColor: session.attendanceOutcome == 'PRESENT'
+                                  ? (isDark ? const Color(0xFF112318) : Colors.white)
+                                  : (isDark ? const Color(0xFF74A87D) : const Color(0xFF2E5A36)),
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(vertical: 11),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            icon: const Icon(Icons.check_rounded, size: 16),
+                            label: Text(
+                              'Present',
+                              style: GoogleFonts.quicksand(fontWeight: FontWeight.w700),
+                            ),
+                            onPressed: () {
+                              Navigator.pop(context);
+                              ref.read(attendanceRecordsProvider.notifier).markAttendance(
+                                sessionId: session.id,
+                                slotId: session.sourceRefId ?? session.id,
+                                subjectId: session.subjectComponentId,
+                                sessionDate: dateIso,
+                                outcome: 'PRESENT',
+                              );
+                              AppToast.success(context, 'Marked Present for ${session.subjectName}');
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: session.attendanceOutcome == 'ABSENT'
+                                  ? const Color(0xFFD9534F)
+                                  : (isDark ? const Color(0xFF3E1C1C) : const Color(0xFFFDECEB)),
+                              foregroundColor: session.attendanceOutcome == 'ABSENT'
+                                  ? Colors.white
+                                  : (isDark ? const Color(0xFFE57373) : const Color(0xFFD9534F)),
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(vertical: 11),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            icon: const Icon(Icons.close_rounded, size: 16),
+                            label: Text(
+                              'Absent',
+                              style: GoogleFonts.quicksand(fontWeight: FontWeight.w700),
+                            ),
+                            onPressed: () {
+                              Navigator.pop(context);
+                              ref.read(attendanceRecordsProvider.notifier).markAttendance(
+                                sessionId: session.id,
+                                slotId: session.sourceRefId ?? session.id,
+                                subjectId: session.subjectComponentId,
+                                sessionDate: dateIso,
+                                outcome: 'ABSENT',
+                              );
+                              AppToast.info(context, 'Marked Absent for ${session.subjectName}');
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: session.attendanceOutcome == 'CANCELLED'
+                                  ? const Color(0xFF8E7CC3)
+                                  : (isDark ? const Color(0xFF2B1B47) : const Color(0xFFF3E8FF)),
+                              foregroundColor: session.attendanceOutcome == 'CANCELLED'
+                                  ? Colors.white
+                                  : (isDark ? const Color(0xFFA78BFA) : const Color(0xFF7C3AED)),
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(vertical: 11),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            icon: const Icon(Icons.block_rounded, size: 16),
+                            label: Text(
+                              'Cancelled',
+                              style: GoogleFonts.quicksand(fontWeight: FontWeight.w700),
+                            ),
+                            onPressed: () {
+                              Navigator.pop(context);
+                              ref.read(attendanceRecordsProvider.notifier).markAttendance(
+                                sessionId: session.id,
+                                slotId: session.sourceRefId ?? session.id,
+                                subjectId: session.subjectComponentId,
+                                sessionDate: dateIso,
+                                outcome: 'CANCELLED',
+                              );
+                              AppToast.info(context, 'Marked Cancelled for ${session.subjectName}');
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                  ],
+
+                  // SCHEDULE ACTIONS SECTION
+                  Text(
+                    'SCHEDULE ACTIONS',
+                    style: GoogleFonts.quicksand(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                      color: textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  if (isExtra) ...[
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: pillBg,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(Icons.edit_calendar_rounded, size: 16, color: accentPrimary),
+                      ),
+                      title: Text(
+                        'Edit Extra Class',
+                        style: GoogleFonts.quicksand(fontSize: 13, fontWeight: FontWeight.w700, color: textPrimary),
+                      ),
+                      subtitle: Text(
+                        'Change time, subject, room, or reason',
+                        style: GoogleFonts.quicksand(fontSize: 11, color: textSecondary),
+                      ),
+                      trailing: Icon(Icons.chevron_right_rounded, size: 18, color: textSecondary),
+                      onTap: () {
+                        Navigator.pop(context);
+                        TimeOfDay parseTime(String t) {
+                          try {
+                            final parts = t.split(':');
+                            return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+                          } catch (_) {
+                            return const TimeOfDay(hour: 10, minute: 0);
+                          }
+                        }
+
+                        AddExtraClassSheet.show(
+                          context,
+                          dateIso: dateIso,
+                          editExtraId: session.sourceRefId ?? session.id,
+                          initialSubjectId: session.subjectComponentId,
+                          initialStartTime: parseTime(session.startTime),
+                          initialEndTime: parseTime(session.endTime),
+                          initialRoom: session.room,
+                        );
+                      },
+                    ),
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF3E1C1C) : const Color(0xFFFDECEB),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.delete_outline_rounded, size: 16, color: Color(0xFFD9534F)),
+                      ),
+                      title: Text(
+                        'Delete Extra Class',
+                        style: GoogleFonts.quicksand(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFFD9534F)),
+                      ),
+                      subtitle: Text(
+                        'Permanently remove this extra class and its attendance',
+                        style: GoogleFonts.quicksand(fontSize: 11, color: textSecondary),
+                      ),
+                      trailing: Icon(Icons.chevron_right_rounded, size: 18, color: textSecondary),
+                      onTap: () async {
+                        Navigator.pop(context);
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (dialogCtx) => AlertDialog(
+                            backgroundColor: cardBg,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                            title: Text(
+                              'Delete Extra Class?',
+                              style: GoogleFonts.quicksand(fontWeight: FontWeight.w800, color: textPrimary),
+                            ),
+                            content: Text(
+                              'Are you sure you want to delete this extra class? This will also remove any attendance recorded for it.',
+                              style: GoogleFonts.quicksand(fontSize: 13, color: textSecondary),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(dialogCtx, false),
+                                child: Text('Cancel', style: GoogleFonts.quicksand(fontWeight: FontWeight.w700, color: textSecondary)),
+                              ),
+                              FilledButton(
+                                onPressed: () => Navigator.pop(dialogCtx, true),
+                                style: FilledButton.styleFrom(backgroundColor: const Color(0xFFD9534F)),
+                                child: Text('Delete', style: GoogleFonts.quicksand(fontWeight: FontWeight.w700)),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirm == true) {
+                          final extraId = session.sourceRefId ?? session.id;
+                          await ref.read(extraClassesProvider.notifier).deleteExtraClass(extraId);
+                          if (context.mounted) {
+                            AppToast.info(context, 'Extra class deleted');
+                          }
+                        }
+                      },
+                    ),
+                  ] else ...[
+                    // Reschedule for this date only
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: pillBg,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(Icons.edit_calendar_rounded, size: 16, color: accentPrimary),
+                      ),
+                      title: Text(
+                        'Change room / time for this date only',
+                        style: GoogleFonts.quicksand(fontSize: 13, fontWeight: FontWeight.w700, color: textPrimary),
+                      ),
+                      subtitle: Text(
+                        'Override this date without affecting weekly timetable',
+                        style: GoogleFonts.quicksand(fontSize: 11, color: textSecondary),
+                      ),
+                      trailing: Icon(Icons.chevron_right_rounded, size: 18, color: textSecondary),
+                      onTap: () {
+                        Navigator.pop(context);
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (context.mounted) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => RescheduleSessionScreen(
+                                  session: session,
+                                  dateIso: dateIso,
+                                ),
+                              ),
+                            );
+                          }
+                        });
+                      },
+                    ),
+
+                    // Update room for all weekly slots of this subject
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: pillBg,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(Icons.meeting_room_outlined, size: 16, color: textPrimary),
+                      ),
+                      title: Text(
+                        'Manage rooms for this subject',
+                        style: GoogleFonts.quicksand(fontSize: 13, fontWeight: FontWeight.w700, color: textPrimary),
+                      ),
+                      subtitle: Text(
+                        'Set or customize rooms for all days of this subject',
+                        style: GoogleFonts.quicksand(fontSize: 11, color: textSecondary),
+                      ),
+                      trailing: Icon(Icons.chevron_right_rounded, size: 18, color: textSecondary),
+                      onTap: () {
+                        final subjects = ref.read(subjectsProvider);
+                        final sub = subjects.firstWhere(
+                          (s) => s.id == session.subjectComponentId,
+                          orElse: () => SubjectEntity(
+                            id: session.subjectComponentId,
+                            semesterId: session.semesterId,
+                            name: session.subjectName,
+                            category: session.category,
+                            credits: 3,
+                            targetAttendancePct: 75.0,
+                            baselineHeld: 0,
+                            baselineAttended: 0,
+                            isArchived: false,
+                            colorHex: session.colorHex,
+                            components: [],
+                          ),
+                        );
+                        Navigator.pop(context);
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (context.mounted) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => SubjectRoomManagerScreen(
+                                  subject: sub,
+                                  initialRoom: session.room,
+                                ),
+                              ),
+                            );
+                          }
+                        });
+                      },
+                    ),
+
+                    // Edit this recurring weekly slot permanently
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: pillBg,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(Icons.edit_note_rounded, size: 16, color: textPrimary),
+                      ),
+                      title: Text(
+                        'Edit this weekly slot permanently',
+                        style: GoogleFonts.quicksand(fontSize: 13, fontWeight: FontWeight.w700, color: textPrimary),
+                      ),
+                      subtitle: Text(
+                        'Change time, room, or teacher for this recurring day',
+                        style: GoogleFonts.quicksand(fontSize: 11, color: textSecondary),
+                      ),
+                      trailing: Icon(Icons.chevron_right_rounded, size: 18, color: textSecondary),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AddEditSlotScreen(
+                              existingSlot: session,
+                              initialDayOfWeek: session.dayOfWeek ?? DateFormatter.getDayOfWeek(DateTime.tryParse(dateIso) ?? DateTime.now()),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+
+                    // Cancel class for this date only
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF3E1C1C) : const Color(0xFFFDECEB),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.delete_outline_rounded, size: 16, color: Color(0xFFD9534F)),
+                      ),
+                      title: Text(
+                        'Remove from this date only',
+                        style: GoogleFonts.quicksand(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFFD9534F)),
+                      ),
+                      subtitle: Text(
+                        'Erase this session from this date\'s schedule',
+                        style: GoogleFonts.quicksand(fontSize: 11, color: textSecondary),
+                      ),
+                      trailing: Icon(Icons.chevron_right_rounded, size: 18, color: textSecondary),
+                      onTap: () async {
+                        Navigator.pop(context);
+                        if (session.sourceRefId != null) {
+                          await ref.read(scheduleExceptionsProvider.notifier).addOrUpdateException(
+                            timetableSlotId: session.sourceRefId!,
+                            exceptionDate: dateIso,
+                            actionType: 'CANCELLED',
+                          );
+                          if (context.mounted) {
+                            AppToast.info(context, 'Removed ${session.subjectName} for $dateIso');
+                          }
+                        }
+                      },
+                    ),
+
+                    // Edit master slot or manage all slots
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: pillBg,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(Icons.tune_rounded, size: 16, color: textPrimary),
+                      ),
+                      title: Text(
+                        'Manage all slots for this subject',
+                        style: GoogleFonts.quicksand(fontSize: 13, fontWeight: FontWeight.w700, color: textPrimary),
+                      ),
+                      subtitle: Text(
+                        'View, add, and customize all weekly days and rooms',
+                        style: GoogleFonts.quicksand(fontSize: 11, color: textSecondary),
+                      ),
+                      trailing: Icon(Icons.chevron_right_rounded, size: 18, color: textSecondary),
+                      onTap: () {
+                        Navigator.pop(context);
+                        final subjects = ref.read(subjectsProvider);
+                        final sub = subjects.firstWhere(
+                          (s) => s.id == session.subjectComponentId,
+                          orElse: () => SubjectEntity(
+                            id: session.subjectComponentId,
+                            semesterId: session.semesterId,
+                            name: session.subjectName,
+                            category: session.category,
+                            credits: 3,
+                            targetAttendancePct: 75.0,
+                            baselineHeld: 0,
+                            baselineAttended: 0,
+                            isArchived: false,
+                            colorHex: session.colorHex,
+                            components: [],
+                          ),
+                        );
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ManageSubjectSlotsScreen(subject: sub),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }
