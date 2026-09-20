@@ -5,6 +5,31 @@ All notable changes to **ClassTrack** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-alpha.13] - 2026-09-20
+
+### 🌿 Sprout & Mochi Theme Suite
+- **Extensible Theme Engine**: Core architectural foundation supporting multiple distinct visual styles with unified `AppThemeTokens`, dynamic theme switching, and smooth cross-fade transitions.
+- **Sprout & Mochi Theme**: Soft pastel marshmallow canvas (`#FAF7F2`), woodland moss card backgrounds (`#1B3626`), fresh sprout green accents (`#689F38`), and organic squircles (`20-24px` radius).
+- **Time-Aware 3D Mascot Companions**: Expressive 3D mascots across Home (waving, evening, night), Timetable (clock, foliage), Analytics (growth charts), and Settings (reading).
+- **Mascot Peek Overlay**: Tap any mascot to reveal whimsical academic encouragement quotes with smooth spring animations.
+
+### 🧭 Sprout Floating Navigation Bar
+- **Capsule Bottom Navigation**: Floating pill navbar with smooth animated sliding indicator and custom theme icons.
+- **Squircle Active Pill**: Soft `22px` border radius preventing edge crowding on long screen names like "Timetable" and "Analytics".
+- **FittedBox Label Protection**: Edge-safe text scaling guaranteeing labels never clip on narrow Android devices.
+
+### 📱 Dynamic Guided App Tour
+- **Theme-Adaptive Navigation**: Interactive walkthrough dynamically detects active theme and maps steps to the correct tab order (`Today`, `Timetable`, `Calendar`, `Analytics`, `Settings`).
+- **Sprout Visual Polish**: Quicksand typography, elevated floating margin (`96px`), mini mascot avatar, and context-aware action buttons.
+- **Zero-Emoji Compliance**: Strict adherence to zero-emoji standards across all tour step descriptions and badges.
+
+### 🔋 Battery Efficiency & Visual Polish
+- **Sprout "Did You Know?" Sheet**: Dedicated Sprout-styled battery efficiency explanation sheet with `32px` sheet radius and full-pill action buttons.
+- **Settings Screen Spacing Fix**: Eliminated trailing blank void above the floating navbar with balanced `16px` bottom padding.
+- **Mascot Reflection Removal**: Pixel-level transparency cleanup removing the reflection puddle beneath the Today screen mascot artwork.
+
+---
+
 ## [1.0.0-alpha.12] - 2026-09-12
 
 ### 🌟 Brand Identity Overhaul (Attendly & New App Icon)

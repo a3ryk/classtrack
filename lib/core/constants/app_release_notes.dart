@@ -4,9 +4,26 @@ import '../services/app_update_service.dart';
 class AppReleaseNotes {
   AppReleaseNotes._();
 
-  static const String currentVersion = '1.0.0-alpha.12';
+  static const String currentVersion = '1.0.0-alpha.13';
 
   static final Map<String, AppReleaseInfo> _releases = {
+    '1.0.0-alpha.13': const AppReleaseInfo(
+      latestVersion: '1.0.0-alpha.13',
+      buildNumber: 13,
+      minSupportedVersion: '1.0.0-alpha.13',
+      releaseDate: 'September 2026',
+      releaseTitle: 'ClassTrack v1.0.0-alpha.13 (Sprout Theme Suite)',
+      changelog: [
+        '✨ Sprout & Mochi Theme Suite: Pastel marshmallow aesthetics, soft sage green tokens, and organic squircles.',
+        '✨ Interactive 3D Mascot Companions: Time-aware expressive 3D mascot art across Home, Timetable, Analytics, and Settings.',
+        '✨ Sprout Floating Navigation Bar: Capsule navbar with animated squircle active pill and FittedBox edge-safe labels.',
+        '✨ Dynamic Guided App Tour: Interactive walkthrough dynamically adapts tab order, geometry, and cards to the active theme.',
+        '✨ Battery Efficiency Sheet: Sprout-native Did You Know bottom sheet explaining zero idle battery consumption.',
+        '✨ Visual Polish & Bugfixes: Fixed settings bottom void, eliminated mascot reflection puddle, and perfected typography.',
+      ],
+      isMandatory: true,
+      warningMessage: 'Mandatory update required for the new extensible Sprout & Mochi theme suite, floating navigation bar, and core bugfixes.',
+    ),
     '1.0.0-alpha.12': const AppReleaseInfo(
       latestVersion: '1.0.0-alpha.12',
       buildNumber: 12,

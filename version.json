@@ -1,27 +1,26 @@
 {
-  "latest_version": "1.0.0-alpha.12",
-  "build_number": 12,
-  "min_supported_version": "1.0.0-alpha.11",
-  "release_date": "2026-09-12",
-  "release_title": "Attendly v1.0.0-alpha.12 (Brand Identity Overhaul, Permission-Guarded Backups, Developer Release Inspector & Markdown Updater)",
+  "latest_version": "1.0.0-alpha.13",
+  "build_number": 13,
+  "min_supported_version": "1.0.0-alpha.13",
+  "release_date": "2026-09-20",
+  "release_title": "ClassTrack v1.0.0-alpha.13 (Sprout Theme Suite)",
   "changelog": [
-    "✨ Brand Identity Overhaul: ClassTrack is now Attendly! Complete rebrand across the application, system notifications, widgets, and backup schemas.",
-    "✨ Modern Launcher App Icon: Sleek new adaptive icon geometry with clean contrast and seamless integration across dark and light home screens.",
-    "✨ Automatic Backup Storage Permission Guard: Switch toggle now strictly verifies and requests Android storage permissions before activation, eliminating silent phantom backups and ensuring .ctbackup files write directly to public storage.",
-    "✨ Backward Compatible Backups: Seamlessly discovers and restores both Attendly and legacy ClassTrack backups (.ctbackup) without data loss.",
-    "✨ Developer Release Inspector: Explore, preview, and test any GitHub release notes directly inside the updater UI with bypass mode for mandatory update testing.",
-    "✨ Markdown Changelog & UI Polish: Floating sparkle header icon, clean text-only Done action, and direct checkmark badges without distracting container clutter.",
-    "✨ Clean Privacy Policy: Overhauled layout with minimal styling, eliminated em-dash artifacts, and optimized legibility."
+    "✨ Sprout & Mochi Theme Suite: Pastel marshmallow aesthetics, soft sage green tokens, and organic squircles.",
+    "✨ Interactive 3D Mascot Companions: Time-aware expressive 3D mascot art across Home, Timetable, Analytics, and Settings.",
+    "✨ Sprout Floating Navigation Bar: Capsule navbar with animated squircle active pill and FittedBox edge-safe labels.",
+    "✨ Dynamic Guided App Tour: Interactive walkthrough dynamically adapts tab order, geometry, and cards to the active theme.",
+    "✨ Battery Efficiency Sheet: Sprout-native Did You Know bottom sheet explaining zero idle battery consumption.",
+    "✨ Visual Polish & Bugfixes: Fixed settings bottom void, eliminated mascot reflection puddle, and perfected typography."
   ],
-  "download_url": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.12/Attendly-v1.0.0-alpha.12.apk",
+  "download_url": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.13/ClassTrack-v1.0.0-alpha.13.apk",
   "abi_assets": {
-    "arm64-v8a": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.12/app-arm64-v8a-release.apk",
-    "armeabi-v7a": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.12/app-armeabi-v7a-release.apk",
-    "x86_64": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.12/app-x86_64-release.apk",
-    "universal": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.12/Attendly-v1.0.0-alpha.12.apk"
+    "arm64-v8a": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.13/app-arm64-v8a-release.apk",
+    "armeabi-v7a": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.13/app-armeabi-v7a-release.apk",
+    "x86_64": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.13/app-x86_64-release.apk",
+    "universal": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.13/ClassTrack-v1.0.0-alpha.13.apk"
   },
-  "release_page_url": "https://github.com/a3ryk/classtrack/releases/tag/v1.0.0-alpha.12",
-  "is_mandatory": false,
-  "warning_message": null
+  "release_page_url": "https://github.com/a3ryk/classtrack/releases/tag/v1.0.0-alpha.13",
+  "is_mandatory": true,
+  "warning_message": "Mandatory update required for the new extensible Sprout & Mochi theme suite, floating navigation bar, and core bugfixes."
 }
 

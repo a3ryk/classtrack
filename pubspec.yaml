@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0-alpha.12+12
+version: 1.0.0-alpha.13+13
 
 environment:
   sdk: ^3.9.0
@@ -86,10 +86,19 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
-  #   - images/a_dot_ham.jpeg
+  assets:
+    - assets/images/
+    - assets/themes/sprout/navbar/
+    - assets/themes/sprout/mascots/
+    - assets/themes/sprout/mascots/sprout_home_wave.png
+    - assets/themes/sprout/mascots/sprout_home_evening.png
+    - assets/themes/sprout/mascots/sprout_home_night.png
+    - assets/themes/sprout/mascots/sprout_home_star.png
+    - assets/themes/sprout/mascots/sprout_home_checklist.png
+    - assets/themes/sprout/mascots/sprout_timetable_clock.png
+    - assets/themes/sprout/mascots/sprout_timetable_foliage.png
+    - assets/themes/sprout/mascots/sprout_analytics_graph.png
+    - assets/themes/sprout/mascots/sprout_settings_reading.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
