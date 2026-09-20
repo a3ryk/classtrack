@@ -29,7 +29,7 @@ class SproutWhatIfSimulatorSheet extends ConsumerStatefulWidget {
 
 class _SproutWhatIfSimulatorSheetState extends ConsumerState<SproutWhatIfSimulatorSheet> {
   WhatIfMode _mode = WhatIfMode.miss;
-  int _sessionCount = 2;
+  int _sessionCount = 1;
 
   Color _parseColor(String? hexString, Color fallback) {
     if (hexString == null || hexString.isEmpty) return fallback;
@@ -323,9 +323,9 @@ class _SproutWhatIfSimulatorSheetState extends ConsumerState<SproutWhatIfSimulat
                             ),
                             _buildStepperButton(
                               icon: Icons.add_rounded,
-                              enabled: _sessionCount < 15,
+                              enabled: _sessionCount < 30,
                               onTap: () {
-                                if (_sessionCount < 15) {
+                                if (_sessionCount < 30) {
                                   HapticFeedback.lightImpact();
                                   setState(() => _sessionCount++);
                                 }

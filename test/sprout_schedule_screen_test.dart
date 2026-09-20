@@ -75,6 +75,21 @@ void main() {
       room: 'Lab 3',
       teacherName: 'Prof. Ananya Roy',
     ),
+    TimetableSlotItem(
+      id: 'slot-3',
+      semesterId: 'sem-active',
+      subjectComponentId: 'sub-comp-3',
+      subjectName: 'Elective Seminar',
+      subjectCode: null,
+      category: 'Elective',
+      componentType: 'Seminar',
+      colorHex: '#9C27B0',
+      dayOfWeek: 1, // Monday
+      startTime: '14:00',
+      endTime: '15:00',
+      room: null,
+      teacherName: null,
+    ),
   ];
 
   group('Sprouts Theme Timetable Screen Tests', () {
@@ -141,7 +156,7 @@ void main() {
 
       // Verify Monday schedule summary
       expect(find.text('MONDAY SCHEDULE'), findsOneWidget);
-      expect(find.text('2 Classes'), findsOneWidget);
+      expect(find.text('3 Classes'), findsOneWidget);
 
       // Verify slot card content
       expect(find.text('Computer Networks'), findsOneWidget);
@@ -160,9 +175,16 @@ void main() {
       expect(find.text('Lab 3'), findsOneWidget);
       expect(find.text('Prof. Ananya Roy'), findsOneWidget);
 
+      // Third slot (null subjectCode, room, teacher)
+      expect(find.text('Elective Seminar'), findsOneWidget);
+      expect(find.text('14:00'), findsOneWidget);
+      expect(find.text('15:00'), findsOneWidget);
+      expect(find.text('1h'), findsOneWidget);
+      expect(find.text('Seminar'), findsOneWidget);
+
       // Verify Timekeeper Sprout Speech Bubble footer at the bottom
       expect(find.text('A consistent you builds a brighter future!'), findsOneWidget);
-      expect(find.textContaining('2 classes for Monday'), findsOneWidget);
+      expect(find.textContaining('3 classes for Monday'), findsOneWidget);
       expect(find.byType(Image), findsWidgets);
     });
 

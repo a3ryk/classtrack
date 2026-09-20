@@ -4,9 +4,26 @@ import '../services/app_update_service.dart';
 class AppReleaseNotes {
   AppReleaseNotes._();
 
-  static const String currentVersion = '1.0.0-alpha.13';
+  static const String currentVersion = '1.0.0-alpha.14';
 
   static final Map<String, AppReleaseInfo> _releases = {
+    '1.0.0-alpha.14': const AppReleaseInfo(
+      latestVersion: '1.0.0-alpha.14',
+      buildNumber: 14,
+      minSupportedVersion: '1.0.0-alpha.13',
+      releaseDate: 'September 2026',
+      releaseTitle: 'ClassTrack v1.0.0-alpha.14 (Performance & UI Polish Patch)',
+      changelog: [
+        '✨ Smooth Day Swiping: Horizontal swipe navigation across schedule days on the Today screen with instant cubic curve glide back to today.',
+        '✨ Bottom Navbar Clearance Fix: Reduced excessive bottom clearance void from 105px to 16px across Analytics, Settings, Timetable, and Today screens.',
+        '✨ Share & Scan Performance: Eliminated route opening jitter and frame drops with deferred camera and QR matrix initialization.',
+        '✨ Classic Display & Widgets Consolidation: Unified Display Options and Home Screen Widgets into a single card in the classic theme.',
+        '✨ What-If Simulator Range Expansion: Simulator counters now start at 1 and support projections up to 30 sessions.',
+        '✨ Timetable Stability: Fixed null-safe subject code casting and standardized uniform day pill heights.',
+      ],
+      isMandatory: false,
+      warningMessage: null,
+    ),
     '1.0.0-alpha.13': const AppReleaseInfo(
       latestVersion: '1.0.0-alpha.13',
       buildNumber: 13,

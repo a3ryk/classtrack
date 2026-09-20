@@ -148,6 +148,9 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
     if (isCute) {
       return SproutTodayView(
         selectedDate: _selectedDate,
+        pageController: _pageController,
+        baseDate: _baseDate,
+        initialPage: _kInitialPage,
         onDateChanged: (newDate) {
           setState(() {
             _selectedDate = newDate;

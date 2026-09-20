@@ -8,6 +8,7 @@ import 'package:classtrack/presentation/providers/app_state_provider.dart';
 import 'package:classtrack/presentation/providers/app_theme_style_provider.dart';
 import 'package:classtrack/presentation/screens/main_shell.dart';
 import 'package:classtrack/presentation/screens/settings/appearance_screen.dart';
+import 'package:classtrack/presentation/screens/settings/settings_screen.dart';
 import 'package:classtrack/presentation/widgets/mascot_peek_overlay.dart';
 import 'package:classtrack/presentation/widgets/sprout_floating_nav_bar.dart';
 import 'package:classtrack/presentation/widgets/today_class_card.dart';
@@ -288,7 +289,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify we are on Settings screen with Sprout companion header
-      expect(find.descendant(of: find.byType(ListView), matching: find.text('Settings')), findsOneWidget);
+      expect(find.descendant(of: find.byType(SettingsScreen), matching: find.text('Settings')), findsOneWidget);
       expect(find.text('Your academic companion'), findsOneWidget);
 
       // Verify NO back button in AppBar
@@ -368,7 +369,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify we are back on Settings (MainShell tab 4)
-      expect(find.descendant(of: find.byType(ListView), matching: find.text('Settings')), findsOneWidget);
+      expect(find.descendant(of: find.byType(SettingsScreen), matching: find.text('Settings')), findsOneWidget);
       expect(find.text('Your academic companion'), findsOneWidget);
 
       // Verify NO top-left back button

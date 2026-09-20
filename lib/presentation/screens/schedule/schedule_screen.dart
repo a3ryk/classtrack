@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/ui/tactile_button.dart';
 import '../../../domain/entities/class_session_entity.dart';
+import '../../../domain/entities/semester_entity.dart';
+import '../../../domain/services/schedule_engine.dart';
 import '../../providers/app_state_provider.dart';
 import 'add_edit_slot_screen.dart';
 import 'batch_add_slots_screen.dart';
@@ -570,8 +572,8 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     required BuildContext context,
     required bool isDark,
     required AppThemeTokens? tokens,
-    required dynamic activeSem,
-    required List<dynamic> daySlots,
+    required SemesterEntity activeSem,
+    required List<TimetableSlotItem> daySlots,
   }) {
     final screenBg = isDark ? const Color(0xFF112318) : const Color(0xFFFAF7F2);
     final textPrimary = isDark ? const Color(0xFFE8F4EB) : const Color(0xFF192E21);
@@ -742,7 +744,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                           isNoSemester: false,
                         )
                       : ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(20, 4, 20, 105),
+                          padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
                           itemCount: daySlots.length + 1,
                           itemBuilder: (context, index) {
                             if (index == daySlots.length) {
@@ -845,7 +847,6 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     final activeBg = tokens?.primaryAccent ?? const Color(0xFF558A50);
     final activeTextColor = isDark ? const Color(0xFF0C1D12) : Colors.white;
     final inactiveTextColor = isDark ? const Color(0xFF98B5A3) : const Color(0xFF526B5C);
-    final todayWeekday = DateTime.now().weekday % 7; // Sun is 0
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
@@ -855,11 +856,10 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: borderColor, width: 1.2),
         ),
-        padding: const EdgeInsets.all(5),
+        padding: const EdgeInsets.all(4),
         child: Row(
           children: List.generate(7, (index) {
             final isSelected = index == _selectedDayIndex;
-            final isToday = index == todayWeekday;
 
             return Expanded(
               child: GestureDetector(
@@ -872,44 +872,29 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   curve: Curves.easeInOutCubic,
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  height: 38,
+                  alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: isSelected ? activeBg : Colors.transparent,
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(16),
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
                               color: activeBg.withValues(alpha: 0.32),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
+                              blurRadius: 10,
+                              offset: const Offset(0, 3),
                             ),
                           ]
                         : null,
                   ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        _days[index],
-                        style: GoogleFonts.quicksand(
-                          fontSize: 12,
-                          fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
-                          color: isSelected ? activeTextColor : inactiveTextColor,
-                          letterSpacing: -0.2,
-                        ),
-                      ),
-                      if (isToday) ...[
-                        const SizedBox(height: 3),
-                        Container(
-                          width: 4,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: isSelected ? activeTextColor : activeBg,
-                          ),
-                        ),
-                      ],
-                    ],
+                  child: Text(
+                    _days[index],
+                    style: GoogleFonts.quicksand(
+                      fontSize: 12.5,
+                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
+                      color: isSelected ? activeTextColor : inactiveTextColor,
+                      letterSpacing: -0.2,
+                    ),
                   ),
                 ),
               ),
@@ -925,20 +910,46 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     final primaryAccent = tokens?.primaryAccent ?? const Color(0xFF558A50);
     final primaryLight = isDark ? const Color(0xFF1D3D29) : const Color(0xFFEBF4E8);
     final borderColor = isDark ? const Color(0xFF264A34) : const Color(0xFFDFE8DC);
+    final isToday = _selectedDayIndex == (DateTime.now().weekday % 7);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            '${_fullDayNames[_selectedDayIndex].toUpperCase()} SCHEDULE',
-            style: GoogleFonts.quicksand(
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              color: textMuted,
-              letterSpacing: 0.8,
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '${_fullDayNames[_selectedDayIndex].toUpperCase()} SCHEDULE',
+                style: GoogleFonts.quicksand(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: textMuted,
+                  letterSpacing: 0.8,
+                ),
+              ),
+              if (isToday) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: primaryLight,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: borderColor, width: 1),
+                  ),
+                  child: Text(
+                    'TODAY',
+                    style: GoogleFonts.quicksand(
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w800,
+                      color: primaryAccent,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
@@ -963,7 +974,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
 
   Widget _buildSproutSlotCard({
     required BuildContext context,
-    required dynamic s,
+    required TimetableSlotItem s,
     required bool isDark,
     required AppThemeTokens? tokens,
   }) {
@@ -979,35 +990,35 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
 
     Color dotColor;
     try {
-      final hex = (s.colorHex as String).replaceAll('#', '');
+      final hex = s.colorHex.replaceAll('#', '');
       dotColor = Color(int.parse('FF$hex', radix: 16));
     } catch (_) {
       dotColor = primaryAccent;
     }
 
-    final durationStr = _formatDuration(s.startTime as String, s.endTime as String);
+    final durationStr = _formatDuration(s.startTime, s.endTime);
 
     final sessionEntity = ClassSessionEntity(
-      id: s.id as String,
-      semesterId: s.semesterId as String,
-      subjectComponentId: s.subjectComponentId as String,
-      subjectName: s.subjectName as String,
-      subjectCode: s.subjectCode as String,
-      category: s.category as String,
-      componentType: s.componentType as String,
-      colorHex: s.colorHex as String,
+      id: s.id,
+      semesterId: s.semesterId,
+      subjectComponentId: s.subjectComponentId,
+      subjectName: s.subjectName,
+      subjectCode: s.subjectCode,
+      category: s.category,
+      componentType: s.componentType,
+      colorHex: s.colorHex,
       sessionDate: '',
-      dayOfWeek: s.dayOfWeek as int,
-      startTime: s.startTime as String,
-      endTime: s.endTime as String,
+      dayOfWeek: s.dayOfWeek,
+      startTime: s.startTime,
+      endTime: s.endTime,
       sessionSource: 'TIMETABLE',
-      sourceRefId: s.id as String,
+      sourceRefId: s.id,
       status: 'HELD',
-      room: s.room as String?,
-      teacherName: s.teacherName as String?,
+      room: s.room,
+      teacherName: s.teacherName,
       attendanceOutcome: 'PENDING',
-      effectiveFrom: s.effectiveFrom as String?,
-      effectiveUntil: s.effectiveUntil as String?,
+      effectiveFrom: s.effectiveFrom,
+      effectiveUntil: s.effectiveUntil,
     );
 
     return Padding(
@@ -1019,7 +1030,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
             MaterialPageRoute(
               builder: (context) => AddEditSlotScreen(
                 existingSlot: sessionEntity,
-                initialDayOfWeek: s.dayOfWeek as int,
+                initialDayOfWeek: s.dayOfWeek,
               ),
             ),
           );
@@ -1048,7 +1059,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      s.startTime as String,
+                      s.startTime,
                       style: GoogleFonts.quicksand(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
@@ -1058,7 +1069,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                     ),
                     const SizedBox(height: 1),
                     Text(
-                      s.endTime as String,
+                      s.endTime,
                       style: GoogleFonts.quicksand(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -1103,7 +1114,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                       children: [
                         Expanded(
                           child: Text(
-                            s.subjectName as String,
+                            s.subjectName,
                             style: GoogleFonts.quicksand(
                               fontSize: 15.5,
                               fontWeight: FontWeight.w800,
@@ -1140,25 +1151,25 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                       runSpacing: 4,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        if ((s.componentType as String).isNotEmpty)
+                        if (s.componentType.isNotEmpty)
                           _buildSproutTag(
-                            label: s.componentType as String,
+                            label: s.componentType,
                             bgColor: chipBg,
                             textColor: textSecondary,
                             borderColor: borderColor,
                           ),
-                        if ((s.category as String).isNotEmpty)
+                        if (s.category.isNotEmpty)
                           _buildSproutTag(
-                            label: s.category as String,
+                            label: s.category,
                             bgColor: chipBg,
                             textColor: textSecondary,
                             borderColor: borderColor,
                           ),
-                        if (s.room != null && (s.room as String).isNotEmpty)
+                        if (s.room != null && s.room!.isNotEmpty)
                           _buildSproutTag(
-                            label: (s.room as String).toLowerCase().contains('room') ||
-                                    (s.room as String).toLowerCase().contains('lab')
-                                ? (s.room as String)
+                            label: s.room!.toLowerCase().contains('room') ||
+                                    s.room!.toLowerCase().contains('lab')
+                                ? s.room!
                                 : 'Room ${s.room}',
                             icon: Icons.location_on_rounded,
                             bgColor: primaryLight,
@@ -1170,7 +1181,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                     ),
 
                     // Teacher Row
-                    if (s.teacherName != null && (s.teacherName as String).isNotEmpty) ...[
+                    if (s.teacherName != null && s.teacherName!.isNotEmpty) ...[
                       const SizedBox(height: 6),
                       Row(
                         children: [
@@ -1182,7 +1193,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
-                              s.teacherName as String,
+                              s.teacherName!,
                               style: GoogleFonts.quicksand(
                                 fontSize: 11.5,
                                 fontWeight: FontWeight.w600,
@@ -1382,7 +1393,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     required BuildContext context,
     required bool isDark,
     required AppThemeTokens? tokens,
-    required List<dynamic> daySlots,
+    required List<TimetableSlotItem> daySlots,
   }) {
     const mascotPath = 'assets/themes/sprout/mascots/sprout_timetable_clock.png';
 
@@ -1394,7 +1405,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     final count = daySlots.length;
     final lastSlot = daySlots.isNotEmpty ? daySlots.last : null;
     final String lastEndTime;
-    if (lastSlot != null && lastSlot.endTime != null && (lastSlot.endTime as String).isNotEmpty) {
+    if (lastSlot != null && lastSlot.endTime.isNotEmpty) {
       lastEndTime = 'Ends at ${lastSlot.endTime}';
     } else {
       lastEndTime = 'Plan ahead for tomorrow';

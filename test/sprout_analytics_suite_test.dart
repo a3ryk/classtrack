@@ -361,15 +361,21 @@ void main() {
       expect(find.text('Miss Classes'), findsOneWidget);
       expect(find.text('Attend Classes'), findsOneWidget);
 
-      // Initial stepper count = 2
-      expect(find.text('2'), findsOneWidget);
+      // Initial stepper count = 1 (min = 1, max = 30)
+      expect(find.text('1'), findsOneWidget);
       expect(find.text('Upcoming Classes to Miss'), findsOneWidget);
 
-      // Tap '+' to increment to 3
+      // Tap '+' to increment to 2
       final addBtn = find.byIcon(Icons.add_rounded);
       await tester.tap(addBtn);
       await tester.pumpAndSettle();
-      expect(find.text('3'), findsOneWidget);
+      expect(find.text('2'), findsOneWidget);
+
+      // Tap '-' to decrement back to 1
+      final removeBtn = find.byIcon(Icons.remove_rounded);
+      await tester.tap(removeBtn);
+      await tester.pumpAndSettle();
+      expect(find.text('1'), findsOneWidget);
 
       // Tap 'Attend Classes' mode
       final attendTab = find.text('Attend Classes');

@@ -17,8 +17,11 @@ import '../../widgets/declare_holiday_dialog.dart';
 import '../../widgets/mascot_peek_overlay.dart';
 
 /// Sprout Mascot Dashboard view for the Today screen
-class SproutTodayView extends ConsumerWidget {
+class SproutTodayView extends ConsumerStatefulWidget {
   final DateTime selectedDate;
+  final PageController? pageController;
+  final DateTime? baseDate;
+  final int? initialPage;
   final ValueChanged<DateTime> onDateChanged;
   final VoidCallback onGoToToday;
   final VoidCallback onPickDate;
@@ -27,11 +30,81 @@ class SproutTodayView extends ConsumerWidget {
   const SproutTodayView({
     super.key,
     required this.selectedDate,
+    this.pageController,
+    this.baseDate,
+    this.initialPage,
     required this.onDateChanged,
     required this.onGoToToday,
     required this.onPickDate,
     required this.onSessionTap,
   });
+
+  @override
+  ConsumerState<SproutTodayView> createState() => _SproutTodayViewState();
+}
+
+class _SproutTodayViewState extends ConsumerState<SproutTodayView> {
+  PageController? _internalPageController;
+  late DateTime _effectiveBaseDate;
+  late int _effectiveInitialPage;
+
+  PageController get _effectivePageController =>
+      widget.pageController ?? _internalPageController!;
+
+  @override
+  void initState() {
+    super.initState();
+    _effectiveBaseDate = widget.baseDate ?? widget.selectedDate;
+    _effectiveInitialPage = widget.initialPage ?? 10000;
+    if (widget.pageController == null) {
+      _internalPageController = PageController(initialPage: _effectiveInitialPage);
+    }
+  }
+
+  @override
+  void dispose() {
+    _internalPageController?.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant SproutTodayView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.baseDate != oldWidget.baseDate && widget.baseDate != null) {
+      _effectiveBaseDate = widget.baseDate!;
+    }
+    if (widget.initialPage != oldWidget.initialPage && widget.initialPage != null) {
+      _effectiveInitialPage = widget.initialPage!;
+    }
+    if (widget.pageController != oldWidget.pageController) {
+      if (widget.pageController == null && _internalPageController == null) {
+        _internalPageController = PageController(initialPage: _effectiveInitialPage);
+      } else if (widget.pageController != null && _internalPageController != null) {
+        _internalPageController?.dispose();
+        _internalPageController = null;
+      }
+    }
+    if (widget.selectedDate != oldWidget.selectedDate) {
+      final targetDiff = DateUtils.dateOnly(widget.selectedDate)
+          .difference(DateUtils.dateOnly(_effectiveBaseDate))
+          .inDays;
+      final targetPage = _effectiveInitialPage + targetDiff;
+      if (_effectivePageController.hasClients) {
+        final currentPage = _effectivePageController.page?.round() ?? _effectiveInitialPage;
+        if (currentPage != targetPage) {
+          if ((currentPage - targetPage).abs() <= 2) {
+            _effectivePageController.animateToPage(
+              targetPage,
+              duration: const Duration(milliseconds: 380),
+              curve: Curves.easeOutCubic,
+            );
+          } else {
+            _effectivePageController.jumpToPage(targetPage);
+          }
+        }
+      }
+    }
+  }
 
   String _getTimeGreeting() {
     final hour = DateTime.now().hour;
@@ -76,92 +149,132 @@ class SproutTodayView extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final tokens = Theme.of(context).extension<AppThemeTokens>() ??
         (isDark ? AppThemeTokens.cuteSproutDark : AppThemeTokens.cuteSproutLight);
 
-    final String selectedDateIso = DateFormatter.toIsoDate(selectedDate);
-    final sessions = ref.watch(resolvedDayScheduleProvider(selectedDate));
+    final String selectedDateIso = DateFormatter.toIsoDate(widget.selectedDate);
+    final holidays = ref.watch(holidaysProvider);
+
+    final isToday = DateUtils.dateOnly(widget.selectedDate) == DateUtils.dateOnly(DateTime.now());
+    final isHoliday = holidays.any((h) => selectedDateIso.compareTo(h.startDate) >= 0 && selectedDateIso.compareTo(h.endDate) <= 0);
+
+    return ColoredBox(
+      color: tokens.scaffoldBg,
+      child: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            // Fixed Top Action Strip: [Date Chip] [Today Pill] ... [Holiday]
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 6),
+              child: _buildTopActionStrip(context, ref, isDark, isToday, isHoliday, selectedDateIso, tokens),
+            ),
+            // Horizontal Swipeable Day Pager
+            Expanded(
+              child: PageView.builder(
+                controller: _effectivePageController,
+                physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+                onPageChanged: (index) {
+                  final newDate = _effectiveBaseDate.add(Duration(days: index - _effectiveInitialPage));
+                  widget.onDateChanged(newDate);
+                },
+                itemBuilder: (context, index) {
+                  final diff = index - _effectiveInitialPage;
+                  final computedDate = _effectiveBaseDate.add(Duration(days: diff));
+                  final pageDate = DateUtils.dateOnly(widget.selectedDate) == DateUtils.dateOnly(computedDate)
+                      ? widget.selectedDate
+                      : computedDate;
+                  return _buildPageDateContent(context, ref, pageDate, tokens, isDark);
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPageDateContent(
+    BuildContext context,
+    WidgetRef ref,
+    DateTime pageDate,
+    AppThemeTokens tokens,
+    bool isDark,
+  ) {
+    final String pageDateIso = DateFormatter.toIsoDate(pageDate);
+    final sessions = ref.watch(resolvedDayScheduleProvider(pageDate));
     final holidays = ref.watch(holidaysProvider);
     final profile = ref.watch(userProfileProvider);
     final overallStats = ref.watch(overallStatsProvider);
     final themeStyle = ref.watch(appThemeStyleProvider);
     final themeDef = AppThemeRegistry.getTheme(themeStyle);
 
-    final isToday = DateUtils.dateOnly(selectedDate) == DateUtils.dateOnly(DateTime.now());
-    final isHoliday = holidays.any((h) => selectedDateIso.compareTo(h.startDate) >= 0 && selectedDateIso.compareTo(h.endDate) <= 0);
-    final HolidayItem? currentHoliday = holidays.where((h) => selectedDateIso.compareTo(h.startDate) >= 0 && selectedDateIso.compareTo(h.endDate) <= 0).firstOrNull;
+    final isToday = DateUtils.dateOnly(pageDate) == DateUtils.dateOnly(DateTime.now());
+    final isHoliday = holidays.any((h) => pageDateIso.compareTo(h.startDate) >= 0 && pageDateIso.compareTo(h.endDate) <= 0);
+    final HolidayItem? currentHoliday = holidays.where((h) => pageDateIso.compareTo(h.startDate) >= 0 && pageDateIso.compareTo(h.endDate) <= 0).firstOrNull;
 
     final studentName = profile.studentName.trim().isNotEmpty
         ? profile.studentName.trim().split(' ').first
         : 'Friend';
 
-    final nextSession = _findNextOrOngoingSession(sessions, selectedDateIso);
+    final nextSession = _findNextOrOngoingSession(sessions, pageDateIso);
 
-    return ColoredBox(
-      color: tokens.scaffoldBg,
-      child: SafeArea(
-        child: SingleChildScrollView(
-          physics: const ClampingScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Top Action Strip: [Date Chip] [Today Pill] ... [Holiday]
-              _buildTopActionStrip(context, ref, isDark, isToday, isHoliday, selectedDateIso, tokens),
+    return SingleChildScrollView(
+      key: ValueKey(pageDateIso),
+      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header: Greeting + Subtitle on Left, 3D Mascot on Right
+          _buildHeaderGreeting(context, studentName, isDark, tokens, themeDef),
 
-              const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
-              // Header: Greeting + Subtitle on Left, 3D Mascot on Right
-              _buildHeaderGreeting(context, studentName, isDark, tokens, themeDef),
+          // Overall Attendance Care Card
+          _buildOverallAttendanceCareCard(context, overallStats, isDark, tokens),
 
-              const SizedBox(height: 20),
+          const SizedBox(height: 24),
 
-              // Overall Attendance Care Card
-              _buildOverallAttendanceCareCard(context, overallStats, isDark, tokens),
-
-              const SizedBox(height: 24),
-
-              // Schedule Section: Next Class (Hero Card Only on Today)
-              if (isHoliday)
-                _buildHolidayBanner(context, currentHoliday, isDark, tokens, themeDef)
-              else if (sessions.isEmpty)
-                _buildEmptyClassesCard(context, isDark, tokens, themeDef)
-              else if (isToday) ...[
-                // Next Class Hero Section only (per design specification)
-                if (nextSession != null) ...[
-                  _buildSectionHeader('Next Class', isDark, tokens),
-                  const SizedBox(height: 10),
-                  _buildNextClassHeroCard(context, ref, nextSession, selectedDateIso, isDark, tokens),
-                ] else ...[
-                  _buildEmptyClassesCard(context, isDark, tokens, themeDef),
-                ],
-              ] else ...[
-                // All Sessions when viewing another Date
-                _buildSectionHeader(
-                  DateFormat('EEEE, MMM d').format(selectedDate),
-                  isDark,
-                  tokens,
-                  count: sessions.length,
-                ),
-                const SizedBox(height: 10),
-                for (int i = 0; i < sessions.length; i++) ...[
-                  _buildSproutSessionCard(
-                    context: context,
-                    ref: ref,
-                    session: sessions[i],
-                    dateIso: selectedDateIso,
-                    isFuture: DateUtils.dateOnly(selectedDate).isAfter(DateUtils.dateOnly(DateTime.now())),
-                    isDark: isDark,
-                    tokens: tokens,
-                  ),
-                  if (i < sessions.length - 1) const SizedBox(height: 10),
-                ],
-              ],
+          // Schedule Section: Next Class (Hero Card Only on Today)
+          if (isHoliday)
+            _buildHolidayBanner(context, currentHoliday, isDark, tokens, themeDef)
+          else if (sessions.isEmpty)
+            _buildEmptyClassesCard(context, isDark, tokens, themeDef)
+          else if (isToday) ...[
+            // Next Class Hero Section only (per design specification)
+            if (nextSession != null) ...[
+              _buildSectionHeader('Next Class', isDark, tokens),
+              const SizedBox(height: 10),
+              _buildNextClassHeroCard(context, ref, nextSession, pageDateIso, isDark, tokens),
+            ] else ...[
+              _buildEmptyClassesCard(context, isDark, tokens, themeDef),
             ],
-          ),
-        ),
+          ] else ...[
+            // All Sessions when viewing another Date
+            _buildSectionHeader(
+              DateFormat('EEEE, MMM d').format(pageDate),
+              isDark,
+              tokens,
+              count: sessions.length,
+            ),
+            const SizedBox(height: 10),
+            for (int i = 0; i < sessions.length; i++) ...[
+              _buildSproutSessionCard(
+                context: context,
+                ref: ref,
+                session: sessions[i],
+                dateIso: pageDateIso,
+                isFuture: DateUtils.dateOnly(pageDate).isAfter(DateUtils.dateOnly(DateTime.now())),
+                isDark: isDark,
+                tokens: tokens,
+              ),
+              if (i < sessions.length - 1) const SizedBox(height: 10),
+            ],
+          ],
+        ],
       ),
     );
   }
@@ -180,7 +293,7 @@ class SproutTodayView extends ConsumerWidget {
       children: [
         // Left: Date Chip with Dropdown Indicator
         GestureDetector(
-          onTap: onPickDate,
+          onTap: widget.onPickDate,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
             decoration: BoxDecoration(
@@ -208,7 +321,7 @@ class SproutTodayView extends ConsumerWidget {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  DateFormatter.formatHeaderDate(selectedDate),
+                  DateFormatter.formatHeaderDate(widget.selectedDate),
                   style: GoogleFonts.quicksand(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -233,7 +346,7 @@ class SproutTodayView extends ConsumerWidget {
             // Jump to Today button if on another date
             if (!isToday) ...[
               GestureDetector(
-                onTap: onGoToToday,
+                onTap: widget.onGoToToday,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                   margin: const EdgeInsets.only(right: 8),
@@ -266,7 +379,7 @@ class SproutTodayView extends ConsumerWidget {
                   ref.read(holidaysProvider.notifier).removeHolidayForDate(selectedDateIso);
                   AppToast.info(context, 'Holiday removed for $selectedDateIso');
                 } else {
-                  DeclareHolidaySheet.show(context, initialDate: selectedDate);
+                  DeclareHolidaySheet.show(context, initialDate: widget.selectedDate);
                 }
               },
               child: Container(
@@ -605,7 +718,7 @@ class SproutTodayView extends ConsumerWidget {
                 : 'Mark';
 
     return GestureDetector(
-      onTap: () => onSessionTap(session, dateIso),
+      onTap: () => widget.onSessionTap(session, dateIso),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -1031,7 +1144,7 @@ class SproutTodayView extends ConsumerWidget {
     }
 
     return GestureDetector(
-      onTap: () => onSessionTap(session, dateIso),
+      onTap: () => widget.onSessionTap(session, dateIso),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(

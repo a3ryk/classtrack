@@ -48,6 +48,7 @@ class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> wit
 
   String? _cachedPayload;
   int _lastDataHash = 0;
+  bool _isTransitionFinished = false;
 
   Future<void> _shareQrImage(String semName, String payloadCode) async {
     if (_isSharingQrImage) return;
@@ -121,20 +122,35 @@ class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> wit
     );
     _tabController.addListener(_handleTabChanged);
 
-    // Pre-calculate payload immediately in initState to prevent frame drops during route transition
-    final activeSem = ref.read(activeSemesterProvider);
-    final subjects = ref.read(subjectsProvider);
-    final slots = ref.read(timetableSlotsProvider);
-    _cachedPayload = _encodePayload(slots, subjects, activeSem.name);
-    _lastDataHash = Object.hash(activeSem.name, subjects.length, slots.length, _excludedSubjectIds.length);
-
-    if (widget.initialTabIndex == 1) {
-      _initScanner();
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final modalRoute = ModalRoute.of(context);
+      final anim = modalRoute?.animation;
+      if (anim != null && !anim.isCompleted) {
+        void statusListener(AnimationStatus status) {
+          if (status == AnimationStatus.completed) {
+            anim.removeStatusListener(statusListener);
+            if (mounted) {
+              setState(() => _isTransitionFinished = true);
+              if (_tabController.index == 1) {
+                _initScanner();
+              }
+            }
+          }
+        }
+        anim.addStatusListener(statusListener);
+      } else {
+        if (mounted) {
+          setState(() => _isTransitionFinished = true);
+          if (_tabController.index == 1) {
+            _initScanner();
+          }
+        }
+      }
+    });
   }
 
   void _handleTabChanged() {
-    if (_tabController.index == 1 && _scannerController == null) {
+    if (_tabController.index == 1 && _scannerController == null && _isTransitionFinished) {
       _initScanner();
     }
     if (mounted) {
@@ -144,6 +160,20 @@ class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> wit
 
   void _initScanner() {
     _scannerController ??= MobileScannerController();
+  }
+
+  String _getPayloadCode(List<TimetableSlotItem> slots, List<SubjectEntity> subjects, String semName) {
+    final currentHash = Object.hash(
+      semName,
+      subjects.length,
+      slots.length,
+      _excludedSubjectIds.length,
+    );
+    if (_cachedPayload == null || _lastDataHash != currentHash) {
+      _lastDataHash = currentHash;
+      _cachedPayload = _encodePayload(slots, subjects, semName);
+    }
+    return _cachedPayload!;
   }
 
   @override
@@ -515,18 +545,7 @@ class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> wit
     final subjects = ref.watch(subjectsProvider);
     final slots = ref.watch(timetableSlotsProvider);
 
-    final currentHash = Object.hash(
-      activeSem.name,
-      subjects.length,
-      slots.length,
-      _excludedSubjectIds.length,
-    );
-
-    if (_cachedPayload == null || _lastDataHash != currentHash) {
-      _lastDataHash = currentHash;
-      _cachedPayload = _encodePayload(slots, subjects, activeSem.name);
-    }
-    final payloadCode = _cachedPayload!;
+    final payloadCode = _getPayloadCode(slots, subjects, activeSem.name);
     final tokens = Theme.of(context).extension<AppThemeTokens>();
     final isCute = tokens?.isCute ?? false;
 
@@ -647,21 +666,31 @@ class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> wit
                           SizedBox(
                             width: 180,
                             height: 180,
-                            child: QrImageView(
-                              data: payloadCode,
-                              version: QrVersions.auto,
-                              size: 180.0,
-                              padding: EdgeInsets.zero,
-                              gapless: true,
-                              eyeStyle: const QrEyeStyle(
-                                eyeShape: QrEyeShape.square,
-                                color: Color(0xFF0F172A),
-                              ),
-                              dataModuleStyle: const QrDataModuleStyle(
-                                dataModuleShape: QrDataModuleShape.square,
-                                color: Color(0xFF0F172A),
-                              ),
-                            ),
+                            child: _isTransitionFinished
+                                ? RepaintBoundary(
+                                    child: QrImageView(
+                                      data: payloadCode,
+                                      version: QrVersions.auto,
+                                      size: 180.0,
+                                      padding: EdgeInsets.zero,
+                                      gapless: true,
+                                      eyeStyle: const QrEyeStyle(
+                                        eyeShape: QrEyeShape.square,
+                                        color: Color(0xFF0F172A),
+                                      ),
+                                      dataModuleStyle: const QrDataModuleStyle(
+                                        dataModuleShape: QrDataModuleShape.square,
+                                        color: Color(0xFF0F172A),
+                                      ),
+                                    ),
+                                  )
+                                : const Center(
+                                    child: SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    ),
+                                  ),
                           ),
                         const SizedBox(height: 14),
 
@@ -795,7 +824,7 @@ class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> wit
         ),
 
         // TAB 2: SCANNER & IMPORT CUSTOMIZER
-          _scannerController != null
+          _scannerController != null && _isTransitionFinished
               ? Stack(
                   children: [
                     MobileScanner(
@@ -1125,21 +1154,34 @@ class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> wit
                                   child: SizedBox(
                                     width: 175,
                                     height: 175,
-                                    child: QrImageView(
-                                      data: payloadCode,
-                                      version: QrVersions.auto,
-                                      size: 175.0,
-                                      padding: EdgeInsets.zero,
-                                      gapless: true,
-                                      eyeStyle: QrEyeStyle(
-                                        eyeShape: QrEyeShape.square,
-                                        color: isDark ? const Color(0xFFE8F4EB) : const Color(0xFF1B4332),
-                                      ),
-                                      dataModuleStyle: QrDataModuleStyle(
-                                        dataModuleShape: QrDataModuleShape.square,
-                                        color: isDark ? const Color(0xFFE8F4EB) : const Color(0xFF1B4332),
-                                      ),
-                                    ),
+                                    child: _isTransitionFinished
+                                        ? RepaintBoundary(
+                                            child: QrImageView(
+                                              data: payloadCode,
+                                              version: QrVersions.auto,
+                                              size: 175.0,
+                                              padding: EdgeInsets.zero,
+                                              gapless: true,
+                                              eyeStyle: QrEyeStyle(
+                                                eyeShape: QrEyeShape.square,
+                                                color: isDark ? const Color(0xFFE8F4EB) : const Color(0xFF1B4332),
+                                              ),
+                                              dataModuleStyle: QrDataModuleStyle(
+                                                dataModuleShape: QrDataModuleShape.square,
+                                                color: isDark ? const Color(0xFFE8F4EB) : const Color(0xFF1B4332),
+                                              ),
+                                            ),
+                                          )
+                                        : Center(
+                                            child: SizedBox(
+                                              width: 24,
+                                              height: 24,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                valueColor: AlwaysStoppedAnimation<Color>(primaryAccent),
+                                              ),
+                                            ),
+                                          ),
                                   ),
                                 ),
                                 const SizedBox(height: 14),
@@ -1281,7 +1323,7 @@ class _QrShareScannerScreenState extends ConsumerState<QrShareScannerScreen> wit
                 ),
 
                 // TAB 2: SPROUT SCANNER
-                _scannerController != null
+                _scannerController != null && _isTransitionFinished
                     ? Stack(
                         children: [
                           MobileScanner(

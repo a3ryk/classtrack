@@ -172,7 +172,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                           ),
                           IconButton(
                             icon: const Icon(Icons.add_circle_outline),
-                            onPressed: simulatedMissCount < 10
+                            onPressed: simulatedMissCount < 30
                                 ? () => setModalState(() => simulatedMissCount++)
                                 : null,
                           ),
@@ -325,176 +325,188 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     return Scaffold(
       backgroundColor: tokens.scaffoldBg,
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+        bottom: false,
+        child: Column(
           children: [
-            // Top Header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Analytics',
-                  style: GoogleFonts.quicksand(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w800,
-                    color: tokens.textPrimary,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                Row(
-                  children: [
-                    if (hasHeldClasses) ...[
-                      InkWell(
-                        onTap: () => SproutWhatIfSimulatorSheet.show(context),
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: tokens.cardBg,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: tokens.cardBorder, width: 1),
-                          ),
-                          child: Icon(
-                            Icons.tune_rounded,
-                            size: 19,
-                            color: tokens.textPrimary,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                    ],
-                    InkWell(
-                      onTap: () {
-                        if (activeSem.isUnset) {
-                          _promptSemesterRequired(context);
-                          return;
-                        }
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const AddEditSubjectScreen()),
-                        );
-                      },
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: tokens.primaryAccent,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.add_rounded,
-                          size: 22,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 14),
-
-            // Segmented Sub-Navigation Bar (Overview vs Trends)
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: tokens.cardBg,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: tokens.cardBorder, width: 1),
-              ),
-              child: Row(
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: InkWell(
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        setState(() => _selectedTab = SproutAnalyticsTab.overview);
-                      },
-                      borderRadius: BorderRadius.circular(12),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(vertical: 9),
-                        decoration: BoxDecoration(
-                          color: _selectedTab == SproutAnalyticsTab.overview
-                              ? tokens.primaryAccent
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.dashboard_rounded,
-                              size: 17,
-                              color: _selectedTab == SproutAnalyticsTab.overview
-                                  ? Colors.white
-                                  : tokens.textSecondary,
-                            ),
-                            const SizedBox(width: 7),
-                            Text(
-                              'Overview',
-                              style: GoogleFonts.quicksand(
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w700,
-                                color: _selectedTab == SproutAnalyticsTab.overview
-                                    ? Colors.white
-                                    : tokens.textSecondary,
-                              ),
-                            ),
-                          ],
+                  // Top Header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Analytics',
+                        style: GoogleFonts.quicksand(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w800,
+                          color: tokens.textPrimary,
+                          letterSpacing: -0.5,
                         ),
                       ),
-                    ),
+                      Row(
+                        children: [
+                          if (hasHeldClasses) ...[
+                            InkWell(
+                              onTap: () => SproutWhatIfSimulatorSheet.show(context),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: tokens.cardBg,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: tokens.cardBorder, width: 1),
+                                ),
+                                child: Icon(
+                                  Icons.tune_rounded,
+                                  size: 19,
+                                  color: tokens.textPrimary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                          ],
+                          InkWell(
+                            onTap: () {
+                              if (activeSem.isUnset) {
+                                _promptSemesterRequired(context);
+                                return;
+                              }
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const AddEditSubjectScreen()),
+                              );
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: tokens.primaryAccent,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.add_rounded,
+                                size: 22,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: InkWell(
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        setState(() => _selectedTab = SproutAnalyticsTab.trends);
-                      },
-                      borderRadius: BorderRadius.circular(12),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(vertical: 9),
-                        decoration: BoxDecoration(
-                          color: _selectedTab == SproutAnalyticsTab.trends
-                              ? tokens.primaryAccent
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.insights_rounded,
-                              size: 17,
-                              color: _selectedTab == SproutAnalyticsTab.trends
-                                  ? Colors.white
-                                  : tokens.textSecondary,
-                            ),
-                            const SizedBox(width: 7),
-                            Text(
-                              'Trends',
-                              style: GoogleFonts.quicksand(
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w700,
-                                color: _selectedTab == SproutAnalyticsTab.trends
-                                    ? Colors.white
-                                    : tokens.textSecondary,
+
+                  const SizedBox(height: 12),
+
+                  // Segmented Sub-Navigation Bar (Overview vs Trends)
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: tokens.cardBg,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: tokens.cardBorder, width: 1),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              setState(() => _selectedTab = SproutAnalyticsTab.overview);
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(vertical: 9),
+                              decoration: BoxDecoration(
+                                color: _selectedTab == SproutAnalyticsTab.overview
+                                    ? tokens.primaryAccent
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.dashboard_rounded,
+                                    size: 17,
+                                    color: _selectedTab == SproutAnalyticsTab.overview
+                                        ? Colors.white
+                                        : tokens.textSecondary,
+                                  ),
+                                  const SizedBox(width: 7),
+                                  Text(
+                                    'Overview',
+                                    style: GoogleFonts.quicksand(
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: _selectedTab == SproutAnalyticsTab.overview
+                                          ? Colors.white
+                                          : tokens.textSecondary,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: InkWell(
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              setState(() => _selectedTab = SproutAnalyticsTab.trends);
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(vertical: 9),
+                              decoration: BoxDecoration(
+                                color: _selectedTab == SproutAnalyticsTab.trends
+                                    ? tokens.primaryAccent
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.insights_rounded,
+                                    size: 17,
+                                    color: _selectedTab == SproutAnalyticsTab.trends
+                                        ? Colors.white
+                                        : tokens.textSecondary,
+                                  ),
+                                  const SizedBox(width: 7),
+                                  Text(
+                                    'Trends',
+                                    style: GoogleFonts.quicksand(
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: _selectedTab == SproutAnalyticsTab.trends
+                                          ? Colors.white
+                                          : tokens.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 6, 20, 16),
+                children: [
             const SizedBox(height: 16),
 
             if (_selectedTab == SproutAnalyticsTab.trends)
@@ -1095,8 +1107,11 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
           ],
         ),
       ),
-    );
-  }
+    ],
+  ),
+),
+);
+}
 
   Widget _buildSproutTrendsContent({
     required BuildContext context,

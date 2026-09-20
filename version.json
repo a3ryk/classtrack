@@ -1,26 +1,26 @@
 {
-  "latest_version": "1.0.0-alpha.13",
-  "build_number": 13,
+  "latest_version": "1.0.0-alpha.14",
+  "build_number": 14,
   "min_supported_version": "1.0.0-alpha.13",
   "release_date": "2026-09-20",
-  "release_title": "ClassTrack v1.0.0-alpha.13 (Sprout Theme Suite)",
+  "release_title": "ClassTrack v1.0.0-alpha.14 (Performance & UI Polish Patch)",
   "changelog": [
-    "✨ Sprout & Mochi Theme Suite: Pastel marshmallow aesthetics, soft sage green tokens, and organic squircles.",
-    "✨ Interactive 3D Mascot Companions: Time-aware expressive 3D mascot art across Home, Timetable, Analytics, and Settings.",
-    "✨ Sprout Floating Navigation Bar: Capsule navbar with animated squircle active pill and FittedBox edge-safe labels.",
-    "✨ Dynamic Guided App Tour: Interactive walkthrough dynamically adapts tab order, geometry, and cards to the active theme.",
-    "✨ Battery Efficiency Sheet: Sprout-native Did You Know bottom sheet explaining zero idle battery consumption.",
-    "✨ Visual Polish & Bugfixes: Fixed settings bottom void, eliminated mascot reflection puddle, and perfected typography."
+    "✨ Smooth Day Swiping: Horizontal swipe navigation across schedule days on the Today screen with instant cubic curve glide back to today.",
+    "✨ Bottom Navbar Clearance Fix: Reduced excessive bottom clearance void from 105px to 16px across Analytics, Settings, Timetable, and Today screens.",
+    "✨ Share & Scan Performance: Eliminated route opening jitter and frame drops with deferred camera and QR matrix initialization.",
+    "✨ Classic Display & Widgets Consolidation: Unified Display Options and Home Screen Widgets into a single card in the classic theme.",
+    "✨ What-If Simulator Range Expansion: Simulator counters now start at 1 and support projections up to 30 sessions.",
+    "✨ Timetable Stability: Fixed null-safe subject code casting and standardized uniform day pill heights."
   ],
-  "download_url": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.13/ClassTrack-v1.0.0-alpha.13.apk",
+  "download_url": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.14/ClassTrack-v1.0.0-alpha.14.apk",
   "abi_assets": {
-    "arm64-v8a": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.13/app-arm64-v8a-release.apk",
-    "armeabi-v7a": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.13/app-armeabi-v7a-release.apk",
-    "x86_64": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.13/app-x86_64-release.apk",
-    "universal": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.13/ClassTrack-v1.0.0-alpha.13.apk"
+    "arm64-v8a": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.14/app-arm64-v8a-release.apk",
+    "armeabi-v7a": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.14/app-armeabi-v7a-release.apk",
+    "x86_64": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.14/app-x86_64-release.apk",
+    "universal": "https://github.com/a3ryk/classtrack/releases/download/v1.0.0-alpha.14/ClassTrack-v1.0.0-alpha.14.apk"
   },
-  "release_page_url": "https://github.com/a3ryk/classtrack/releases/tag/v1.0.0-alpha.13",
-  "is_mandatory": true,
-  "warning_message": "Mandatory update required for the new extensible Sprout & Mochi theme suite, floating navigation bar, and core bugfixes."
+  "release_page_url": "https://github.com/a3ryk/classtrack/releases/tag/v1.0.0-alpha.14",
+  "is_mandatory": false,
+  "warning_message": null
 }
 

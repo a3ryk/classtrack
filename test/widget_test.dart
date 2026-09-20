@@ -2098,14 +2098,11 @@ void main() {
       expect(find.text('AESTHETIC TEMPLATES'), findsNothing);
       expect(find.text('Sakura Blossom'), findsNothing);
 
-      // Check Display Options
-      expect(find.text('DISPLAY OPTIONS'), findsOneWidget);
+      // Check Display & Widgets
+      await tester.scrollUntilVisible(find.text('DISPLAY & WIDGETS'), 150);
+      expect(find.text('DISPLAY & WIDGETS'), findsOneWidget);
       expect(find.text('Pure OLED Black'), findsOneWidget);
       expect(find.text('Match Device Appearance'), findsOneWidget);
-
-      // Check Home Screen Widgets tile
-      await tester.scrollUntilVisible(find.text('HOME SCREEN'), 150);
-      expect(find.text('HOME SCREEN'), findsOneWidget);
       expect(find.text('Home Screen Widgets'), findsOneWidget);
 
       await db.close();

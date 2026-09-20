@@ -487,13 +487,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         body: SafeArea(
           top: !canPopRoute,
           bottom: false,
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+          child: Column(
             children: [
-              _buildSproutHeader(tokens, themeDef),
-              const SizedBox(height: 14),
-              // 1. STUDENT IDENTITY HERO CARD
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                child: _buildSproutHeader(tokens, themeDef),
+              ),
+              Expanded(
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                  padding: const EdgeInsets.fromLTRB(20, 6, 20, 16),
+                  children: [
+                    // 1. STUDENT IDENTITY HERO CARD
           Container(
             decoration: BoxDecoration(
               color: cardBg,
@@ -1015,7 +1020,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ],
       ),
     ),
-  ),
+  ],
+),
+),
+),
 );
 }
 

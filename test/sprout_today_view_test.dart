@@ -1391,10 +1391,9 @@ void main() {
 
       // Navigation & Title
       expect(find.text('Back'), findsOneWidget);
-      expect(find.text('Appearance'), findsOneWidget);
-
-      // Classic has standard mixed-case / classic headers, not Sprout-exclusive headers
-      expect(find.text('DISPLAY & WIDGETS'), findsNothing);
+      // Both themes now share unified DISPLAY & WIDGETS section header
+      await tester.scrollUntilVisible(find.text('DISPLAY & WIDGETS'), 150);
+      expect(find.text('DISPLAY & WIDGETS'), findsOneWidget);
 
       await db.close();
     });
@@ -1747,6 +1746,53 @@ void main() {
 
       expect(find.widgetWithText(InkWell, 'drift'), findsOneWidget);
       expect(find.widgetWithText(InkWell, 'flutter'), findsNothing);
+    });
+
+    testWidgets('Sprout theme TodayScreen supports smooth day swiping and glides back to today', (tester) async {
+      final db = AppDatabase.inMemory();
+      final cuteTheme = AppTheme.buildTheme(
+        brightness: Brightness.light,
+        styleId: 'cute_sprout',
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+            appThemeStyleProvider.overrideWith((ref) => FakeThemeStyleNotifier(ref, 'cute_sprout')),
+            userProfileProvider.overrideWith((ref) => FakeUserProfileNotifier('Hirok')),
+            realtimeClockProvider.overrideWith((ref) => Stream.value(DateTime.now())),
+          ],
+          child: MaterialApp(
+            theme: cuteTheme,
+            home: const TodayScreen(),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Initially on today: "Today 🌱" pill is not visible
+      expect(find.byType(SproutTodayView), findsOneWidget);
+      expect(find.text('Today 🌱'), findsNothing);
+
+      // Swipe left to go to tomorrow
+      await tester.fling(find.byType(PageView), const Offset(-500, 0), 1000);
+      await tester.pumpAndSettle();
+
+      // Now on tomorrow: "Today 🌱" pill is visible in the top action strip
+      expect(find.text('Today 🌱'), findsOneWidget);
+
+      // Tap "Today 🌱" pill to glide smoothly back to today
+      await tester.tap(find.text('Today 🌱'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pumpAndSettle();
+
+      // Back to today: "Today 🌱" pill is hidden
+      expect(find.text('Today 🌱'), findsNothing);
+
+      await db.close();
     });
   });
 }

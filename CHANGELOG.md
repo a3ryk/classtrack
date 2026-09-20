@@ -5,6 +5,18 @@ All notable changes to **ClassTrack** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-alpha.14] - 2026-09-20
+
+### 🚀 Performance & UI Polish Patch
+- **Smooth Day Swiping**: Converted Today screen schedule to horizontal swipe navigation (`PageView.builder`) with smooth cubic curve glide back to today when the "Today 🌱" pill is tapped.
+- **Bottom Navbar Clearance Fix**: Eliminated the 105px dead void above the floating navbar by normalizing bottom padding to a snug 16px across Analytics, Settings, Timetable, and Today screens.
+- **Share & Scan Screen FPS Optimization**: Deferred heavy camera initialization (`MobileScannerController`) and QR matrix rendering until the incoming route transition completes, eliminating frame drops.
+- **Classic Appearance Consolidation**: Grouped Display Options (`Pure OLED Black`, `Match Device Appearance`) and Home Screen Widgets into a single card section in the classic theme.
+- **What-If Simulator Range Expansion**: Simulator session counters now start at 1 with support for up to 30 sessions in both Sprouts and Classic themes.
+- **Timetable Stability Fixes**: Resolved null-safe `subjectCode` type cast and standardized uniform 38px pill heights across all days of the week.
+
+---
+
 ## [1.0.0-alpha.13] - 2026-09-20
 
 ### 🌿 Sprout & Mochi Theme Suite
