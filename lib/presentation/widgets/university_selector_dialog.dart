@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/app_theme_tokens.dart';
 import '../../core/ui/app_toast.dart';
 import '../../data/templates/indian_universities.dart';
 import '../providers/app_state_provider.dart';
@@ -73,6 +75,7 @@ class _UniversitySelectorSheetState extends ConsumerState<UniversitySelectorShee
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppThemeTokens>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final stateUniversities = _selectedState == null
@@ -82,6 +85,17 @@ class _UniversitySelectorSheetState extends ConsumerState<UniversitySelectorShee
             .where((u) => u.name.toLowerCase().contains(_searchQuery.toLowerCase()))
             .toList();
 
+    if (tokens?.isCute == true) {
+      return _buildSproutUniversitySheet(context, tokens!, isDark, stateUniversities);
+    }
+    return _buildClassicUniversitySheet(context, isDark, stateUniversities);
+  }
+
+  Widget _buildClassicUniversitySheet(
+    BuildContext context,
+    bool isDark,
+    List<UniversityItem> stateUniversities,
+  ) {
     return Container(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.90,
@@ -431,6 +445,356 @@ class _UniversitySelectorSheetState extends ConsumerState<UniversitySelectorShee
       ),
     );
   }
+
+  Widget _buildSproutUniversitySheet(
+    BuildContext context,
+    AppThemeTokens tokens,
+    bool isDark,
+    List<UniversityItem> stateUniversities,
+  ) {
+    final sheetBg = isDark ? const Color(0xFF193223) : Colors.white;
+    final cardBorder = isDark ? const Color(0xFF284F37) : const Color(0xFFE4ECE0);
+    final inputFill = isDark ? const Color(0xFF14281C) : const Color(0xFFF5F8F2);
+
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.90,
+      ),
+      padding: EdgeInsets.fromLTRB(20, 12, 20, MediaQuery.of(context).viewInsets.bottom + 24),
+      decoration: BoxDecoration(
+        color: sheetBg,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        border: Border.all(color: cardBorder, width: 1.0),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Drag handle
+          Center(
+            child: Container(
+              width: 38,
+              height: 4,
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF284F37) : const Color(0xFFD4DEC7),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  'University & College',
+                  style: GoogleFonts.quicksand(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: tokens.textPrimary,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.close_rounded, size: 20, color: tokens.textSecondary),
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'Set regional affiliation and institute campus setup',
+            style: GoogleFonts.quicksand(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: tokens.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          Flexible(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // STEP 1: STATE
+                  Text(
+                    'STEP 1: SELECT STATE / UT',
+                    style: GoogleFonts.quicksand(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                      color: tokens.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  InkWell(
+                    onTap: () => _openStatePicker(context, isDark),
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: inputFill,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: cardBorder),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.map_outlined,
+                            size: 18,
+                            color: tokens.primaryAccent,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              _selectedState ?? 'Choose State / Union Territory',
+                              style: GoogleFonts.quicksand(
+                                fontSize: 13,
+                                fontWeight: _selectedState != null ? FontWeight.w700 : FontWeight.w500,
+                                color: _selectedState != null ? tokens.textPrimary : tokens.textSecondary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            size: 20,
+                            color: tokens.textSecondary,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // STEP 2: UNIVERSITY
+                  Text(
+                    _selectedState != null
+                        ? 'STEP 2: SELECT UNIVERSITY IN ${_selectedState!.toUpperCase().split('(')[0].trim()}'
+                        : 'STEP 2: SELECT UNIVERSITY',
+                    style: GoogleFonts.quicksand(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                      color: tokens.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  TextFormField(
+                    controller: _searchController,
+                    enabled: _selectedState != null,
+                    style: GoogleFonts.quicksand(color: tokens.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+                    decoration: InputDecoration(
+                      hintText: _selectedState != null ? 'Search University...' : 'Select state above first',
+                      hintStyle: GoogleFonts.quicksand(color: tokens.textSecondary.withValues(alpha: 0.7), fontSize: 12, fontWeight: FontWeight.w500),
+                      prefixIcon: Icon(Icons.search_rounded, size: 18, color: tokens.textSecondary),
+                      filled: true,
+                      fillColor: inputFill,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: cardBorder)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: cardBorder)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: tokens.primaryAccent, width: 1.5)),
+                    ),
+                    onChanged: (val) => setState(() => _searchQuery = val),
+                  ),
+                  const SizedBox(height: 8),
+
+                  Container(
+                    constraints: const BoxConstraints(maxHeight: 140),
+                    decoration: BoxDecoration(
+                      color: inputFill,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: cardBorder),
+                    ),
+                    child: _selectedState == null
+                        ? Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Center(
+                              child: Text(
+                                'Please select your state in Step 1.',
+                                style: GoogleFonts.quicksand(fontSize: 12, color: tokens.textSecondary, fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          )
+                        : stateUniversities.isEmpty
+                            ? Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Center(
+                                  child: Text(
+                                    'No matching universities found.',
+                                    style: GoogleFonts.quicksand(fontSize: 12, color: tokens.textSecondary, fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                              )
+                            : ListView.separated(
+                                shrinkWrap: true,
+                                physics: const BouncingScrollPhysics(),
+                                itemCount: stateUniversities.length,
+                                separatorBuilder: (_, __) => Divider(height: 1, color: cardBorder),
+                                itemBuilder: (context, index) {
+                                  final uni = stateUniversities[index];
+                                  final isSel = uni.name == _selectedUniversityName;
+
+                                  return ListTile(
+                                    dense: true,
+                                    selected: isSel,
+                                    selectedTileColor: isDark ? const Color(0xFF234631) : const Color(0xFFEDF5E9),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    title: Text(
+                                      uni.name,
+                                      style: GoogleFonts.quicksand(
+                                        fontSize: 12,
+                                        fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
+                                        color: isSel ? tokens.primaryAccent : tokens.textPrimary,
+                                      ),
+                                    ),
+                                    trailing: isSel
+                                        ? Icon(Icons.check_circle_rounded, size: 16, color: tokens.primaryAccent)
+                                        : null,
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedUniversityName = uni.name;
+                                      });
+                                    },
+                                  );
+                                },
+                              ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // STEP 3: CAMPUS TYPE
+                  Text(
+                    'STEP 3: CAMPUS TYPE',
+                    style: GoogleFonts.quicksand(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                      color: tokens.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: () => setState(() => _locationType = 'CAMPUS'),
+                          borderRadius: BorderRadius.circular(12),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            padding: const EdgeInsets.symmetric(vertical: 9),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: _locationType == 'CAMPUS'
+                                  ? tokens.primaryAccent
+                                  : (isDark ? const Color(0xFF203D2B) : const Color(0xFFF0F4EC)),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: _locationType == 'CAMPUS' ? tokens.primaryAccent : cardBorder,
+                              ),
+                            ),
+                            child: Text(
+                              'Main Campus',
+                              style: GoogleFonts.quicksand(
+                                fontSize: 11,
+                                fontWeight: _locationType == 'CAMPUS' ? FontWeight.w800 : FontWeight.w700,
+                                color: _locationType == 'CAMPUS'
+                                    ? (isDark ? const Color(0xFF102016) : Colors.white)
+                                    : tokens.textSecondary,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: InkWell(
+                          onTap: () => setState(() => _locationType = 'AFFILIATED_COLLEGE'),
+                          borderRadius: BorderRadius.circular(12),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            padding: const EdgeInsets.symmetric(vertical: 9),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: _locationType == 'AFFILIATED_COLLEGE'
+                                  ? tokens.primaryAccent
+                                  : (isDark ? const Color(0xFF203D2B) : const Color(0xFFF0F4EC)),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: _locationType == 'AFFILIATED_COLLEGE' ? tokens.primaryAccent : cardBorder,
+                              ),
+                            ),
+                            child: Text(
+                              'Affiliated College',
+                              style: GoogleFonts.quicksand(
+                                fontSize: 11,
+                                fontWeight: _locationType == 'AFFILIATED_COLLEGE' ? FontWeight.w800 : FontWeight.w700,
+                                color: _locationType == 'AFFILIATED_COLLEGE'
+                                    ? (isDark ? const Color(0xFF102016) : Colors.white)
+                                    : tokens.textSecondary,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  if (_locationType == 'AFFILIATED_COLLEGE') ...[
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _collegeController,
+                      style: GoogleFonts.quicksand(color: tokens.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+                      decoration: InputDecoration(
+                        labelText: 'College Name',
+                        labelStyle: GoogleFonts.quicksand(color: tokens.textSecondary, fontSize: 12, fontWeight: FontWeight.w600),
+                        hintText: 'e.g. St. Xavier\'s College',
+                        hintStyle: GoogleFonts.quicksand(color: tokens.textSecondary.withValues(alpha: 0.7), fontSize: 12, fontWeight: FontWeight.w500),
+                        filled: true,
+                        fillColor: inputFill,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: cardBorder)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: cardBorder)),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: tokens.primaryAccent, width: 1.5)),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Action Button
+          SizedBox(
+            width: double.infinity,
+            height: 46,
+            child: ElevatedButton(
+              onPressed: _saveUniversity,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: tokens.primaryAccent,
+                foregroundColor: isDark ? const Color(0xFF102016) : Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                elevation: 0,
+              ),
+              child: Text(
+                'Save University',
+                style: GoogleFonts.quicksand(fontSize: 13, fontWeight: FontWeight.w800),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// Sleek modal sheet for searchable, alphabetized State/UT selection
@@ -459,12 +823,24 @@ class _StatePickerSheetState extends State<_StatePickerSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppThemeTokens>();
     final isDark = widget.isDark;
     final allStates = IndianUniversitiesData.statesAndUTs;
     final filteredStates = _filter.trim().isEmpty
         ? allStates
         : allStates.where((s) => s.toLowerCase().contains(_filter.toLowerCase().trim())).toList();
 
+    if (tokens?.isCute == true) {
+      return _buildSproutStatePickerSheet(context, tokens!, isDark, filteredStates);
+    }
+    return _buildClassicStatePickerSheet(context, isDark, filteredStates);
+  }
+
+  Widget _buildClassicStatePickerSheet(
+    BuildContext context,
+    bool isDark,
+    List<String> filteredStates,
+  ) {
     return Container(
       height: MediaQuery.of(context).size.height * 0.72,
       padding: EdgeInsets.fromLTRB(20, 12, 20, MediaQuery.of(context).viewInsets.bottom + 16),
@@ -617,6 +993,187 @@ class _StatePickerSheetState extends State<_StatePickerSheet> {
                                   Icons.check_circle_rounded,
                                   size: 18,
                                   color: AppColors.accentIndigoLight,
+                                ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSproutStatePickerSheet(
+    BuildContext context,
+    AppThemeTokens tokens,
+    bool isDark,
+    List<String> filteredStates,
+  ) {
+    final sheetBg = isDark ? const Color(0xFF193223) : Colors.white;
+    final cardBorder = isDark ? const Color(0xFF284F37) : const Color(0xFFE4ECE0);
+    final inputFill = isDark ? const Color(0xFF14281C) : const Color(0xFFF5F8F2);
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.76,
+      padding: EdgeInsets.fromLTRB(20, 12, 20, MediaQuery.of(context).viewInsets.bottom + 20),
+      decoration: BoxDecoration(
+        color: sheetBg,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        border: Border.all(color: cardBorder, width: 1.0),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Drag handle
+          Center(
+            child: Container(
+              width: 38,
+              height: 4,
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF284F37) : const Color(0xFFD4DEC7),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.map_outlined,
+                    size: 20,
+                    color: tokens.primaryAccent,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Select State / UT',
+                    style: GoogleFonts.quicksand(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: tokens.textPrimary,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                ],
+              ),
+              IconButton(
+                icon: Icon(Icons.close_rounded, size: 20, color: tokens.textSecondary),
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Search Field
+          TextField(
+            controller: _filterController,
+            autofocus: false,
+            style: GoogleFonts.quicksand(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: tokens.textPrimary,
+            ),
+            decoration: InputDecoration(
+              hintText: 'Search State or Union Territory...',
+              hintStyle: GoogleFonts.quicksand(
+                fontSize: 13,
+                color: tokens.textSecondary.withValues(alpha: 0.7),
+                fontWeight: FontWeight.w500,
+              ),
+              prefixIcon: Icon(
+                Icons.search_rounded,
+                size: 18,
+                color: tokens.textSecondary,
+              ),
+              suffixIcon: _filter.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear_rounded, size: 16),
+                      onPressed: () {
+                        _filterController.clear();
+                        setState(() => _filter = '');
+                      },
+                    )
+                  : null,
+              filled: true,
+              fillColor: inputFill,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: cardBorder),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: cardBorder),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: tokens.primaryAccent, width: 1.5),
+              ),
+            ),
+            onChanged: (val) => setState(() => _filter = val),
+          ),
+          const SizedBox(height: 14),
+
+          // Filtered States List
+          Expanded(
+            child: filteredStates.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: Text(
+                        'No matching state found',
+                        style: GoogleFonts.quicksand(
+                          fontSize: 13,
+                          color: tokens.textSecondary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  )
+                : ListView.separated(
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: filteredStates.length,
+                    separatorBuilder: (_, __) => Divider(
+                      height: 1,
+                      thickness: 0.5,
+                      color: cardBorder,
+                    ),
+                    itemBuilder: (context, index) {
+                      final state = filteredStates[index];
+                      final isSelected = state == widget.initialState;
+
+                      return InkWell(
+                        onTap: () => Navigator.pop(context, state),
+                        borderRadius: BorderRadius.circular(10),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  state,
+                                  style: GoogleFonts.quicksand(
+                                    fontSize: 13,
+                                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                                    color: isSelected ? tokens.primaryAccent : tokens.textPrimary,
+                                  ),
+                                ),
+                              ),
+                              if (isSelected)
+                                Icon(
+                                  Icons.check_circle_rounded,
+                                  size: 18,
+                                  color: tokens.primaryAccent,
                                 ),
                             ],
                           ),

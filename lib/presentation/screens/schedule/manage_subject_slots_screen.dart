@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../../core/constants/app_theme_tokens.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/ui/app_toast.dart';
 import '../../../core/utils/date_formatter.dart';
@@ -202,6 +204,12 @@ class _ManageSubjectSlotsScreenState extends ConsumerState<ManageSubjectSlotsScr
       subjectColor = Color(int.parse('FF$hex', radix: 16));
     } catch (_) {
       subjectColor = isDark ? AppColors.accentIndigoDark : AppColors.accentIndigoLight;
+    }
+    final tokens = Theme.of(context).extension<AppThemeTokens>();
+    final isCute = tokens?.isCute ?? false;
+
+    if (isCute) {
+      return _buildSproutManageSubjectSlotsScreen(context, isDark, subjectSlots, subjectColor);
     }
 
     return Scaffold(
@@ -761,6 +769,539 @@ class _ManageSubjectSlotsScreenState extends ConsumerState<ManageSubjectSlotsScr
               );
             }),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSproutManageSubjectSlotsScreen(
+    BuildContext context,
+    bool isDark,
+    List<TimetableSlotItem> subjectSlots,
+    Color subjectColor,
+  ) {
+    final bg = isDark ? const Color(0xFF112318) : const Color(0xFFFAF7F2);
+    final cardBg = isDark ? const Color(0xFF183122) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF264A34) : const Color(0xFFDFE8DC);
+    final textPrimary = isDark ? const Color(0xFFE8F4EB) : const Color(0xFF192E21);
+    final textSecondary = isDark ? const Color(0xFF98B5A3) : const Color(0xFF526B5C);
+    final textMuted = isDark ? const Color(0xFF648671) : const Color(0xFF849E8E);
+    final primaryAccent = isDark ? const Color(0xFF6FA769) : const Color(0xFF558A50);
+    final pillBg = isDark ? const Color(0xFF1E3D2A) : const Color(0xFFEFF5EC);
+    final dangerColor = isDark ? const Color(0xFFFF8A80) : const Color(0xFFD32F2F);
+    final dangerBg = isDark ? const Color(0xFF381A1A) : const Color(0xFFFFEBEE);
+    final dangerBorder = isDark ? const Color(0xFF5C2626) : const Color(0xFFFFCDD2);
+
+    return Scaffold(
+      backgroundColor: bg,
+      appBar: AppBar(
+        backgroundColor: bg,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leadingWidth: 54,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 16),
+          child: Center(
+            child: InkWell(
+              onTap: () => Navigator.pop(context),
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1A3725) : const Color(0xFFF1F6EF),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: borderColor, width: 1.2),
+                ),
+                child: Icon(Icons.arrow_back_rounded, size: 18, color: primaryAccent),
+              ),
+            ),
+          ),
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 9,
+                  height: 9,
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                    color: subjectColor,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    widget.subject.name,
+                    style: GoogleFonts.quicksand(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: textPrimary,
+                      letterSpacing: -0.3,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            Text(
+              '${subjectSlots.length} Weekly Slots · Schedule Manager',
+              style: GoogleFonts.quicksand(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                color: textSecondary,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          if (subjectSlots.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: Center(
+                child: InkWell(
+                  onTap: _confirmDeleteAllSlots,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: dangerBg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: dangerBorder, width: 1.2),
+                    ),
+                    child: Icon(Icons.delete_sweep_rounded, size: 18, color: dangerColor),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+      body: RepaintBoundary(
+        child: SafeArea(
+          child: subjectSlots.isEmpty
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: pillBg,
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: Icon(Icons.calendar_month_rounded, size: 28, color: primaryAccent),
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          'No Weekly Slots Yet',
+                          style: GoogleFonts.quicksand(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Add class slots to populate the weekly schedule for this subject.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.quicksand(
+                            fontSize: 12.5,
+                            color: textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const AddEditSlotScreen(initialDayOfWeek: 1),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.add_rounded, size: 18),
+                          label: Text(
+                            'Add Slot',
+                            style: GoogleFonts.quicksand(fontSize: 13.5, fontWeight: FontWeight.w800),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryAccent,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            elevation: 0,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Bulk Edit Toggle Header
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              '${subjectSlots.length} RECURRING SLOTS',
+                              style: GoogleFonts.quicksand(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.6,
+                                color: textMuted,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          InkWell(
+                            onTap: () => setState(() => _isBulkEditing = !_isBulkEditing),
+                            borderRadius: BorderRadius.circular(999),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: pillBg,
+                                borderRadius: BorderRadius.circular(999),
+                                border: Border.all(color: borderColor),
+                              ),
+                              child: Text(
+                                _isBulkEditing ? '✕ Close Bulk' : '+ Bulk Edit All',
+                                style: GoogleFonts.quicksand(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  color: primaryAccent,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Collapsible Bulk Edit Panel
+                      if (_isBulkEditing) ...[
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          margin: const EdgeInsets.only(bottom: 16),
+                          decoration: BoxDecoration(
+                            color: cardBg,
+                            borderRadius: BorderRadius.circular(22),
+                            border: Border.all(color: borderColor, width: 1.2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+                                blurRadius: 10,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'BULK UPDATE ALL SLOTS',
+                                style: GoogleFonts.quicksand(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.6,
+                                  color: textMuted,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: InkWell(
+                                      onTap: _pickBulkStartTime,
+                                      borderRadius: BorderRadius.circular(14),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                        decoration: BoxDecoration(
+                                          color: bg,
+                                          borderRadius: BorderRadius.circular(14),
+                                          border: Border.all(color: borderColor),
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'START TIME',
+                                              style: GoogleFonts.quicksand(fontSize: 9.5, fontWeight: FontWeight.w800, color: textMuted),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              DateFormatter.formatTime12h(_formatTime(_bulkStartTime)),
+                                              style: GoogleFonts.quicksand(fontSize: 13, fontWeight: FontWeight.w800, color: textPrimary),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: InkWell(
+                                      onTap: _pickBulkEndTime,
+                                      borderRadius: BorderRadius.circular(14),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                        decoration: BoxDecoration(
+                                          color: bg,
+                                          borderRadius: BorderRadius.circular(14),
+                                          border: Border.all(color: borderColor),
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'END TIME',
+                                              style: GoogleFonts.quicksand(fontSize: 9.5, fontWeight: FontWeight.w800, color: textMuted),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              DateFormatter.formatTime12h(_formatTime(_bulkEndTime)),
+                                              style: GoogleFonts.quicksand(fontSize: 13, fontWeight: FontWeight.w800, color: textPrimary),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              TextField(
+                                controller: _bulkRoomController,
+                                style: GoogleFonts.quicksand(fontSize: 13, fontWeight: FontWeight.w700, color: textPrimary),
+                                decoration: InputDecoration(
+                                  hintText: 'Room (optional)',
+                                  hintStyle: GoogleFonts.quicksand(fontSize: 12, color: textMuted),
+                                  filled: true,
+                                  fillColor: bg,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: borderColor)),
+                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: borderColor)),
+                                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: primaryAccent, width: 1.4)),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              ElevatedButton(
+                                onPressed: () => _applyBulkEdit(subjectSlots.length),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: primaryAccent,
+                                  foregroundColor: Colors.white,
+                                  minimumSize: const Size(double.infinity, 44),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                  elevation: 0,
+                                ),
+                                child: Text(
+                                  'Apply to All ${subjectSlots.length} Slots',
+                                  style: GoogleFonts.quicksand(fontSize: 13, fontWeight: FontWeight.w800),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+
+                      // Weekly Slots Cards
+                      ...subjectSlots.map((slot) {
+                        final dayName = (slot.dayOfWeek >= 1 && slot.dayOfWeek <= 7) ? _dayNames[slot.dayOfWeek - 1] : 'Day ${slot.dayOfWeek}';
+                        final timeStr = '${DateFormatter.formatTime12h(slot.startTime)} – ${DateFormatter.formatTime12h(slot.endTime)}';
+
+                        final sessionEntity = ClassSessionEntity(
+                          id: slot.id,
+                          sourceRefId: slot.id,
+                          semesterId: slot.semesterId,
+                          subjectComponentId: slot.subjectComponentId,
+                          subjectName: slot.subjectName,
+                          subjectCode: slot.subjectCode,
+                          category: slot.category,
+                          startTime: slot.startTime,
+                          endTime: slot.endTime,
+                          room: slot.room,
+                          teacherName: slot.teacherName,
+                          colorHex: slot.colorHex,
+                          dayOfWeek: slot.dayOfWeek,
+                          componentType: slot.componentType,
+                          sessionDate: '',
+                          sessionSource: 'TIMETABLE_RECURRING',
+                          status: 'PLANNED',
+                          attendanceOutcome: 'PENDING',
+                        );
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: cardBg,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: borderColor, width: 1.2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              // Day Capsule
+                              Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: pillBg,
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: borderColor),
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  dayName.substring(0, 3).toUpperCase(),
+                                  style: GoogleFonts.quicksand(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                    color: primaryAccent,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+
+                              // Info Column
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      timeStr,
+                                      style: GoogleFonts.quicksand(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w800,
+                                        color: textPrimary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                          decoration: BoxDecoration(
+                                            color: pillBg,
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: Text(
+                                            slot.componentType,
+                                            style: GoogleFonts.quicksand(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w700,
+                                              color: primaryAccent,
+                                            ),
+                                          ),
+                                        ),
+                                        if (slot.room != null && slot.room!.isNotEmpty) ...[
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            '•  ${slot.room!}',
+                                            style: GoogleFonts.quicksand(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                              color: textSecondary,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              // Action Squircles (Edit & Delete)
+                              InkWell(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (ctx) => AddEditSlotScreen(
+                                        existingSlot: sessionEntity,
+                                        initialDayOfWeek: slot.dayOfWeek,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                borderRadius: BorderRadius.circular(10),
+                                child: Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    color: bg,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: borderColor),
+                                  ),
+                                  child: Icon(Icons.edit_rounded, size: 15, color: textSecondary),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              InkWell(
+                                onTap: () => _deleteSingleSlot(slot),
+                                borderRadius: BorderRadius.circular(10),
+                                child: Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    color: dangerBg,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: dangerBorder),
+                                  ),
+                                  child: Icon(Icons.delete_outline_rounded, size: 15, color: dangerColor),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                      const SizedBox(height: 16),
+
+                      // Add Slot Button
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const AddEditSlotScreen(initialDayOfWeek: 1),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.add_rounded, size: 18),
+                        label: Text(
+                          'Add Weekly Slot',
+                          style: GoogleFonts.quicksand(fontSize: 14, fontWeight: FontWeight.w800),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryAccent,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(double.infinity, 50),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          elevation: 0,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
+        ),
       ),
     );
   }

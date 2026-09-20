@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/app_theme_tokens.dart';
 import '../../core/ui/app_toast.dart';
 import '../../core/utils/date_formatter.dart';
 import '../../core/utils/uuid_generator.dart';
@@ -184,9 +186,21 @@ class _EditSemesterDialogState extends ConsumerState<EditSemesterDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppThemeTokens>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isEditing = widget.semesterToEdit != null;
 
+    if (tokens?.isCute == true) {
+      return _buildSproutEditSemesterDialog(context, tokens!, isDark, isEditing);
+    }
+    return _buildClassicEditSemesterDialog(context, isDark, isEditing);
+  }
+
+  Widget _buildClassicEditSemesterDialog(
+    BuildContext context,
+    bool isDark,
+    bool isEditing,
+  ) {
     return Dialog(
       backgroundColor: isDark ? AppColors.cardDark : AppColors.cardLight,
       surfaceTintColor: Colors.transparent,
@@ -483,6 +497,363 @@ class _EditSemesterDialogState extends ConsumerState<EditSemesterDialog> {
                       child: Text(
                         isEditing ? 'Save Changes' : 'Create Term',
                         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSproutEditSemesterDialog(
+    BuildContext context,
+    AppThemeTokens tokens,
+    bool isDark,
+    bool isEditing,
+  ) {
+    final dialogBg = isDark ? const Color(0xFF193223) : Colors.white;
+    final dialogBorder = isDark ? const Color(0xFF284F37) : const Color(0xFFE4ECE0);
+    final inputFill = isDark ? const Color(0xFF14281C) : const Color(0xFFF5F8F2);
+
+    return Dialog(
+      backgroundColor: dialogBg,
+      surfaceTintColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(26),
+        side: BorderSide(color: dialogBorder, width: 1.0),
+      ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 460),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          isEditing ? 'Edit Academic Term' : 'Add New Academic Term',
+                          style: GoogleFonts.quicksand(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: tokens.textPrimary,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.close_rounded, size: 20, color: tokens.textSecondary),
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+
+                  // TERM TYPE SELECTOR
+                  Text(
+                    'TERM STRUCTURE TYPE',
+                    style: GoogleFonts.quicksand(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                      color: tokens.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: TermType.values.map((type) {
+                      final isSelected = _selectedTermType == type;
+                      return Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 2),
+                          child: InkWell(
+                            onTap: () => _onTermTypeChanged(type),
+                            borderRadius: BorderRadius.circular(10),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? tokens.primaryAccent
+                                    : (isDark ? const Color(0xFF203D2B) : const Color(0xFFF0F4EC)),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: isSelected ? tokens.primaryAccent : dialogBorder,
+                                ),
+                              ),
+                              child: Text(
+                                type.displayName,
+                                style: GoogleFonts.quicksand(
+                                  fontSize: 11,
+                                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
+                                  color: isSelected
+                                      ? (isDark ? const Color(0xFF102016) : Colors.white)
+                                      : tokens.textSecondary,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // QUICK PRESETS
+                  Text(
+                    'QUICK PRESETS',
+                    style: GoogleFonts.quicksand(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                      color: tokens.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    child: Row(
+                      children: _getPresetsForType(_selectedTermType).map((preset) {
+                        final isSel = _nameController.text == preset;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: InkWell(
+                            onTap: () => setState(() => _nameController.text = preset),
+                            borderRadius: BorderRadius.circular(8),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: isSel
+                                    ? (isDark ? const Color(0xFF234631) : const Color(0xFFEDF5E9))
+                                    : (isDark ? const Color(0xFF203D2B) : const Color(0xFFF0F4EC)),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: isSel ? tokens.primaryAccent : dialogBorder,
+                                ),
+                              ),
+                              child: Text(
+                                preset,
+                                style: GoogleFonts.quicksand(
+                                  fontSize: 11,
+                                  fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
+                                  color: isSel ? tokens.primaryAccent : tokens.textSecondary,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // TERM NAME
+                  Text(
+                    'TERM NAME',
+                    style: GoogleFonts.quicksand(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                      color: tokens.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  TextFormField(
+                    controller: _nameController,
+                    style: GoogleFonts.quicksand(
+                      color: tokens.textPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'e.g. Semester I, 2nd Year, Summer Term',
+                      hintStyle: GoogleFonts.quicksand(
+                        color: tokens.textSecondary.withValues(alpha: 0.7),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      filled: true,
+                      fillColor: inputFill,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: dialogBorder),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: dialogBorder),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: tokens.primaryAccent, width: 1.5),
+                      ),
+                    ),
+                    validator: (val) => val == null || val.trim().isEmpty ? 'Please enter a name for this term' : null,
+                  ),
+                  const SizedBox(height: 12),
+
+                  // ACADEMIC YEAR
+                  Text(
+                    'ACADEMIC YEAR (OPTIONAL)',
+                    style: GoogleFonts.quicksand(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                      color: tokens.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  TextFormField(
+                    controller: _yearController,
+                    style: GoogleFonts.quicksand(
+                      color: tokens.textPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'e.g. 2026-2027',
+                      hintStyle: GoogleFonts.quicksand(
+                        color: tokens.textSecondary.withValues(alpha: 0.7),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      filled: true,
+                      fillColor: inputFill,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: dialogBorder),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: dialogBorder),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: tokens.primaryAccent, width: 1.5),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // DURATION / DATES
+                  Text(
+                    'TERM DURATION DATES',
+                    style: GoogleFonts.quicksand(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                      color: tokens.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      // Start Date Button
+                      Expanded(
+                        child: InkWell(
+                          onTap: _pickStartDate,
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: inputFill,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: dialogBorder),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Start Date',
+                                  style: GoogleFonts.quicksand(fontSize: 10, color: tokens.textSecondary, fontWeight: FontWeight.w600),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  DateFormatter.formatDateIndian(_startDate),
+                                  style: GoogleFonts.quicksand(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                    color: tokens.textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+
+                      // End Date Button
+                      Expanded(
+                        child: InkWell(
+                          onTap: _hasEndDate ? _pickEndDate : null,
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: inputFill,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: dialogBorder),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'End Date',
+                                  style: GoogleFonts.quicksand(fontSize: 10, color: tokens.textSecondary, fontWeight: FontWeight.w600),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  _hasEndDate && _endDate != null ? DateFormatter.formatDateIndian(_endDate!) : 'Continuous',
+                                  style: GoogleFonts.quicksand(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                    color: _hasEndDate ? tokens.textPrimary : tokens.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+
+                  // SUBMIT BUTTON
+                  SizedBox(
+                    width: double.infinity,
+                    height: 46,
+                    child: ElevatedButton(
+                      onPressed: _saveSemester,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: tokens.primaryAccent,
+                        foregroundColor: isDark ? const Color(0xFF102016) : Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        elevation: 0,
+                      ),
+                      child: Text(
+                        isEditing ? 'Save Changes' : 'Create Term',
+                        style: GoogleFonts.quicksand(fontSize: 13, fontWeight: FontWeight.w800),
                       ),
                     ),
                   ),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/app_theme_tokens.dart';
 import '../../core/ui/app_toast.dart';
 import '../../core/utils/date_formatter.dart';
 import '../../core/utils/uuid_generator.dart';
@@ -217,6 +219,8 @@ class _SemesterTransitionWizardState extends ConsumerState<SemesterTransitionWiz
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppThemeTokens>();
+    final isCute = tokens?.isCute == true;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final activeSem = ref.watch(activeSemesterProvider);
     final overallStats = ref.watch(overallStatsProvider);
@@ -226,6 +230,17 @@ class _SemesterTransitionWizardState extends ConsumerState<SemesterTransitionWiz
     if (!_hasInitializedSubjects && currentSubjects.isNotEmpty) {
       _selectedSubjectIds.addAll(currentSubjects.map((s) => s.id));
       _hasInitializedSubjects = true;
+    }
+
+    if (isCute && tokens != null) {
+      return _buildSproutTransitionWizard(
+        context: context,
+        tokens: tokens,
+        isDark: isDark,
+        activeSem: activeSem,
+        overallStats: overallStats,
+        currentSubjects: currentSubjects,
+      );
     }
 
     return Container(
@@ -1280,6 +1295,1057 @@ class _SemesterTransitionWizardState extends ConsumerState<SemesterTransitionWiz
                     fontSize: 11.5,
                     color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                   ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  // =========================================================================
+  // SPROUT & MOCHI THEME: WIZARD IMPLEMENTATION
+  // =========================================================================
+
+  Widget _buildSproutTransitionWizard({
+    required BuildContext context,
+    required AppThemeTokens tokens,
+    required bool isDark,
+    required SemesterEntity activeSem,
+    required OverallAttendanceStats overallStats,
+    required List<dynamic> currentSubjects,
+  }) {
+    final sheetBg = isDark ? const Color(0xFF193223) : Colors.white;
+    final cardBorder = isDark ? const Color(0xFF284F37) : const Color(0xFFE4ECE0);
+
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.90,
+      ),
+      padding: EdgeInsets.fromLTRB(20, 12, 20, MediaQuery.of(context).viewInsets.bottom + 20),
+      decoration: BoxDecoration(
+        color: sheetBg,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        border: Border.all(color: cardBorder, width: 1.0),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Drag handle
+          Center(
+            child: Container(
+              width: 38,
+              height: 4,
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF284F37) : const Color(0xFFD4DEC7),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // Header with Step Title & Close Button
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Semester Transition Wizard',
+                      style: GoogleFonts.quicksand(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: tokens.textPrimary,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _getStepSubtitle(_currentStep),
+                      style: GoogleFonts.quicksand(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: tokens.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: Icon(
+                  Icons.close_rounded,
+                  size: 20,
+                  color: tokens.textSecondary,
+                ),
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Step Progress Indicator
+          Row(
+            children: [
+              _buildSproutStepIndicator(0, 'Wrap-Up', tokens, isDark),
+              const SizedBox(width: 6),
+              _buildSproutStepIndicator(1, 'New Term', tokens, isDark),
+              const SizedBox(width: 6),
+              _buildSproutStepIndicator(2, 'Subjects', tokens, isDark),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Step Content with Smooth Shared-Axis Transition
+          Flexible(
+            child: AnimatedSize(
+              duration: const Duration(milliseconds: 240),
+              curve: Curves.easeOutCubic,
+              alignment: Alignment.topCenter,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 260),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                transitionBuilder: (child, animation) {
+                  final inAnimation = Tween<Offset>(
+                    begin: Offset(_direction * 0.12, 0.0),
+                    end: Offset.zero,
+                  ).animate(animation);
+
+                  return SlideTransition(
+                    position: inAnimation,
+                    child: FadeTransition(
+                      opacity: animation,
+                      child: child,
+                    ),
+                  );
+                },
+                child: KeyedSubtree(
+                  key: ValueKey<int>(_currentStep),
+                  child: SingleChildScrollView(
+                    controller: _scrollController,
+                    physics: const BouncingScrollPhysics(),
+                    child: _currentStep == 0
+                        ? _buildSproutStep1WrapUp(
+                            tokens: tokens,
+                            isDark: isDark,
+                            cardBorder: cardBorder,
+                            activeSem: activeSem,
+                            stats: overallStats,
+                          )
+                        : _currentStep == 1
+                            ? _buildSproutStep2Configure(
+                                tokens: tokens,
+                                isDark: isDark,
+                                cardBorder: cardBorder,
+                              )
+                            : _buildSproutStep3Subjects(
+                                tokens: tokens,
+                                isDark: isDark,
+                                cardBorder: cardBorder,
+                                subjects: currentSubjects,
+                              ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Bottom Action Navigation Row
+          Row(
+            children: [
+              if (_currentStep > 0) ...[
+                Expanded(
+                  child: SizedBox(
+                    height: 46,
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: tokens.textPrimary,
+                        side: BorderSide(color: cardBorder, width: 1.2),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                      onPressed: _isSubmitting ? null : () => _goToStep(_currentStep - 1),
+                      child: Text(
+                        'Back',
+                        style: GoogleFonts.quicksand(fontWeight: FontWeight.w700, fontSize: 13),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+              ],
+              Expanded(
+                flex: _currentStep > 0 ? 2 : 1,
+                child: SizedBox(
+                  height: 46,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: tokens.primaryAccent,
+                      foregroundColor: isDark ? const Color(0xFF102016) : Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 0,
+                    ),
+                    onPressed: _isSubmitting
+                        ? null
+                        : () {
+                            if (_currentStep == 0) {
+                              _goToStep(1);
+                            } else if (_currentStep == 1) {
+                              if (_formKey.currentState!.validate()) {
+                                _goToStep(2);
+                              }
+                            } else {
+                              _completeTransition();
+                            }
+                          },
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : Text(
+                            _currentStep == 2 ? 'Archive & Launch New Term' : 'Continue',
+                            style: GoogleFonts.quicksand(fontWeight: FontWeight.w800, fontSize: 13.5),
+                          ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSproutStepIndicator(int stepIndex, String title, AppThemeTokens tokens, bool isDark) {
+    final isActive = _currentStep == stepIndex;
+    final isDone = _currentStep > stepIndex;
+    final cardBorder = isDark ? const Color(0xFF284F37) : const Color(0xFFE4ECE0);
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          if (isDone) _goToStep(stepIndex);
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isActive
+                ? tokens.primaryAccent
+                : (isDone
+                    ? (isDark ? const Color(0xFF234631) : const Color(0xFFEDF5E9))
+                    : (isDark ? const Color(0xFF203F2C) : const Color(0xFFF8FAF5))),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isActive ? tokens.primaryAccent : (isDone ? tokens.primaryAccent.withValues(alpha: 0.5) : cardBorder),
+            ),
+          ),
+          alignment: Alignment.center,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                isDone
+                    ? Icons.check_rounded
+                    : (stepIndex == 0
+                        ? Icons.insights_rounded
+                        : (stepIndex == 1 ? Icons.edit_calendar_rounded : Icons.library_books_rounded)),
+                size: 13,
+                color: isActive
+                    ? (isDark ? const Color(0xFF102016) : Colors.white)
+                    : (isDone ? tokens.primaryAccent : tokens.textSecondary),
+              ),
+              const SizedBox(width: 5),
+              Text(
+                title,
+                style: GoogleFonts.quicksand(
+                  fontSize: 11,
+                  fontWeight: isActive ? FontWeight.w800 : FontWeight.w700,
+                  color: isActive
+                      ? (isDark ? const Color(0xFF102016) : Colors.white)
+                      : (isDone ? tokens.primaryAccent : tokens.textSecondary),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSproutStep1WrapUp({
+    required AppThemeTokens tokens,
+    required bool isDark,
+    required Color cardBorder,
+    required SemesterEntity activeSem,
+    required OverallAttendanceStats stats,
+  }) {
+    final isPremature = activeSem.endDate != null && DateTime.now().isBefore(activeSem.endDate!);
+    final isZeroHeld = stats.totalHeld == 0;
+    final pct = stats.overallPercentage;
+    final isSafe = pct >= stats.targetPercentage;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (isPremature)
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF332408) : const Color(0xFFFEF7E6),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: isDark ? const Color(0xFF6B4E12) : const Color(0xFFF7DF94),
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.info_outline_rounded, size: 16, color: Color(0xFFE6A117)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Scheduled term end is ${DateFormatter.formatDateIndian(activeSem.endDate!)}. Archiving now will lock this semester\'s records.',
+                    style: GoogleFonts.quicksand(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? const Color(0xFFF9D074) : const Color(0xFF8C5800),
+                      height: 1.35,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF203F2C) : const Color(0xFFF8FAF5),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: cardBorder),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'CLOSING TERM: ${activeSem.name.toUpperCase()}',
+                          style: GoogleFonts.quicksand(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.8,
+                            color: tokens.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 8,
+                          runSpacing: 2,
+                          children: [
+                            Text(
+                              isZeroHeld ? 'N/A' : '${pct.toStringAsFixed(1)}%',
+                              style: GoogleFonts.quicksand(
+                                fontSize: 28,
+                                fontWeight: FontWeight.w800,
+                                color: isZeroHeld
+                                    ? tokens.textSecondary
+                                    : (isSafe
+                                        ? tokens.primaryAccent
+                                        : (isDark ? const Color(0xFFEF6A66) : const Color(0xFFD9534F))),
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            Text(
+                              'Target: ${stats.targetPercentage.toInt()}%',
+                              style: GoogleFonts.quicksand(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: tokens.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isZeroHeld
+                          ? (isDark ? const Color(0xFF203D2B) : const Color(0xFFF0F4EC))
+                          : (isSafe
+                              ? (isDark ? const Color(0xFF234631) : const Color(0xFFEDF5E9))
+                              : (isDark ? const Color(0xFF381E1E) : const Color(0xFFFDF2F2))),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      isZeroHeld ? 'NO RECORDS' : (isSafe ? 'GOAL ACHIEVED' : 'BELOW GOAL'),
+                      style: GoogleFonts.quicksand(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
+                        color: isZeroHeld
+                            ? tokens.textSecondary
+                            : (isSafe
+                                ? tokens.primaryAccent
+                                : (isDark ? const Color(0xFFEF6A66) : const Color(0xFFD9534F))),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  _buildSproutMetricBox('Held', '${stats.totalHeld}', tokens, isDark, cardBorder),
+                  const SizedBox(width: 6),
+                  _buildSproutMetricBox('Attended', '${stats.totalAttended}', tokens, isDark, cardBorder),
+                  const SizedBox(width: 6),
+                  _buildSproutMetricBox('Missed', '${stats.totalHeld - stats.totalAttended}', tokens, isDark, cardBorder),
+                  const SizedBox(width: 6),
+                  _buildSproutMetricBox('Cancelled', '${stats.totalCancelled}', tokens, isDark, cardBorder),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+
+        Text(
+          'SUBJECT STANDINGS (${stats.subjectStats.length})',
+          style: GoogleFonts.quicksand(
+            fontSize: 10.5,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.8,
+            color: tokens.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 6),
+        if (stats.subjectStats.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Center(
+              child: Text(
+                'No subjects logged in this term.',
+                style: GoogleFonts.quicksand(fontSize: 12, fontWeight: FontWeight.w600, color: tokens.textSecondary),
+              ),
+            ),
+          )
+        else
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: stats.subjectStats.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 6),
+            itemBuilder: (context, idx) {
+              final sub = stats.subjectStats[idx];
+              final subSafe = sub.currentPercentage >= sub.targetPercentage;
+
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF203F2C) : const Color(0xFFF8FAF5),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: cardBorder),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            sub.subjectName,
+                            style: GoogleFonts.quicksand(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              color: tokens.textPrimary,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${sub.totalAttended}/${sub.totalHeld} attended',
+                            style: GoogleFonts.quicksand(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: tokens.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      sub.totalHeld == 0 ? '--%' : '${sub.currentPercentage.toStringAsFixed(1)}%',
+                      style: GoogleFonts.quicksand(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w800,
+                        color: sub.totalHeld == 0
+                            ? tokens.textSecondary
+                            : (subSafe
+                                ? tokens.primaryAccent
+                                : (isDark ? const Color(0xFFEF6A66) : const Color(0xFFD9534F))),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+      ],
+    );
+  }
+
+  Widget _buildSproutMetricBox(String label, String value, AppThemeTokens tokens, bool isDark, Color cardBorder) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 7),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF193223) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: cardBorder),
+        ),
+        child: Column(
+          children: [
+            Text(
+              label,
+              style: GoogleFonts.quicksand(
+                fontSize: 9.5,
+                fontWeight: FontWeight.w700,
+                color: tokens.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              value,
+              style: GoogleFonts.quicksand(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w800,
+                color: tokens.textPrimary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSproutStep2Configure({
+    required AppThemeTokens tokens,
+    required bool isDark,
+    required Color cardBorder,
+  }) {
+    final inputFill = isDark ? const Color(0xFF203F2C) : const Color(0xFFF8FAF5);
+
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'TERM STRUCTURE TYPE',
+            style: GoogleFonts.quicksand(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.8,
+              color: tokens.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: TermType.values.map((type) {
+              final isSel = _selectedTermType == type;
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: InkWell(
+                    onTap: () => _onTermTypeChanged(type),
+                    borderRadius: BorderRadius.circular(12),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.symmetric(vertical: 9),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: isSel
+                            ? tokens.primaryAccent
+                            : (isDark ? const Color(0xFF203F2C) : const Color(0xFFF8FAF5)),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSel ? tokens.primaryAccent : cardBorder,
+                        ),
+                      ),
+                      child: Text(
+                        type.displayName,
+                        style: GoogleFonts.quicksand(
+                          fontSize: 11,
+                          fontWeight: isSel ? FontWeight.w800 : FontWeight.w700,
+                          color: isSel
+                              ? (isDark ? const Color(0xFF102016) : Colors.white)
+                              : tokens.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 14),
+
+          Text(
+            'QUICK NAME PRESETS',
+            style: GoogleFonts.quicksand(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.8,
+              color: tokens.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: Row(
+              children: _getPresetsForType(_selectedTermType).map((preset) {
+                final isSel = _nameController.text == preset;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: InkWell(
+                    onTap: () => setState(() => _nameController.text = preset),
+                    borderRadius: BorderRadius.circular(10),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: isSel
+                            ? (isDark ? const Color(0xFF234631) : const Color(0xFFEDF5E9))
+                            : (isDark ? const Color(0xFF203F2C) : const Color(0xFFF8FAF5)),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: isSel ? tokens.primaryAccent : cardBorder,
+                          width: isSel ? 1.5 : 1.0,
+                        ),
+                      ),
+                      child: Text(
+                        preset,
+                        style: GoogleFonts.quicksand(
+                          fontSize: 11.5,
+                          fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
+                          color: isSel ? tokens.primaryAccent : tokens.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          Text(
+            'TERM NAME',
+            style: GoogleFonts.quicksand(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.8,
+              color: tokens.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          TextFormField(
+            controller: _nameController,
+            style: GoogleFonts.quicksand(color: tokens.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+            decoration: InputDecoration(
+              hintText: 'e.g. Semester IV, 2nd Year',
+              hintStyle: GoogleFonts.quicksand(color: tokens.textSecondary.withValues(alpha: 0.7), fontSize: 12, fontWeight: FontWeight.w500),
+              filled: true,
+              fillColor: inputFill,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: cardBorder)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: cardBorder)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: tokens.primaryAccent, width: 1.5)),
+            ),
+            validator: (val) => val == null || val.trim().isEmpty ? 'Please enter a name for the new term' : null,
+          ),
+          const SizedBox(height: 12),
+
+          Text(
+            'ACADEMIC YEAR',
+            style: GoogleFonts.quicksand(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.8,
+              color: tokens.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          TextFormField(
+            controller: _yearController,
+            style: GoogleFonts.quicksand(color: tokens.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+            decoration: InputDecoration(
+              hintText: 'e.g. 2026-2027',
+              hintStyle: GoogleFonts.quicksand(color: tokens.textSecondary.withValues(alpha: 0.7), fontSize: 12, fontWeight: FontWeight.w500),
+              filled: true,
+              fillColor: inputFill,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: cardBorder)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: cardBorder)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: tokens.primaryAccent, width: 1.5)),
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          Text(
+            'TERM DATES',
+            style: GoogleFonts.quicksand(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.8,
+              color: tokens.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: _pickStartDate,
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: inputFill,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: cardBorder),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Start Date', style: GoogleFonts.quicksand(fontSize: 10, fontWeight: FontWeight.w700, color: tokens.textSecondary)),
+                        const SizedBox(height: 2),
+                        Text(
+                          DateFormatter.formatDateIndian(_startDate),
+                          style: GoogleFonts.quicksand(fontSize: 12.5, fontWeight: FontWeight.w800, color: tokens.textPrimary),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: InkWell(
+                  onTap: _hasEndDate ? _pickEndDate : null,
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: inputFill,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: cardBorder),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('End Date', style: GoogleFonts.quicksand(fontSize: 10, fontWeight: FontWeight.w700, color: tokens.textSecondary)),
+                        const SizedBox(height: 2),
+                        Text(
+                          _hasEndDate && _endDate != null ? DateFormatter.formatDateIndian(_endDate!) : 'Continuous',
+                          style: GoogleFonts.quicksand(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w800,
+                            color: _hasEndDate ? tokens.textPrimary : tokens.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSproutStep3Subjects({
+    required AppThemeTokens tokens,
+    required bool isDark,
+    required Color cardBorder,
+    required List<dynamic> subjects,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: InkWell(
+                onTap: () => setState(() => _carryOverSubjects = true),
+                borderRadius: BorderRadius.circular(14),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: _carryOverSubjects
+                        ? tokens.primaryAccent
+                        : (isDark ? const Color(0xFF203F2C) : const Color(0xFFF8FAF5)),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: _carryOverSubjects ? tokens.primaryAccent : cardBorder,
+                    ),
+                  ),
+                  child: Text(
+                    'Carry Forward Subjects',
+                    style: GoogleFonts.quicksand(
+                      fontSize: 12,
+                      fontWeight: _carryOverSubjects ? FontWeight.w800 : FontWeight.w700,
+                      color: _carryOverSubjects
+                          ? (isDark ? const Color(0xFF102016) : Colors.white)
+                          : tokens.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: InkWell(
+                onTap: () => setState(() => _carryOverSubjects = false),
+                borderRadius: BorderRadius.circular(14),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: !_carryOverSubjects
+                        ? tokens.primaryAccent
+                        : (isDark ? const Color(0xFF203F2C) : const Color(0xFFF8FAF5)),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: !_carryOverSubjects ? tokens.primaryAccent : cardBorder,
+                    ),
+                  ),
+                  child: Text(
+                    'Start Fresh (Blank)',
+                    style: GoogleFonts.quicksand(
+                      fontSize: 12,
+                      fontWeight: !_carryOverSubjects ? FontWeight.w800 : FontWeight.w700,
+                      color: !_carryOverSubjects
+                          ? (isDark ? const Color(0xFF102016) : Colors.white)
+                          : tokens.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+
+        if (_carryOverSubjects) ...[
+          if (subjects.isEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+              alignment: Alignment.center,
+              child: Text(
+                'No previous subjects to carry forward. New semester will start with a fresh slate.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.quicksand(fontSize: 12.5, fontWeight: FontWeight.w600, color: tokens.textSecondary),
+              ),
+            )
+          else ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'SELECT SUBJECTS (${_selectedSubjectIds.length}/${subjects.length})',
+                  style: GoogleFonts.quicksand(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.8,
+                    color: tokens.textSecondary,
+                  ),
+                ),
+                Row(
+                  children: [
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          _selectedSubjectIds.addAll(subjects.map((s) => s.id as String));
+                        });
+                      },
+                      child: Text('Select All', style: GoogleFonts.quicksand(fontSize: 11, fontWeight: FontWeight.w800, color: tokens.primaryAccent)),
+                    ),
+                    const SizedBox(width: 12),
+                    InkWell(
+                      onTap: () => setState(() => _selectedSubjectIds.clear()),
+                      child: Text('Deselect', style: GoogleFonts.quicksand(fontSize: 11, fontWeight: FontWeight.w700, color: tokens.textSecondary)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: subjects.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 6),
+              itemBuilder: (context, idx) {
+                final sub = subjects[idx];
+                final isChecked = _selectedSubjectIds.contains(sub.id);
+
+                return InkWell(
+                  onTap: () {
+                    setState(() {
+                      if (isChecked) {
+                        _selectedSubjectIds.remove(sub.id);
+                      } else {
+                        _selectedSubjectIds.add(sub.id);
+                      }
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isChecked
+                          ? (isDark ? const Color(0xFF234631) : const Color(0xFFEDF5E9))
+                          : (isDark ? const Color(0xFF203F2C) : const Color(0xFFF8FAF5)),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: isChecked ? tokens.primaryAccent : cardBorder,
+                        width: isChecked ? 1.5 : 1.0,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 20,
+                          height: 20,
+                          decoration: BoxDecoration(
+                            color: isChecked ? tokens.primaryAccent : Colors.transparent,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: isChecked ? tokens.primaryAccent : cardBorder,
+                              width: 1.5,
+                            ),
+                          ),
+                          alignment: Alignment.center,
+                          child: isChecked
+                              ? Icon(Icons.check_rounded, size: 14, color: isDark ? const Color(0xFF102016) : Colors.white)
+                              : null,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                sub.name,
+                                style: GoogleFonts.quicksand(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                  color: tokens.textPrimary,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                '${sub.category} · Target ${sub.targetAttendancePct.toInt()}%',
+                                style: GoogleFonts.quicksand(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: tokens.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF234631) : const Color(0xFFEDF5E9),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: tokens.primaryAccent.withValues(alpha: 0.4),
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.refresh_rounded, size: 16, color: tokens.primaryAccent),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Selected subjects will reset to 0 classes held / 0 attended for the new semester. All historical records remain safely intact in the archived semester.',
+                      style: GoogleFonts.quicksand(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: tokens.textPrimary,
+                        height: 1.35,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ] else ...[
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF203F2C) : const Color(0xFFF8FAF5),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: cardBorder),
+            ),
+            child: Column(
+              children: [
+                Icon(Icons.library_add_check_rounded, size: 36, color: tokens.primaryAccent),
+                const SizedBox(height: 10),
+                Text(
+                  'Starting completely fresh',
+                  style: GoogleFonts.quicksand(fontSize: 14, fontWeight: FontWeight.w800, color: tokens.textPrimary),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'You will manually add your new semester subjects in the Timetable screen after setup.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.quicksand(fontSize: 11.5, fontWeight: FontWeight.w600, color: tokens.textSecondary),
                 ),
               ],
             ),

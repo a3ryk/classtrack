@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_theme_tokens.dart';
 import '../../../core/ui/app_toast.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../core/utils/uuid_generator.dart';
@@ -200,6 +202,11 @@ class _BatchAddSlotsScreenState extends ConsumerState<BatchAddSlotsScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final subjects = ref.watch(subjectsProvider);
+    final tokens = Theme.of(context).extension<AppThemeTokens>();
+    final isCute = tokens?.isCute ?? false;
+    if (isCute) {
+      return _buildSproutBatchAddSlotsScreen(context, isDark, tokens, subjects);
+    }
     final borderColor = isDark ? AppColors.borderDark : const Color(0xFFE2E8F0);
 
     return Scaffold(
@@ -927,6 +934,916 @@ class _BatchAddSlotsScreenState extends ConsumerState<BatchAddSlotsScreen> {
             color: isMatching
                 ? (isDark ? AppColors.bgDark : AppColors.surfaceLight)
                 : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSproutBatchAddSlotsScreen(
+    BuildContext context,
+    bool isDark,
+    AppThemeTokens? tokens,
+    List<SubjectEntity> subjects,
+  ) {
+    final screenBg = isDark ? const Color(0xFF112318) : const Color(0xFFFAF7F2);
+    final cardBg = isDark ? const Color(0xFF183122) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF264A34) : const Color(0xFFDFE8DC);
+    final textPrimary = isDark ? const Color(0xFFE8F4EB) : const Color(0xFF192E21);
+    final textSecondary = isDark ? const Color(0xFF98B5A3) : const Color(0xFF526B5C);
+    final primaryAccent = tokens?.primaryAccent ?? const Color(0xFF558A50);
+
+    final startMinutes = _startTime.hour * 60 + _startTime.minute;
+    final endMinutes = _endTime.hour * 60 + _endTime.minute;
+    final diffMinutes = endMinutes - startMinutes;
+
+    return Scaffold(
+      backgroundColor: screenBg,
+      appBar: AppBar(
+        backgroundColor: screenBg,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: InkWell(
+            onTap: () => Navigator.pop(context),
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: borderColor),
+              ),
+              child: Icon(Icons.arrow_back_rounded, size: 20, color: textPrimary),
+            ),
+          ),
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Batch Add Slots',
+              style: GoogleFonts.quicksand(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: textPrimary,
+                letterSpacing: -0.3,
+              ),
+            ),
+            Text(
+              'Schedule one subject across multiple days',
+              style: GoogleFonts.quicksand(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w500,
+                color: textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // SPROUT INFO CALLOUT BANNER
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: primaryAccent.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: primaryAccent.withValues(alpha: 0.2)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.auto_awesome_rounded, size: 18, color: primaryAccent),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Select weekdays & slot duration. Sprout will populate your weekly timetable in one tap.',
+                                style: GoogleFonts.quicksand(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: primaryAccent,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // DAYS SELECTION (Sunday First)
+                      Text(
+                        'SELECT RECURRING DAYS',
+                        style: GoogleFonts.quicksand(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.7,
+                          color: textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: List.generate(7, (i) {
+                          final dayVal = _dayValues[i];
+                          final isSelected = _selectedDays.contains(dayVal);
+                          return InkWell(
+                            onTap: () {
+                              setState(() {
+                                if (isSelected) {
+                                  _selectedDays.remove(dayVal);
+                                } else {
+                                  _selectedDays.add(dayVal);
+                                }
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(14),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(14),
+                                color: isSelected
+                                    ? primaryAccent
+                                    : cardBg,
+                                border: Border.all(
+                                  color: isSelected
+                                      ? primaryAccent
+                                      : borderColor,
+                                  width: isSelected ? 1.5 : 1.0,
+                                ),
+                                boxShadow: isSelected
+                                    ? [
+                                        BoxShadow(
+                                          color: primaryAccent.withValues(alpha: 0.3),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ]
+                                    : null,
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                _dayLabels[i],
+                                style: GoogleFonts.quicksand(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: isSelected ? Colors.white : textSecondary,
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                      const SizedBox(height: 10),
+
+                      // PRESET SHORTCUTS
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            _buildSproutPresetChip('MWF', {1, 3, 5}, cardBg, borderColor, primaryAccent, textSecondary),
+                            const SizedBox(width: 8),
+                            _buildSproutPresetChip('TTS', {2, 4, 6}, cardBg, borderColor, primaryAccent, textSecondary),
+                            const SizedBox(width: 8),
+                            _buildSproutPresetChip('Weekdays (Mon-Fri)', {1, 2, 3, 4, 5}, cardBg, borderColor, primaryAccent, textSecondary),
+                            const SizedBox(width: 8),
+                            _buildSproutPresetChip('All 7 Days', {7, 1, 2, 3, 4, 5, 6}, cardBg, borderColor, primaryAccent, textSecondary),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // TIME SCHEDULE SECTION
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'TIME SCHEDULE',
+                            style: GoogleFonts.quicksand(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.7,
+                              color: textSecondary,
+                            ),
+                          ),
+                          // Live Duration Badge
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
+                            decoration: BoxDecoration(
+                              color: diffMinutes > 0
+                                  ? primaryAccent.withValues(alpha: 0.12)
+                                  : Colors.red.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              diffMinutes > 0 ? '$diffMinutes mins' : 'Invalid Duration',
+                              style: GoogleFonts.quicksand(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: diffMinutes > 0 ? primaryAccent : Colors.red,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+
+                      // QUICK DURATION INTERVAL PRESETS
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            _buildIntervalChip('50 mins', 50, diffMinutes == 50, cardBg, borderColor, primaryAccent, textSecondary),
+                            const SizedBox(width: 6),
+                            _buildIntervalChip('60 mins', 60, diffMinutes == 60, cardBg, borderColor, primaryAccent, textSecondary),
+                            const SizedBox(width: 6),
+                            _buildIntervalChip('90 mins', 90, diffMinutes == 90, cardBg, borderColor, primaryAccent, textSecondary),
+                            const SizedBox(width: 6),
+                            _buildIntervalChip('2 hours', 120, diffMinutes == 120, cardBg, borderColor, primaryAccent, textSecondary),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+
+                      // START & END CLOCK CARDS
+                      Row(
+                        children: [
+                          Expanded(
+                            child: InkWell(
+                              onTap: _pickStartTime,
+                              borderRadius: BorderRadius.circular(14),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: cardBg,
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: borderColor),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.access_time_rounded, size: 18, color: primaryAccent),
+                                    const SizedBox(width: 8),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Start Time',
+                                          style: GoogleFonts.quicksand(fontSize: 10.5, fontWeight: FontWeight.w600, color: textSecondary),
+                                        ),
+                                        Text(
+                                          _formatTimeOfDayDisplay(_startTime),
+                                          style: GoogleFonts.quicksand(fontSize: 13.5, fontWeight: FontWeight.w700, color: textPrimary),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: InkWell(
+                              onTap: _pickEndTime,
+                              borderRadius: BorderRadius.circular(14),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: cardBg,
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: borderColor),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.access_time_filled_rounded, size: 18, color: primaryAccent),
+                                    const SizedBox(width: 8),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'End Time',
+                                          style: GoogleFonts.quicksand(fontSize: 10.5, fontWeight: FontWeight.w600, color: textSecondary),
+                                        ),
+                                        Text(
+                                          _formatTimeOfDayDisplay(_endTime),
+                                          style: GoogleFonts.quicksand(fontSize: 13.5, fontWeight: FontWeight.w700, color: textPrimary),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // SUBJECT NAME
+                      Text(
+                        'SUBJECT NAME',
+                        style: GoogleFonts.quicksand(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.7,
+                          color: textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      RawAutocomplete<String>(
+                        optionsBuilder: (TextEditingValue textEditingValue) {
+                          if (textEditingValue.text.isEmpty) return subjects.map((s) => s.name);
+                          return subjects
+                              .where((s) => s.name.toLowerCase().contains(textEditingValue.text.toLowerCase()))
+                              .map((s) => s.name);
+                        },
+                        onSelected: (String selection) {
+                          _subjectNameController.text = selection;
+                          final matched = subjects.firstWhere((s) => s.name == selection);
+                          setState(() {
+                            _selectedCategory = matched.category;
+                            if (matched.code != null) _subjectCodeController.text = matched.code!;
+                          });
+                        },
+                        fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
+                          if (_subjectNameController.text.isNotEmpty && controller.text.isEmpty) {
+                            controller.text = _subjectNameController.text;
+                          }
+                          return TextFormField(
+                            controller: controller,
+                            focusNode: focusNode,
+                            onEditingComplete: onEditingComplete,
+                            style: GoogleFonts.quicksand(color: textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
+                            decoration: InputDecoration(
+                              hintText: 'e.g. Operating Systems',
+                              hintStyle: GoogleFonts.quicksand(color: textSecondary, fontSize: 13),
+                              filled: true,
+                              fillColor: cardBg,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: borderColor)),
+                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: borderColor)),
+                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: primaryAccent, width: 1.6)),
+                            ),
+                            validator: (val) => val == null || val.trim().isEmpty ? 'Enter subject name' : null,
+                            onChanged: (val) => _subjectNameController.text = val,
+                          );
+                        },
+                        optionsViewBuilder: (context, onSelected, options) {
+                          return Align(
+                            alignment: Alignment.topLeft,
+                            child: Material(
+                              elevation: 4,
+                              borderRadius: BorderRadius.circular(14),
+                              color: cardBg,
+                              child: Container(
+                                constraints: const BoxConstraints(maxHeight: 180, maxWidth: 300),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: borderColor),
+                                ),
+                                child: ListView.builder(
+                                  padding: EdgeInsets.zero,
+                                  shrinkWrap: true,
+                                  itemCount: options.length,
+                                  itemBuilder: (BuildContext context, int index) {
+                                    final String option = options.elementAt(index);
+                                    return InkWell(
+                                      onTap: () => onSelected(option),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                        child: Text(
+                                          option,
+                                          style: GoogleFonts.quicksand(
+                                            color: textPrimary,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 14),
+
+                      // COURSE CATEGORY
+                      Text(
+                        'COURSE CATEGORY',
+                        style: GoogleFonts.quicksand(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.7,
+                          color: textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: _categories.map((cat) {
+                            final isSel = _selectedCategory == cat;
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: InkWell(
+                                onTap: () => setState(() => _selectedCategory = cat),
+                                borderRadius: BorderRadius.circular(12),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 150),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                                  decoration: BoxDecoration(
+                                    color: isSel
+                                        ? primaryAccent
+                                        : cardBg,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: isSel
+                                          ? primaryAccent
+                                          : borderColor,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    cat,
+                                    style: GoogleFonts.quicksand(
+                                      fontSize: 11,
+                                      fontWeight: isSel ? FontWeight.w700 : FontWeight.w600,
+                                      color: isSel ? Colors.white : textSecondary,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // COURSE TYPE
+                      Text(
+                        'COURSE TYPE',
+                        style: GoogleFonts.quicksand(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.7,
+                          color: textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          {'type': 'LECTURE', 'label': 'Lecture', 'icon': Icons.menu_book_rounded},
+                          {'type': 'PRACTICAL', 'label': 'Practical', 'icon': Icons.science_rounded},
+                          {'type': 'TUTORIAL', 'label': 'Tutorial', 'icon': Icons.edit_note_rounded},
+                          {'type': 'SEMINAR', 'label': 'Seminar', 'icon': Icons.groups_rounded},
+                        ].map((item) {
+                          final type = item['type'] as String;
+                          final label = item['label'] as String;
+                          final icon = item['icon'] as IconData;
+                          final isSel = _selectedComponentType == type;
+
+                          return Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 3),
+                              child: InkWell(
+                                onTap: () => setState(() => _selectedComponentType = type),
+                                borderRadius: BorderRadius.circular(12),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 150),
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: isSel
+                                        ? primaryAccent.withValues(alpha: 0.12)
+                                        : cardBg,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: isSel
+                                          ? primaryAccent
+                                          : borderColor,
+                                      width: isSel ? 1.4 : 1.0,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        icon,
+                                        size: 15,
+                                        color: isSel ? primaryAccent : textSecondary,
+                                      ),
+                                      const SizedBox(height: 3),
+                                      Text(
+                                        label,
+                                        style: GoogleFonts.quicksand(
+                                          fontSize: 10.5,
+                                          fontWeight: isSel ? FontWeight.w700 : FontWeight.w600,
+                                          color: isSel ? primaryAccent : textSecondary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // ROOM & TEACHER
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'ROOM / LAB (OPTIONAL)',
+                                  style: GoogleFonts.quicksand(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: textSecondary,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                TextFormField(
+                                  controller: _roomController,
+                                  style: GoogleFonts.quicksand(color: textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+                                  decoration: InputDecoration(
+                                    hintText: 'Lab B',
+                                    hintStyle: GoogleFonts.quicksand(color: textSecondary, fontSize: 12),
+                                    filled: true,
+                                    fillColor: cardBg,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: borderColor)),
+                                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: borderColor)),
+                                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: primaryAccent, width: 1.6)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'TEACHER (OPTIONAL)',
+                                  style: GoogleFonts.quicksand(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: textSecondary,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                TextFormField(
+                                  controller: _teacherController,
+                                  style: GoogleFonts.quicksand(color: textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+                                  decoration: InputDecoration(
+                                    hintText: 'Dr. Roy',
+                                    hintStyle: GoogleFonts.quicksand(color: textSecondary, fontSize: 12),
+                                    filled: true,
+                                    fillColor: cardBg,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: borderColor)),
+                                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: borderColor)),
+                                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: primaryAccent, width: 1.6)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+
+                      // DATE BOUNDARIES
+                      Text(
+                        'DATE BOUNDARIES',
+                        style: GoogleFonts.quicksand(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.7,
+                          color: textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: InkWell(
+                              onTap: () => setState(() => _useCustomDateRange = false),
+                              borderRadius: BorderRadius.circular(12),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 150),
+                                height: 38,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: !_useCustomDateRange
+                                      ? primaryAccent
+                                      : cardBg,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: !_useCustomDateRange
+                                        ? primaryAccent
+                                        : borderColor,
+                                  ),
+                                ),
+                                child: Text(
+                                  'Active Term',
+                                  style: GoogleFonts.quicksand(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: !_useCustomDateRange ? Colors.white : textPrimary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: InkWell(
+                              onTap: () => setState(() => _useCustomDateRange = true),
+                              borderRadius: BorderRadius.circular(12),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 150),
+                                height: 38,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: _useCustomDateRange
+                                      ? primaryAccent
+                                      : cardBg,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: _useCustomDateRange
+                                        ? primaryAccent
+                                        : borderColor,
+                                  ),
+                                ),
+                                child: Text(
+                                  'Custom Range',
+                                  style: GoogleFonts.quicksand(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: _useCustomDateRange ? Colors.white : textPrimary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (_useCustomDateRange) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: InkWell(
+                                onTap: () async {
+                                  final picked = await showDatePicker(
+                                    context: context,
+                                    initialDate: _customStartDate ?? DateTime.now(),
+                                    firstDate: DateTime(2020),
+                                    lastDate: DateTime(2035),
+                                  );
+                                  if (picked != null) {
+                                    setState(() {
+                                      _customStartDate = picked;
+                                      if (_customEndDate != null && _customEndDate!.isBefore(picked)) {
+                                        _customEndDate = picked.add(const Duration(days: 90));
+                                      }
+                                    });
+                                  }
+                                },
+                                borderRadius: BorderRadius.circular(12),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: cardBg,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: borderColor),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('Start Date', style: GoogleFonts.quicksand(fontSize: 10, color: textSecondary)),
+                                      Text(
+                                        _customStartDate != null ? DateFormatter.formatDateIndian(_customStartDate!) : 'Pick Start',
+                                        style: GoogleFonts.quicksand(fontSize: 12, fontWeight: FontWeight.w700, color: textPrimary),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: InkWell(
+                                onTap: () async {
+                                  final firstEnd = _customStartDate ?? DateTime(2020);
+                                  DateTime initialEnd = _customEndDate ?? firstEnd.add(const Duration(days: 90));
+                                  if (initialEnd.isBefore(firstEnd)) {
+                                    initialEnd = firstEnd;
+                                  }
+                                  final picked = await showDatePicker(
+                                    context: context,
+                                    initialDate: initialEnd,
+                                    firstDate: firstEnd,
+                                    lastDate: DateTime(2035),
+                                  );
+                                  if (picked != null) setState(() => _customEndDate = picked);
+                                },
+                                borderRadius: BorderRadius.circular(12),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: cardBg,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: borderColor),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('End Date', style: GoogleFonts.quicksand(fontSize: 10, color: textSecondary)),
+                                      Text(
+                                        _customEndDate != null ? DateFormatter.formatDateIndian(_customEndDate!) : 'Continuous',
+                                        style: GoogleFonts.quicksand(fontSize: 12, fontWeight: FontWeight.w700, color: textPrimary),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // FIXED BOTTOM ACTION BAR
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+              decoration: BoxDecoration(
+                color: cardBg,
+                border: Border(top: BorderSide(color: borderColor, width: 1.0)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        side: BorderSide(color: borderColor),
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                      child: Text(
+                        'Cancel',
+                        style: GoogleFonts.quicksand(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: textSecondary,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryAccent,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        elevation: 0,
+                      ),
+                      onPressed: _saveBatchSlots,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.playlist_add_check_circle_rounded, size: 18),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              _selectedDays.isEmpty
+                                  ? 'Select Days'
+                                  : 'Generate ${_selectedDays.length} Weekly Classes',
+                              style: GoogleFonts.quicksand(fontSize: 13.5, fontWeight: FontWeight.w700),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSproutPresetChip(
+    String label,
+    Set<int> days,
+    Color cardBg,
+    Color borderColor,
+    Color primaryAccent,
+    Color textSecondary,
+  ) {
+    final isMatching = _selectedDays.length == days.length && _selectedDays.containsAll(days);
+    return InkWell(
+      onTap: () => _applyPreset(days),
+      borderRadius: BorderRadius.circular(12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: isMatching
+              ? primaryAccent.withValues(alpha: 0.15)
+              : cardBg,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isMatching
+                ? primaryAccent
+                : borderColor,
+          ),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.quicksand(
+            fontSize: 11,
+            fontWeight: isMatching ? FontWeight.w700 : FontWeight.w600,
+            color: isMatching
+                ? primaryAccent
+                : textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIntervalChip(
+    String label,
+    int minutes,
+    bool isSelected,
+    Color cardBg,
+    Color borderColor,
+    Color primaryAccent,
+    Color textSecondary,
+  ) {
+    return InkWell(
+      onTap: () {
+        final startMins = _startTime.hour * 60 + _startTime.minute;
+        final endMins = (startMins + minutes) % (24 * 60);
+        setState(() {
+          _endTime = TimeOfDay(hour: endMins ~/ 60, minute: endMins % 60);
+        });
+      },
+      borderRadius: BorderRadius.circular(10),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? primaryAccent.withValues(alpha: 0.15)
+              : cardBg,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected
+                ? primaryAccent
+                : borderColor,
+          ),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.quicksand(
+            fontSize: 11,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+            color: isSelected
+                ? primaryAccent
+                : textSecondary,
           ),
         ),
       ),

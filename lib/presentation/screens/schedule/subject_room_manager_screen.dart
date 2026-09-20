@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../../core/constants/app_theme_tokens.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/ui/app_toast.dart';
 import '../../../core/utils/date_formatter.dart';
@@ -145,6 +147,12 @@ class _SubjectRoomManagerScreenState extends ConsumerState<SubjectRoomManagerScr
       subjectColor = Color(int.parse('FF$hex', radix: 16));
     } catch (_) {
       subjectColor = isDark ? AppColors.accentIndigoDark : AppColors.accentIndigoLight;
+    }
+    final tokens = Theme.of(context).extension<AppThemeTokens>();
+    final isCute = tokens?.isCute ?? false;
+
+    if (isCute) {
+      return _buildSproutRoomManagerScreen(context, isDark, subjectSlots, subjectColor);
     }
 
     return Scaffold(
@@ -510,6 +518,357 @@ class _SubjectRoomManagerScreenState extends ConsumerState<SubjectRoomManagerScr
                   ],
                 ),
               ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSproutRoomManagerScreen(
+    BuildContext context,
+    bool isDark,
+    List<TimetableSlotItem> subjectSlots,
+    Color subjectColor,
+  ) {
+    final bg = isDark ? const Color(0xFF112318) : const Color(0xFFFAF7F2);
+    final cardBg = isDark ? const Color(0xFF183122) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF264A34) : const Color(0xFFDFE8DC);
+    final textPrimary = isDark ? const Color(0xFFE8F4EB) : const Color(0xFF192E21);
+    final textSecondary = isDark ? const Color(0xFF98B5A3) : const Color(0xFF526B5C);
+    final textMuted = isDark ? const Color(0xFF648671) : const Color(0xFF849E8E);
+    final primaryAccent = isDark ? const Color(0xFF6FA769) : const Color(0xFF558A50);
+    final pillBg = isDark ? const Color(0xFF1E3D2A) : const Color(0xFFEFF5EC);
+
+    return Scaffold(
+      backgroundColor: bg,
+      appBar: AppBar(
+        backgroundColor: bg,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leadingWidth: 54,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 16),
+          child: Center(
+            child: InkWell(
+              onTap: () => Navigator.pop(context),
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1A3725) : const Color(0xFFF1F6EF),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: borderColor, width: 1.2),
+                ),
+                child: Icon(Icons.arrow_back_rounded, size: 18, color: primaryAccent),
+              ),
+            ),
+          ),
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 9,
+                  height: 9,
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                    color: subjectColor,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    widget.subject.name,
+                    style: GoogleFonts.quicksand(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: textPrimary,
+                      letterSpacing: -0.3,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            Text(
+              'Manage Rooms · ${subjectSlots.length} Weekly Slots',
+              style: GoogleFonts.quicksand(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                color: textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+      body: RepaintBoundary(
+        child: SafeArea(
+          child: subjectSlots.isEmpty
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: pillBg,
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: Icon(Icons.meeting_room_outlined, size: 28, color: primaryAccent),
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          'No Weekly Slots Found',
+                          style: GoogleFonts.quicksand(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Add schedule slots in Timetable first before assigning rooms.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.quicksand(
+                            fontSize: 12.5,
+                            color: textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Bulk Room Assignment Card
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: cardBg,
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(color: borderColor, width: 1.2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+                              blurRadius: 10,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'BULK ROOM ASSIGNMENT',
+                              style: GoogleFonts.quicksand(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.6,
+                                color: textMuted,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Quickly apply one room to all ${subjectSlots.length} weekly slots.',
+                              style: GoogleFonts.quicksand(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: _bulkRoomController,
+                                    style: GoogleFonts.quicksand(
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: textPrimary,
+                                    ),
+                                    decoration: InputDecoration(
+                                      hintText: 'e.g. Lab 102, Hall B',
+                                      hintStyle: GoogleFonts.quicksand(fontSize: 12.5, color: textMuted),
+                                      filled: true,
+                                      fillColor: bg,
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: borderColor)),
+                                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: borderColor)),
+                                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: primaryAccent, width: 1.5)),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                ElevatedButton(
+                                  onPressed: _bulkRoomController.text.trim().isNotEmpty
+                                      ? () => _applyBulkRoomToAll(subjectSlots)
+                                      : null,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: primaryAccent,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                    elevation: 0,
+                                  ),
+                                  child: Text(
+                                    'Apply All',
+                                    style: GoogleFonts.quicksand(fontSize: 12.5, fontWeight: FontWeight.w800),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+
+                      // Individual Slots Header
+                      Text(
+                        'INDIVIDUAL SLOT ROOMS',
+                        style: GoogleFonts.quicksand(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.6,
+                          color: textMuted,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Slot Room Cards
+                      ...subjectSlots.map((slot) {
+                        final dayName = _dayNames[(slot.dayOfWeek - 1).clamp(0, 6)];
+                        final controller = _slotControllers[slot.id];
+                        final timeRange = '${DateFormatter.formatTime12h(slot.startTime)} – ${DateFormatter.formatTime12h(slot.endTime)}';
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: cardBg,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(color: borderColor),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                                    decoration: BoxDecoration(
+                                      color: pillBg,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      dayName,
+                                      style: GoogleFonts.quicksand(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w800,
+                                        color: primaryAccent,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      timeRange,
+                                      style: GoogleFonts.quicksand(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: textPrimary,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  if (slot.componentType.isNotEmpty) ...[
+                                    const SizedBox(width: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: isDark ? const Color(0xFF1D3D29) : const Color(0xFFEFF5EC),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        slot.componentType,
+                                        style: GoogleFonts.quicksand(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w700,
+                                          color: primaryAccent,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              TextField(
+                                controller: controller,
+                                style: GoogleFonts.quicksand(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: textPrimary,
+                                ),
+                                decoration: InputDecoration(
+                                  hintText: 'Enter room for $dayName slot',
+                                  hintStyle: GoogleFonts.quicksand(fontSize: 12.5, color: textMuted),
+                                  filled: true,
+                                  fillColor: bg,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: borderColor)),
+                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: borderColor)),
+                                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primaryAccent, width: 1.4)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                      const SizedBox(height: 16),
+
+                      // Primary CTA: Save Room Changes
+                      ElevatedButton(
+                        onPressed: (_hasChanges(subjectSlots) && !_isSaving)
+                            ? () => _saveAllRooms(subjectSlots)
+                            : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryAccent,
+                          foregroundColor: Colors.white,
+                          disabledBackgroundColor: isDark ? const Color(0xFF1E3D2A).withValues(alpha: 0.5) : const Color(0xFFDFE8DC),
+                          disabledForegroundColor: textMuted,
+                          minimumSize: const Size(double.infinity, 50),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          elevation: 0,
+                        ),
+                        child: _isSaving
+                            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.check_rounded, size: 18),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Save Room Changes',
+                                    style: GoogleFonts.quicksand(fontSize: 14.5, fontWeight: FontWeight.w800),
+                                  ),
+                                ],
+                              ),
+                      ),
+                      const SizedBox(height: 14),
+                    ],
+                  ),
+                ),
         ),
       ),
     );
