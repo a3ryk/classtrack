@@ -4,9 +4,26 @@ import '../services/app_update_service.dart';
 class AppReleaseNotes {
   AppReleaseNotes._();
 
-  static const String currentVersion = '2.0.0-alpha.1';
+  static const String currentVersion = '2.0.0-alpha.2';
 
   static final Map<String, AppReleaseInfo> _releases = {
+    '2.0.0-alpha.2': const AppReleaseInfo(
+      latestVersion: '2.0.0-alpha.2',
+      buildNumber: 16,
+      minSupportedVersion: '0.0.1',
+      releaseDate: 'September 2026',
+      releaseTitle: 'Attendly v2.0.0-alpha.2 (Class Notes, Dynamic Hero Timing & Info Badges)',
+      changelog: [
+        '✨ Dynamic Hero Timing: Sprout Today screen distinguishes between Ongoing Class and Next Class in real time with smooth minute cross-fade transitions.',
+        '✨ Smart Cancelled Class Handling: Marking a class as cancelled seamlessly shifts the hero view to the next upcoming session without page reloads.',
+        '✨ Option C Corner Info Action: Relocated session info badges to the top-right corner across Today, Calendar, and Schedule screens for clean visual balance.',
+        '✨ Class Notes & Cancellation Reasons: Add, edit, and persist rich notes and cancellation reasons per session in the SQLite database.',
+        '✨ Class Info Slider Sheet: Bottom sheet providing instant access to full session timing, room, teacher, notes, and cancellation details.',
+        '✨ Seamless Backup & Migration: Full backup schema support for class notes and reasons; safe migration guidelines for users upgrading from older package releases.',
+      ],
+      isMandatory: false,
+      warningMessage: null,
+    ),
     '2.0.0-alpha.1': const AppReleaseInfo(
       latestVersion: '2.0.0-alpha.1',
       buildNumber: 15,

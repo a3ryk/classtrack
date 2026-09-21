@@ -5,6 +5,26 @@ All notable changes to **ClassTrack** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0-alpha.2] - 2026-09-22
+
+### Dynamic Hero Timing & Class Lifecycle
+- **Real-Time Ongoing vs. Next Class**: Sprout Today view now dynamically distinguishes between "Ongoing Class" and "Next Class" using real-time minute-boundary cross-fades without requiring full screen rebuilds.
+- **Smart Cancelled Class Handling**: When the current or upcoming session is marked as cancelled, the hero view automatically transitions to the next available upcoming session, or gracefully collapses if all remaining sessions are cancelled or concluded.
+- **Option C Corner Action Badges**: Moved session info trigger badges to the top-right corner across Today (Sprouts and Classic themes), Calendar, and Schedule screens for balanced visual hierarchy and improved ergonomics.
+
+### Class Notes & Cancellation Reasons
+- **Session Notes**: Students can now view, add, edit, and clear custom markdown-friendly notes per session via a dedicated `ClassNoteDialog`.
+- **Cancellation Reasons**: When cancelling a class, users can specify standard or custom cancellation reasons via the `CancellationReasonDialog`.
+- **Drift SQLite Persistence**: Extended `class_sessions` database schema with `notes` and `cancellation_reason` columns with zero data loss.
+- **Class Info Slider Sheet**: Integrated a reusable bottom sheet displaying full session metadata, teacher details, room numbers, notes, and cancellation reasons.
+- **Backup & Restore Compatibility**: Full serialization support for class notes and cancellation reasons in `.attendly` JSON backups.
+
+### Upgrade & Package Migration Safety
+- **Non-Mandatory Release**: Configured `is_mandatory: false` and `min_supported_version: 0.0.1` so older builds continue operating without lockout.
+- **Pre-v2.0.0 Migration Notice**: Users upgrading from legacy versions (`com.classtrack.app` before `v2.0.0-alpha.1`) must export their data via `Settings > Backup & Restore > Export Backup` before installing `com.attendly` due to Android package identity separation.
+
+---
+
 ## [2.0.0-alpha.1] - 2026-09-20
 
 ### Package Identity & Signature Modernization

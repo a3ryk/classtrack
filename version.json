@@ -1,26 +1,25 @@
 {
-  "latest_version": "2.0.0-alpha.1",
-  "build_number": 15,
+  "latest_version": "2.0.0-alpha.2",
+  "build_number": 16,
   "min_supported_version": "0.0.1",
-  "release_date": "2026-09-20",
-  "release_title": "Attendly v2.0.0-alpha.1 (Package Identity & Signature Modernization)",
+  "release_date": "2026-09-22",
+  "release_title": "Attendly v2.0.0-alpha.2 (Class Notes, Dynamic Hero Timing & Info Badges)",
   "changelog": [
-    "✨ Package Migration: Migrated package identifier and Android namespace to com.attendly across all native manifests and Kotlin source trees.",
-    "✨ Production Keystore Modernization: Generated 2048-bit RSA release signing certificate valid through 2054 with verified SHA-256 fingerprinting.",
-    "✨ Dual Scheme Signing (v1 + v2): Activated APK signature schemes v1 and v2, preventing installation cancellations across Samsung, Xiaomi, Oppo, and Vivo devices.",
-    "✨ Dart Package Ecosystem: Renamed internal Dart package to attendly with 100% test suite verification across all 214 tests.",
-    "✨ System Channels & Providers: Synchronized package installer channel, home widget providers, notification channels, and attendly:// deep links.",
-    "✨ Export & Backup Naming: Standardized Excel registers, PDF reports, and JSON backups to attendly_* file schemas."
+    "✨ Dynamic Hero Timing: Sprout Today screen distinguishes between 'Ongoing Class' and 'Next Class' in real time with smooth minute cross-fade transitions.",
+    "✨ Smart Cancelled Class Handling: Marking a class as cancelled seamlessly shifts the hero view to the next upcoming session without page reloads.",
+    "✨ Option C Corner Info Action: Relocated session info badges to the top-right corner across Today, Calendar, and Schedule screens for clean visual balance.",
+    "✨ Class Notes & Cancellation Reasons: Add, edit, and persist rich notes and cancellation reasons per session in the SQLite database.",
+    "✨ Class Info Slider Sheet: Bottom sheet providing instant access to full session timing, room, teacher, notes, and cancellation details.",
+    "✨ Seamless Backup & Migration: Full backup schema support for class notes and reasons; safe migration guidelines for users upgrading from older package releases."
   ],
-  "download_url": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.1/Attendly-v2.0.0-alpha.1.apk",
+  "download_url": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.2/Attendly-v2.0.0-alpha.2.apk",
   "abi_assets": {
-    "arm64-v8a": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.1/app-arm64-v8a-release.apk",
-    "armeabi-v7a": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.1/app-armeabi-v7a-release.apk",
-    "x86_64": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.1/app-x86_64-release.apk",
-    "universal": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.1/Attendly-v2.0.0-alpha.1.apk"
+    "arm64-v8a": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.2/app-arm64-v8a-release.apk",
+    "armeabi-v7a": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.2/app-armeabi-v7a-release.apk",
+    "x86_64": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.2/app-x86_64-release.apk",
+    "universal": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.2/Attendly-v2.0.0-alpha.2.apk"
   },
-  "release_page_url": "https://github.com/a3ryk/classtrack/releases/tag/v2.0.0-alpha.1",
+  "release_page_url": "https://github.com/a3ryk/classtrack/releases/tag/v2.0.0-alpha.2",
   "is_mandatory": false,
   "warning_message": null
 }
-
