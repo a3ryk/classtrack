@@ -18,6 +18,8 @@ class ClassSessionEntity {
   final String? teacherName;
   final String attendanceOutcome; // PRESENT, ABSENT, CANCELLED, PENDING
   final String? markedAt;
+  final String? notes;
+  final String? cancellationReason;
 
   // Date Boundaries & Multi-Date Fields
   final String? effectiveFrom; // YYYY-MM-DD
@@ -44,6 +46,8 @@ class ClassSessionEntity {
     this.teacherName,
     required this.attendanceOutcome,
     this.markedAt,
+    this.notes,
+    this.cancellationReason,
     this.effectiveFrom,
     this.effectiveUntil,
     this.specificDates,
@@ -54,6 +58,8 @@ class ClassSessionEntity {
     String? markedAt,
     String? status,
     int? dayOfWeek,
+    String? notes,
+    String? cancellationReason,
     String? effectiveFrom,
     String? effectiveUntil,
     List<String>? specificDates,
@@ -78,6 +84,8 @@ class ClassSessionEntity {
       teacherName: teacherName,
       attendanceOutcome: attendanceOutcome ?? this.attendanceOutcome,
       markedAt: markedAt ?? this.markedAt,
+      notes: notes ?? this.notes,
+      cancellationReason: cancellationReason ?? this.cancellationReason,
       effectiveFrom: effectiveFrom ?? this.effectiveFrom,
       effectiveUntil: effectiveUntil ?? this.effectiveUntil,
       specificDates: specificDates ?? this.specificDates,
