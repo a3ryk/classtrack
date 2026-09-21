@@ -1,4 +1,4 @@
-﻿import 'package:attendly/core/constants/app_theme.dart';
+import 'package:attendly/core/constants/app_theme.dart';
 import 'package:attendly/core/utils/date_formatter.dart';
 import 'package:attendly/data/database/app_database.dart';
 import 'package:attendly/domain/entities/attendance_stats.dart';
@@ -231,7 +231,7 @@ void main() {
       // Next Class section
       expect(find.text('Next Class'), findsOneWidget);
       expect(find.text('Computer Networks'), findsWidgets);
-      expect(find.text('Room Lab 3'), findsOneWidget);
+      expect(find.text('Room Lab 3'), findsWidgets);
 
       await db.close();
     });
@@ -537,10 +537,10 @@ void main() {
 
       // Next Class hero header is displayed
       expect(find.text('Next Class'), findsOneWidget);
-      expect(find.text('Artificial Intelligence'), findsOneWidget);
+      expect(find.text('Artificial Intelligence'), findsWidgets);
 
-      // Duplicate Today's Schedule list is NOT displayed
-      expect(find.textContaining("Today's Schedule"), findsNothing);
+      // Today's Classes schedule list is displayed
+      expect(find.textContaining("Today's Classes"), findsOneWidget);
 
       await db.close();
     });
@@ -611,11 +611,11 @@ void main() {
       await tester.pumpAndSettle();
 
       // Find the outcome button on Next Class card ("Mark") with Sprout seedling emoji
-      expect(find.text('Mark'), findsOneWidget);
+      expect(find.text('Mark'), findsWidgets);
       expect(find.text('🌱'), findsWidgets);
 
       // Tap outcome button
-      await tester.tap(find.text('Mark'));
+      await tester.tap(find.text('Mark').first);
       await tester.pumpAndSettle();
 
       // Modal bottom sheet opens with minimalist floating capsule
@@ -1045,8 +1045,8 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap on the card body of the session
-      expect(find.text('Operating Systems'), findsOneWidget);
-      await tester.tap(find.text('Operating Systems'));
+      expect(find.text('Operating Systems'), findsWidgets);
+      await tester.tap(find.text('Operating Systems').first);
       await tester.pumpAndSettle();
 
       // Verify Sprout-exclusive floating capsule actions are present
@@ -1791,6 +1791,382 @@ void main() {
 
       // Back to today: "Today 🌱" pill is hidden
       expect(find.text('Today 🌱'), findsNothing);
+
+      await db.close();
+    });
+
+    testWidgets('SproutTodayView displays Ongoing Class when current time is within session start and end', (tester) async {
+      final db = AppDatabase.inMemory();
+      final now = DateTime(2026, 9, 22, 10, 30);
+      final todayIso = DateFormatter.toIsoDate(now);
+
+      final cuteTheme = AppTheme.buildTheme(
+        brightness: Brightness.light,
+        styleId: 'cute_sprout',
+      );
+
+      final session = ClassSessionEntity(
+        id: 'sess-active',
+        semesterId: 'sem_1',
+        subjectComponentId: 'sub-comp-1',
+        subjectName: 'Data Structures & Algorithms',
+        category: 'Core',
+        componentType: 'Theory',
+        startTime: '10:00',
+        endTime: '11:00',
+        sessionSource: 'TIMETABLE_RECURRING',
+        status: 'SCHEDULED',
+        room: 'Lab 2',
+        colorHex: '#10B981',
+        sessionDate: todayIso,
+        attendanceOutcome: 'PENDING',
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+            userProfileProvider.overrideWith((ref) => FakeUserProfileNotifier('Hirok')),
+            resolvedDayScheduleProvider(now).overrideWithValue([session]),
+            realtimeClockProvider.overrideWith((ref) => Stream.value(now)),
+          ],
+          child: MaterialApp(
+            theme: cuteTheme,
+            home: SproutTodayView(
+              selectedDate: now,
+              onDateChanged: (_) {},
+              onGoToToday: () {},
+              onPickDate: () {},
+              onSessionTap: (_, __) {},
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Header is "Ongoing Class" (NOT "Next Class" or live badge)
+      expect(find.text('Ongoing Class'), findsOneWidget);
+      expect(find.text('Next Class'), findsNothing);
+      expect(find.text('Data Structures & Algorithms'), findsWidgets);
+
+      await db.close();
+    });
+
+    testWidgets('SproutTodayView displays Next Class when current time is before session start', (tester) async {
+      final db = AppDatabase.inMemory();
+      final now = DateTime(2026, 9, 22, 9, 30);
+      final todayIso = DateFormatter.toIsoDate(now);
+
+      final cuteTheme = AppTheme.buildTheme(
+        brightness: Brightness.light,
+        styleId: 'cute_sprout',
+      );
+
+      final session = ClassSessionEntity(
+        id: 'sess-future',
+        semesterId: 'sem_1',
+        subjectComponentId: 'sub-comp-1',
+        subjectName: 'Data Structures & Algorithms',
+        category: 'Core',
+        componentType: 'Theory',
+        startTime: '10:00',
+        endTime: '11:00',
+        sessionSource: 'TIMETABLE_RECURRING',
+        status: 'SCHEDULED',
+        room: 'Lab 2',
+        colorHex: '#10B981',
+        sessionDate: todayIso,
+        attendanceOutcome: 'PENDING',
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+            userProfileProvider.overrideWith((ref) => FakeUserProfileNotifier('Hirok')),
+            resolvedDayScheduleProvider(now).overrideWithValue([session]),
+            realtimeClockProvider.overrideWith((ref) => Stream.value(now)),
+          ],
+          child: MaterialApp(
+            theme: cuteTheme,
+            home: SproutTodayView(
+              selectedDate: now,
+              onDateChanged: (_) {},
+              onGoToToday: () {},
+              onPickDate: () {},
+              onSessionTap: (_, __) {},
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Header is "Next Class"
+      expect(find.text('Next Class'), findsOneWidget);
+      expect(find.text('Ongoing Class'), findsNothing);
+
+      await db.close();
+    });
+
+    testWidgets('SproutTodayView collapses hero card when all sessions have ended today (e.g. 3 PM)', (tester) async {
+      final db = AppDatabase.inMemory();
+      final now = DateTime(2026, 9, 22, 15, 0); // 3:00 PM
+      final todayIso = DateFormatter.toIsoDate(now);
+
+      final cuteTheme = AppTheme.buildTheme(
+        brightness: Brightness.light,
+        styleId: 'cute_sprout',
+      );
+
+      // Morning class ended at 11:00 AM
+      final session = ClassSessionEntity(
+        id: 'sess-passed',
+        semesterId: 'sem_1',
+        subjectComponentId: 'sub-comp-1',
+        subjectName: 'Data Structures & Algorithms',
+        category: 'Core',
+        componentType: 'Theory',
+        startTime: '10:00',
+        endTime: '11:00',
+        sessionSource: 'TIMETABLE_RECURRING',
+        status: 'SCHEDULED',
+        room: 'Lab 2',
+        colorHex: '#10B981',
+        sessionDate: todayIso,
+        attendanceOutcome: 'PRESENT',
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+            userProfileProvider.overrideWith((ref) => FakeUserProfileNotifier('Hirok')),
+            resolvedDayScheduleProvider(now).overrideWithValue([session]),
+            realtimeClockProvider.overrideWith((ref) => Stream.value(now)),
+          ],
+          child: MaterialApp(
+            theme: cuteTheme,
+            home: SproutTodayView(
+              selectedDate: now,
+              onDateChanged: (_) {},
+              onGoToToday: () {},
+              onPickDate: () {},
+              onSessionTap: (_, __) {},
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Neither Next Class nor Ongoing Class is shown (clean collapse)
+      expect(find.text('Next Class'), findsNothing);
+      expect(find.text('Ongoing Class'), findsNothing);
+
+      // Today's Classes schedule list is still shown
+      expect(find.text("Today's Classes"), findsOneWidget);
+
+      await db.close();
+    });
+
+    testWidgets('Option C: Info icon badge is anchored at top-right corner of card and opens ClassInfoSliderSheet when tapped', (tester) async {
+      final db = AppDatabase.inMemory();
+      final now = DateTime(2026, 9, 22, 9, 30);
+      final todayIso = DateFormatter.toIsoDate(now);
+
+      final cuteTheme = AppTheme.buildTheme(
+        brightness: Brightness.light,
+        styleId: 'cute_sprout',
+      );
+
+      final session = ClassSessionEntity(
+        id: 'sess-info',
+        semesterId: 'sem_1',
+        subjectComponentId: 'sub-comp-1',
+        subjectName: 'Foundations of Computer Science',
+        category: 'Core',
+        componentType: 'Theory',
+        startTime: '10:00',
+        endTime: '11:00',
+        sessionSource: 'TIMETABLE_RECURRING',
+        status: 'SCHEDULED',
+        room: 'Room 101',
+        colorHex: '#10B981',
+        sessionDate: todayIso,
+        attendanceOutcome: 'PENDING',
+        notes: 'Study chapters 4 and 5',
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+            userProfileProvider.overrideWith((ref) => FakeUserProfileNotifier('Hirok')),
+            resolvedDayScheduleProvider(now).overrideWithValue([session]),
+            realtimeClockProvider.overrideWith((ref) => Stream.value(now)),
+          ],
+          child: MaterialApp(
+            theme: cuteTheme,
+            home: SproutTodayView(
+              selectedDate: now,
+              onDateChanged: (_) {},
+              onGoToToday: () {},
+              onPickDate: () {},
+              onSessionTap: (_, __) {},
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Find the info icon (Icons.info_outline_rounded)
+      final infoFinder = find.byIcon(Icons.info_outline_rounded);
+      expect(infoFinder, findsWidgets);
+
+      // Tap info badge
+      await tester.tap(infoFinder.first);
+      await tester.pumpAndSettle();
+
+      // ClassInfoSliderSheet opened
+      expect(find.text('Study chapters 4 and 5'), findsOneWidget);
+
+      await db.close();
+    });
+
+    testWidgets('When next class is marked cancelled, hero card advances to the following upcoming class', (tester) async {
+      final db = AppDatabase.inMemory();
+      final now = DateTime(2026, 9, 22, 9, 30);
+      final todayIso = DateFormatter.toIsoDate(now);
+
+      final cuteTheme = AppTheme.buildTheme(
+        brightness: Brightness.light,
+        styleId: 'cute_sprout',
+      );
+
+      final session1Cancelled = ClassSessionEntity(
+        id: 'sess-1-cancelled',
+        semesterId: 'sem_1',
+        subjectComponentId: 'sub-comp-1',
+        subjectName: 'Cancelled Morning Class',
+        category: 'Core',
+        componentType: 'Theory',
+        startTime: '10:00',
+        endTime: '11:00',
+        sessionSource: 'TIMETABLE_RECURRING',
+        status: 'SCHEDULED',
+        room: 'Room 101',
+        colorHex: '#EF4444',
+        sessionDate: todayIso,
+        attendanceOutcome: 'CANCELLED',
+      );
+
+      final session2Upcoming = ClassSessionEntity(
+        id: 'sess-2-upcoming',
+        semesterId: 'sem_1',
+        subjectComponentId: 'sub-comp-2',
+        subjectName: 'Next Active Afternoon Class',
+        category: 'Core',
+        componentType: 'Theory',
+        startTime: '12:00',
+        endTime: '13:00',
+        sessionSource: 'TIMETABLE_RECURRING',
+        status: 'SCHEDULED',
+        room: 'Room 202',
+        colorHex: '#10B981',
+        sessionDate: todayIso,
+        attendanceOutcome: 'PENDING',
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+            userProfileProvider.overrideWith((ref) => FakeUserProfileNotifier('Hirok')),
+            resolvedDayScheduleProvider(now).overrideWithValue([session1Cancelled, session2Upcoming]),
+            realtimeClockProvider.overrideWith((ref) => Stream.value(now)),
+          ],
+          child: MaterialApp(
+            theme: cuteTheme,
+            home: SproutTodayView(
+              selectedDate: now,
+              onDateChanged: (_) {},
+              onGoToToday: () {},
+              onPickDate: () {},
+              onSessionTap: (_, __) {},
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Next Class hero displays session 2 ('Next Active Afternoon Class'), NOT the cancelled session 1
+      expect(find.text('Next Class'), findsOneWidget);
+      // Hero card title contains session 2
+      expect(find.text('Next Active Afternoon Class'), findsWidgets);
+
+      await db.close();
+    });
+
+    testWidgets('When all upcoming classes are cancelled, hero card smoothly collapses to nothing', (tester) async {
+      final db = AppDatabase.inMemory();
+      final now = DateTime(2026, 9, 22, 9, 30);
+      final todayIso = DateFormatter.toIsoDate(now);
+
+      final cuteTheme = AppTheme.buildTheme(
+        brightness: Brightness.light,
+        styleId: 'cute_sprout',
+      );
+
+      final sessionCancelled = ClassSessionEntity(
+        id: 'sess-only-cancelled',
+        semesterId: 'sem_1',
+        subjectComponentId: 'sub-comp-1',
+        subjectName: 'Single Cancelled Class',
+        category: 'Core',
+        componentType: 'Theory',
+        startTime: '10:00',
+        endTime: '11:00',
+        sessionSource: 'TIMETABLE_RECURRING',
+        status: 'SCHEDULED',
+        room: 'Room 101',
+        colorHex: '#EF4444',
+        sessionDate: todayIso,
+        attendanceOutcome: 'CANCELLED',
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+            userProfileProvider.overrideWith((ref) => FakeUserProfileNotifier('Hirok')),
+            resolvedDayScheduleProvider(now).overrideWithValue([sessionCancelled]),
+            realtimeClockProvider.overrideWith((ref) => Stream.value(now)),
+          ],
+          child: MaterialApp(
+            theme: cuteTheme,
+            home: SproutTodayView(
+              selectedDate: now,
+              onDateChanged: (_) {},
+              onGoToToday: () {},
+              onPickDate: () {},
+              onSessionTap: (_, __) {},
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Neither Next Class nor Ongoing Class is shown (entire hero section collapsed)
+      expect(find.text('Next Class'), findsNothing);
+      expect(find.text('Ongoing Class'), findsNothing);
+
+      // Today's Classes schedule list is still shown below
+      expect(find.text("Today's Classes"), findsOneWidget);
 
       await db.close();
     });
