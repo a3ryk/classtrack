@@ -173,6 +173,7 @@ class AttendanceRecords extends Table {
   TextColumn get outcome => text().withDefault(const Constant('PENDING'))(); // PRESENT, ABSENT, CANCELLED, PENDING
   TextColumn get markedAt => text().nullable()();
   TextColumn get notes => text().nullable()();
+  TextColumn get cancellationReason => text().nullable()();
   IntColumn get syncVersion => integer().withDefault(const Constant(1))();
   TextColumn get createdAt => text()();
   TextColumn get updatedAt => text()();

@@ -6109,6 +6109,17 @@ class $AttendanceRecordsTable extends AttendanceRecords
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _cancellationReasonMeta =
+      const VerificationMeta('cancellationReason');
+  @override
+  late final GeneratedColumn<String> cancellationReason =
+      GeneratedColumn<String>(
+        'cancellation_reason',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _syncVersionMeta = const VerificationMeta(
     'syncVersion',
   );
@@ -6164,6 +6175,7 @@ class $AttendanceRecordsTable extends AttendanceRecords
     outcome,
     markedAt,
     notes,
+    cancellationReason,
     syncVersion,
     createdAt,
     updatedAt,
@@ -6234,6 +6246,15 @@ class $AttendanceRecordsTable extends AttendanceRecords
       context.handle(
         _notesMeta,
         notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('cancellation_reason')) {
+      context.handle(
+        _cancellationReasonMeta,
+        cancellationReason.isAcceptableOrUnknown(
+          data['cancellation_reason']!,
+          _cancellationReasonMeta,
+        ),
       );
     }
     if (data.containsKey('sync_version')) {
@@ -6308,6 +6329,10 @@ class $AttendanceRecordsTable extends AttendanceRecords
         DriftSqlType.string,
         data['${effectivePrefix}notes'],
       ),
+      cancellationReason: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cancellation_reason'],
+      ),
       syncVersion: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}sync_version'],
@@ -6343,6 +6368,7 @@ class AttendanceRecordData extends DataClass
   final String outcome;
   final String? markedAt;
   final String? notes;
+  final String? cancellationReason;
   final int syncVersion;
   final String createdAt;
   final String updatedAt;
@@ -6356,6 +6382,7 @@ class AttendanceRecordData extends DataClass
     required this.outcome,
     this.markedAt,
     this.notes,
+    this.cancellationReason,
     required this.syncVersion,
     required this.createdAt,
     required this.updatedAt,
@@ -6381,6 +6408,9 @@ class AttendanceRecordData extends DataClass
     }
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
+    }
+    if (!nullToAbsent || cancellationReason != null) {
+      map['cancellation_reason'] = Variable<String>(cancellationReason);
     }
     map['sync_version'] = Variable<int>(syncVersion);
     map['created_at'] = Variable<String>(createdAt);
@@ -6411,6 +6441,9 @@ class AttendanceRecordData extends DataClass
       notes: notes == null && nullToAbsent
           ? const Value.absent()
           : Value(notes),
+      cancellationReason: cancellationReason == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cancellationReason),
       syncVersion: Value(syncVersion),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -6434,6 +6467,9 @@ class AttendanceRecordData extends DataClass
       outcome: serializer.fromJson<String>(json['outcome']),
       markedAt: serializer.fromJson<String?>(json['markedAt']),
       notes: serializer.fromJson<String?>(json['notes']),
+      cancellationReason: serializer.fromJson<String?>(
+        json['cancellationReason'],
+      ),
       syncVersion: serializer.fromJson<int>(json['syncVersion']),
       createdAt: serializer.fromJson<String>(json['createdAt']),
       updatedAt: serializer.fromJson<String>(json['updatedAt']),
@@ -6452,6 +6488,7 @@ class AttendanceRecordData extends DataClass
       'outcome': serializer.toJson<String>(outcome),
       'markedAt': serializer.toJson<String?>(markedAt),
       'notes': serializer.toJson<String?>(notes),
+      'cancellationReason': serializer.toJson<String?>(cancellationReason),
       'syncVersion': serializer.toJson<int>(syncVersion),
       'createdAt': serializer.toJson<String>(createdAt),
       'updatedAt': serializer.toJson<String>(updatedAt),
@@ -6468,6 +6505,7 @@ class AttendanceRecordData extends DataClass
     String? outcome,
     Value<String?> markedAt = const Value.absent(),
     Value<String?> notes = const Value.absent(),
+    Value<String?> cancellationReason = const Value.absent(),
     int? syncVersion,
     String? createdAt,
     String? updatedAt,
@@ -6481,6 +6519,9 @@ class AttendanceRecordData extends DataClass
     outcome: outcome ?? this.outcome,
     markedAt: markedAt.present ? markedAt.value : this.markedAt,
     notes: notes.present ? notes.value : this.notes,
+    cancellationReason: cancellationReason.present
+        ? cancellationReason.value
+        : this.cancellationReason,
     syncVersion: syncVersion ?? this.syncVersion,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -6500,6 +6541,9 @@ class AttendanceRecordData extends DataClass
       outcome: data.outcome.present ? data.outcome.value : this.outcome,
       markedAt: data.markedAt.present ? data.markedAt.value : this.markedAt,
       notes: data.notes.present ? data.notes.value : this.notes,
+      cancellationReason: data.cancellationReason.present
+          ? data.cancellationReason.value
+          : this.cancellationReason,
       syncVersion: data.syncVersion.present
           ? data.syncVersion.value
           : this.syncVersion,
@@ -6520,6 +6564,7 @@ class AttendanceRecordData extends DataClass
           ..write('outcome: $outcome, ')
           ..write('markedAt: $markedAt, ')
           ..write('notes: $notes, ')
+          ..write('cancellationReason: $cancellationReason, ')
           ..write('syncVersion: $syncVersion, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -6538,6 +6583,7 @@ class AttendanceRecordData extends DataClass
     outcome,
     markedAt,
     notes,
+    cancellationReason,
     syncVersion,
     createdAt,
     updatedAt,
@@ -6555,6 +6601,7 @@ class AttendanceRecordData extends DataClass
           other.outcome == this.outcome &&
           other.markedAt == this.markedAt &&
           other.notes == this.notes &&
+          other.cancellationReason == this.cancellationReason &&
           other.syncVersion == this.syncVersion &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -6570,6 +6617,7 @@ class AttendanceRecordsCompanion extends UpdateCompanion<AttendanceRecordData> {
   final Value<String> outcome;
   final Value<String?> markedAt;
   final Value<String?> notes;
+  final Value<String?> cancellationReason;
   final Value<int> syncVersion;
   final Value<String> createdAt;
   final Value<String> updatedAt;
@@ -6584,6 +6632,7 @@ class AttendanceRecordsCompanion extends UpdateCompanion<AttendanceRecordData> {
     this.outcome = const Value.absent(),
     this.markedAt = const Value.absent(),
     this.notes = const Value.absent(),
+    this.cancellationReason = const Value.absent(),
     this.syncVersion = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -6599,6 +6648,7 @@ class AttendanceRecordsCompanion extends UpdateCompanion<AttendanceRecordData> {
     this.outcome = const Value.absent(),
     this.markedAt = const Value.absent(),
     this.notes = const Value.absent(),
+    this.cancellationReason = const Value.absent(),
     this.syncVersion = const Value.absent(),
     required String createdAt,
     required String updatedAt,
@@ -6617,6 +6667,7 @@ class AttendanceRecordsCompanion extends UpdateCompanion<AttendanceRecordData> {
     Expression<String>? outcome,
     Expression<String>? markedAt,
     Expression<String>? notes,
+    Expression<String>? cancellationReason,
     Expression<int>? syncVersion,
     Expression<String>? createdAt,
     Expression<String>? updatedAt,
@@ -6632,6 +6683,7 @@ class AttendanceRecordsCompanion extends UpdateCompanion<AttendanceRecordData> {
       if (outcome != null) 'outcome': outcome,
       if (markedAt != null) 'marked_at': markedAt,
       if (notes != null) 'notes': notes,
+      if (cancellationReason != null) 'cancellation_reason': cancellationReason,
       if (syncVersion != null) 'sync_version': syncVersion,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -6649,6 +6701,7 @@ class AttendanceRecordsCompanion extends UpdateCompanion<AttendanceRecordData> {
     Value<String>? outcome,
     Value<String?>? markedAt,
     Value<String?>? notes,
+    Value<String?>? cancellationReason,
     Value<int>? syncVersion,
     Value<String>? createdAt,
     Value<String>? updatedAt,
@@ -6664,6 +6717,7 @@ class AttendanceRecordsCompanion extends UpdateCompanion<AttendanceRecordData> {
       outcome: outcome ?? this.outcome,
       markedAt: markedAt ?? this.markedAt,
       notes: notes ?? this.notes,
+      cancellationReason: cancellationReason ?? this.cancellationReason,
       syncVersion: syncVersion ?? this.syncVersion,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -6699,6 +6753,9 @@ class AttendanceRecordsCompanion extends UpdateCompanion<AttendanceRecordData> {
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
     }
+    if (cancellationReason.present) {
+      map['cancellation_reason'] = Variable<String>(cancellationReason.value);
+    }
     if (syncVersion.present) {
       map['sync_version'] = Variable<int>(syncVersion.value);
     }
@@ -6728,6 +6785,7 @@ class AttendanceRecordsCompanion extends UpdateCompanion<AttendanceRecordData> {
           ..write('outcome: $outcome, ')
           ..write('markedAt: $markedAt, ')
           ..write('notes: $notes, ')
+          ..write('cancellationReason: $cancellationReason, ')
           ..write('syncVersion: $syncVersion, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -12341,6 +12399,7 @@ typedef $$AttendanceRecordsTableCreateCompanionBuilder =
       Value<String> outcome,
       Value<String?> markedAt,
       Value<String?> notes,
+      Value<String?> cancellationReason,
       Value<int> syncVersion,
       required String createdAt,
       required String updatedAt,
@@ -12357,6 +12416,7 @@ typedef $$AttendanceRecordsTableUpdateCompanionBuilder =
       Value<String> outcome,
       Value<String?> markedAt,
       Value<String?> notes,
+      Value<String?> cancellationReason,
       Value<int> syncVersion,
       Value<String> createdAt,
       Value<String> updatedAt,
@@ -12410,6 +12470,11 @@ class $$AttendanceRecordsTableFilterComposer
 
   ColumnFilters<String> get notes => $composableBuilder(
     column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get cancellationReason => $composableBuilder(
+    column: $table.cancellationReason,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -12483,6 +12548,11 @@ class $$AttendanceRecordsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get cancellationReason => $composableBuilder(
+    column: $table.cancellationReason,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get syncVersion => $composableBuilder(
     column: $table.syncVersion,
     builder: (column) => ColumnOrderings(column),
@@ -12540,6 +12610,11 @@ class $$AttendanceRecordsTableAnnotationComposer
 
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<String> get cancellationReason => $composableBuilder(
+    column: $table.cancellationReason,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<int> get syncVersion => $composableBuilder(
     column: $table.syncVersion,
@@ -12604,6 +12679,7 @@ class $$AttendanceRecordsTableTableManager
                 Value<String> outcome = const Value.absent(),
                 Value<String?> markedAt = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
+                Value<String?> cancellationReason = const Value.absent(),
                 Value<int> syncVersion = const Value.absent(),
                 Value<String> createdAt = const Value.absent(),
                 Value<String> updatedAt = const Value.absent(),
@@ -12618,6 +12694,7 @@ class $$AttendanceRecordsTableTableManager
                 outcome: outcome,
                 markedAt: markedAt,
                 notes: notes,
+                cancellationReason: cancellationReason,
                 syncVersion: syncVersion,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -12634,6 +12711,7 @@ class $$AttendanceRecordsTableTableManager
                 Value<String> outcome = const Value.absent(),
                 Value<String?> markedAt = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
+                Value<String?> cancellationReason = const Value.absent(),
                 Value<int> syncVersion = const Value.absent(),
                 required String createdAt,
                 required String updatedAt,
@@ -12648,6 +12726,7 @@ class $$AttendanceRecordsTableTableManager
                 outcome: outcome,
                 markedAt: markedAt,
                 notes: notes,
+                cancellationReason: cancellationReason,
                 syncVersion: syncVersion,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
