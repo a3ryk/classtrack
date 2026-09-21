@@ -102,6 +102,20 @@ class ExtraClassItem {
   });
 }
 
+class AttendanceRecordItem {
+  final String outcome;
+  final String? markedAt;
+  final String? notes;
+  final String? cancellationReason;
+
+  AttendanceRecordItem({
+    required this.outcome,
+    this.markedAt,
+    this.notes,
+    this.cancellationReason,
+  });
+}
+
 /// 5-Level Schedule Resolution Engine
 class ScheduleResolutionEngine {
   /// Resolves exact ClassSessions for a date [targetDate]
@@ -116,6 +130,7 @@ class ScheduleResolutionEngine {
     required List<ScheduleExceptionItem> exceptions,
     required List<ExtraClassItem> extraClasses,
     Map<String, String> existingOutcomes = const {}, // sessionKey -> outcome
+    Map<String, AttendanceRecordItem> existingRecords = const {}, // sessionKey -> record item
   }) {
     final String dateString = DateFormatter.toIsoDate(targetDate);
     final int dayOfWeek = DateFormatter.getDayOfWeek(targetDate);
@@ -196,7 +211,11 @@ class ScheduleResolutionEngine {
           : slot.room;
 
       final sessionId = 'session_${slot.id}_$dateString';
-      final outcome = existingOutcomes[sessionId] ?? 'PENDING';
+      final record = existingRecords[sessionId];
+      final outcome = record?.outcome ?? existingOutcomes[sessionId] ?? 'PENDING';
+      final markedAt = record?.markedAt;
+      final notes = record?.notes;
+      final cancellationReason = record?.cancellationReason;
 
       resolved.add(ClassSessionEntity(
         id: sessionId,
@@ -216,13 +235,16 @@ class ScheduleResolutionEngine {
         room: room,
         teacherName: slot.teacherName,
         attendanceOutcome: outcome,
+        markedAt: markedAt,
+        notes: notes,
+        cancellationReason: cancellationReason,
         effectiveFrom: slot.effectiveFrom,
         effectiveUntil: slot.effectiveUntil,
       ));
     }
 
     // LEVEL 5: Append Extra Classes
-    resolved.addAll(_resolveExtraClasses(extraClasses, dateString, semesterId, existingOutcomes));
+    resolved.addAll(_resolveExtraClasses(extraClasses, dateString, semesterId, existingOutcomes, existingRecords));
 
     // Sort chronologically by start time
     resolved.sort((a, b) => a.startTime.compareTo(b.startTime));
@@ -234,11 +256,17 @@ class ScheduleResolutionEngine {
     String dateString,
     String semesterId,
     Map<String, String> existingOutcomes,
+    Map<String, AttendanceRecordItem> existingRecords,
   ) {
     final matchingExtra = extraClasses.where((e) => e.classDate == dateString).toList();
     return matchingExtra.map((extra) {
       final sessionId = 'extra_${extra.id}_$dateString';
-      final outcome = existingOutcomes[sessionId] ?? 'PENDING';
+      final record = existingRecords[sessionId];
+      final outcome = record?.outcome ?? existingOutcomes[sessionId] ?? 'PENDING';
+      final markedAt = record?.markedAt;
+      final notes = record?.notes;
+      final cancellationReason = record?.cancellationReason;
+
       return ClassSessionEntity(
         id: sessionId,
         semesterId: semesterId,
@@ -257,6 +285,9 @@ class ScheduleResolutionEngine {
         room: extra.room,
         teacherName: extra.teacherName,
         attendanceOutcome: outcome,
+        markedAt: markedAt,
+        notes: notes,
+        cancellationReason: cancellationReason,
       );
     }).toList();
   }
