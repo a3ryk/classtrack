@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -14,6 +15,9 @@ import '../../providers/app_state_provider.dart';
 import '../../widgets/edit_semester_dialog.dart';
 import '../../widgets/declare_holiday_dialog.dart';
 import '../../widgets/add_extra_class_sheet.dart';
+import '../../widgets/cancellation_reason_dialog.dart';
+import '../../widgets/class_info_slider_sheet.dart';
+import '../../widgets/class_note_dialog.dart';
 import '../schedule/add_edit_slot_screen.dart';
 import '../schedule/manage_subject_slots_screen.dart';
 import '../schedule/reschedule_session_screen.dart';
@@ -814,56 +818,66 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                           final bool isPastOrToday = selectedDateIso.compareTo(DateFormatter.toIsoDate(DateTime.now())) <= 0;
                           final bool isExtra = session.sessionSource == 'EXTRA';
 
-                          return InkWell(
-                            onTap: (isPastOrToday || isExtra)
-                                ? () => _showQuickAttendancePicker(context, session, selectedDateIso)
-                                : null,
-                            borderRadius: BorderRadius.circular(8),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 4),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          session.subjectName,
-                                          style: TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w700,
-                                            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                                            letterSpacing: -0.2,
+                                  final hasInfo = (session.notes != null && session.notes!.trim().isNotEmpty) ||
+                                      (session.cancellationReason != null && session.cancellationReason!.trim().isNotEmpty);
+
+                                  return InkWell(
+                                    onTap: (isPastOrToday || isExtra)
+                                        ? () => _showQuickAttendancePicker(context, session, selectedDateIso)
+                                        : null,
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 4),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  session.subjectName,
+                                                  style: TextStyle(
+                                                    fontSize: 15,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                                    letterSpacing: -0.2,
+                                                  ),
+                                                  maxLines: 2,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                                const SizedBox(height: 3),
+                                                Text(
+                                                  subtitle,
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.w400,
+                                                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
-                                        ),
-                                        const SizedBox(height: 3),
-                                        Text(
-                                          subtitle,
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w400,
-                                            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                          const SizedBox(width: 8),
+                                          if (hasInfo) ...[
+                                            _buildClassInfoBadge(context, session, isDark),
+                                            const SizedBox(width: 8),
+                                          ],
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                                            decoration: BoxDecoration(
+                                              color: badgeBg,
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            child: Text(
+                                              badgeLabel,
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                                color: badgeTextColor,
+                                                letterSpacing: -0.1,
+                                              ),
+                                            ),
                                           ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                                    decoration: BoxDecoration(
-                                      color: badgeBg,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      badgeLabel,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: badgeTextColor,
-                                        letterSpacing: -0.1,
-                                      ),
-                                    ),
-                                  ),
                                 ],
                               ),
                             ),
@@ -1153,6 +1167,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                                 fontWeight: FontWeight.w700,
                                 color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                               ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 2),
                             Text(
@@ -1264,14 +1280,15 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                             label: const Text('Cancelled', style: TextStyle(fontWeight: FontWeight.w600)),
                             onPressed: () {
                               Navigator.pop(context);
-                              ref.read(attendanceRecordsProvider.notifier).markAttendance(
+                              CancellationReasonDialog.show(
+                                context,
                                 sessionId: session.id,
                                 slotId: session.sourceRefId ?? session.id,
                                 subjectId: session.subjectComponentId,
                                 sessionDate: dateIso,
-                                outcome: 'CANCELLED',
+                                subjectName: session.subjectName,
+                                initialReason: session.cancellationReason,
                               );
-                              AppToast.info(context, 'Marked Cancelled for ${session.subjectName}');
                             },
                           ),
                         ),
@@ -1291,6 +1308,33 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                     ),
                   ),
                   const SizedBox(height: 8),
+
+                  ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.pillDark : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(Icons.note_alt_outlined, size: 16, color: isDark ? AppColors.accentIndigoDark : AppColors.accentIndigoLight),
+                    ),
+                    title: const Text('Class Notes', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                    subtitle: Text(
+                      session.notes != null && session.notes!.trim().isNotEmpty
+                          ? session.notes!
+                          : 'Add homework, exam topics, or notes',
+                      style: const TextStyle(fontSize: 11),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: const Icon(Icons.chevron_right_rounded, size: 18),
+                    onTap: () {
+                      Navigator.pop(context);
+                      ClassNoteDialog.show(context, session: session);
+                    },
+                  ),
 
                   if (isExtra) ...[
                     ListTile(
@@ -2165,6 +2209,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                                 sessionColor = accentPrimary;
                               }
 
+                              final hasInfo = (session.notes != null && session.notes!.trim().isNotEmpty) ||
+                                  (session.cancellationReason != null && session.cancellationReason!.trim().isNotEmpty);
+
                               return InkWell(
                                 onTap: (isPastOrToday || isExtra)
                                     ? () => _showQuickAttendancePicker(context, session, selectedDateIso)
@@ -2191,7 +2238,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                                       // Colored accent bar
                                       Container(
                                         width: 4,
-                                        height: 38,
+                                        height: 44,
                                         decoration: BoxDecoration(
                                           color: sessionColor,
                                           borderRadius: BorderRadius.circular(2),
@@ -2209,6 +2256,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                                                 fontWeight: FontWeight.w700,
                                                 color: textPrimary,
                                               ),
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
                                             ),
                                             const SizedBox(height: 3),
                                             Builder(
@@ -2266,6 +2315,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                                           ],
                                         ),
                                       ),
+                                      const SizedBox(width: 8),
+                                      if (hasInfo) ...[
+                                        _buildClassInfoBadge(context, session, isDark),
+                                        const SizedBox(width: 8),
+                                      ],
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
                                         decoration: BoxDecoration(
@@ -2606,6 +2660,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                                 fontWeight: FontWeight.w800,
                                 color: textPrimary,
                               ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 2),
                             Text(
@@ -2727,14 +2783,15 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                             ),
                             onPressed: () {
                               Navigator.pop(context);
-                              ref.read(attendanceRecordsProvider.notifier).markAttendance(
+                              CancellationReasonDialog.show(
+                                context,
                                 sessionId: session.id,
                                 slotId: session.sourceRefId ?? session.id,
                                 subjectId: session.subjectComponentId,
                                 sessionDate: dateIso,
-                                outcome: 'CANCELLED',
+                                subjectName: session.subjectName,
+                                initialReason: session.cancellationReason,
                               );
-                              AppToast.info(context, 'Marked Cancelled for ${session.subjectName}');
                             },
                           ),
                         ),
@@ -2754,6 +2811,44 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                     ),
                   ),
                   const SizedBox(height: 10),
+
+                  ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: pillBg,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(Icons.note_alt_outlined, size: 16, color: accentPrimary),
+                    ),
+                    title: Text(
+                      'Class Notes',
+                      style: GoogleFonts.quicksand(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: textPrimary,
+                      ),
+                    ),
+                    subtitle: Text(
+                      session.notes != null && session.notes!.trim().isNotEmpty
+                          ? session.notes!
+                          : 'Add homework, exam topics, or notes',
+                      style: GoogleFonts.quicksand(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        color: textSecondary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: Icon(Icons.chevron_right_rounded, size: 18, color: textSecondary),
+                    onTap: () {
+                      Navigator.pop(context);
+                      ClassNoteDialog.show(context, session: session);
+                    },
+                  ),
 
                   if (isExtra) ...[
                     ListTile(
@@ -3078,6 +3173,69 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
           ),
         );
       },
+    );
+  }
+
+  Widget _buildClassInfoBadge(BuildContext context, ClassSessionEntity session, bool isDark) {
+    final tokens = Theme.of(context).extension<AppThemeTokens>();
+    final isCute = tokens?.isCute ?? false;
+
+    final hasReason = session.cancellationReason != null && session.cancellationReason!.trim().isNotEmpty;
+    final isCancelled = session.attendanceOutcome == 'CANCELLED' || hasReason;
+
+    final Color iconColor;
+    final Color bgColor;
+    final Color borderColor;
+
+    if (isCute) {
+      iconColor = isCancelled
+          ? (isDark ? const Color(0xFFC084FC) : const Color(0xFF7C3AED))
+          : (isDark ? const Color(0xFF68D391) : const Color(0xFF2E5A36));
+
+      bgColor = isCancelled
+          ? (isDark ? const Color(0xFF2E1A47) : const Color(0xFFF3E8FF))
+          : (isDark ? const Color(0xFF1B382B) : const Color(0xFFEBF2E8));
+
+      borderColor = isCancelled
+          ? (isDark ? const Color(0xFF7C3AED).withValues(alpha: 0.5) : const Color(0xFFD8B4FE))
+          : (isDark ? const Color(0xFF2E5A36).withValues(alpha: 0.5) : const Color(0xFFA7F3A0));
+    } else {
+      // Default Theme (Figma Slate)
+      iconColor = isCancelled
+          ? (isDark ? AppColors.cancelledVioletDark : AppColors.cancelledVioletText)
+          : (isDark ? AppColors.accentIndigoDark : AppColors.accentBlue);
+
+      bgColor = isCancelled
+          ? (isDark ? AppColors.cancelledContainerDark : AppColors.cancelledContainerLight)
+          : (isDark ? AppColors.pillDark : const Color(0xFFF1F5F9));
+
+      borderColor = isCancelled
+          ? (isDark ? const Color(0xFF4C1D95) : const Color(0xFFDDD6FE))
+          : (isDark ? AppColors.borderDark : const Color(0xFFCBD5E1));
+    }
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        HapticFeedback.lightImpact();
+        ClassInfoSliderSheet.show(context, session);
+      },
+      child: Container(
+        width: 24,
+        height: 24,
+        decoration: BoxDecoration(
+          color: bgColor,
+          shape: BoxShape.circle,
+          border: Border.all(color: borderColor, width: 1.0),
+        ),
+        child: Center(
+          child: Icon(
+            Icons.info_outline_rounded,
+            size: 14,
+            color: iconColor,
+          ),
+        ),
+      ),
     );
   }
 }
