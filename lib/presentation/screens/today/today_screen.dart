@@ -18,6 +18,7 @@ import '../../widgets/edit_semester_dialog.dart';
 import '../../widgets/semester_transition_wizard.dart';
 import '../../widgets/declare_holiday_dialog.dart';
 import '../../widgets/add_extra_class_sheet.dart';
+import '../../widgets/class_note_dialog.dart';
 import '../../../domain/services/schedule_engine.dart';
 import '../schedule/add_edit_slot_screen.dart';
 import '../schedule/manage_subject_slots_screen.dart';
@@ -463,6 +464,34 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                   ),
                   const SizedBox(height: 16),
 
+                  ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.pillDark : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(Icons.note_alt_outlined, size: 16, color: isDark ? AppColors.accentIndigoDark : AppColors.accentIndigoLight),
+                    ),
+                    title: const Text('Class Notes', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                    subtitle: Text(
+                      session.notes != null && session.notes!.trim().isNotEmpty
+                          ? session.notes!
+                          : 'Add homework, exam topics, or notes',
+                      style: const TextStyle(fontSize: 11),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: const Icon(Icons.chevron_right_rounded, size: 18),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      ClassNoteDialog.show(context, session: session);
+                    },
+                  ),
+                  const SizedBox(height: 4),
+
                   if (isExtra) ...[
                     ListTile(
                       dense: true,
@@ -846,6 +875,25 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                   const SizedBox(height: 18),
 
                   // Action Cards
+                  _buildSproutActionCard(
+                    context: context,
+                    tokens: tokens,
+                    isDark: isDark,
+                    icon: Icons.note_alt_outlined,
+                    iconBg: isDark ? const Color(0xFF164130) : const Color(0xFFEAF8E7),
+                    iconColor: isDark ? const Color(0xFF81C784) : const Color(0xFF2E7D32),
+                    title: 'Class Notes',
+                    subtitle: session.notes != null && session.notes!.trim().isNotEmpty
+                        ? session.notes!
+                        : 'Add homework, topics covered, or notes',
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      Navigator.pop(ctx);
+                      ClassNoteDialog.show(context, session: session);
+                    },
+                  ),
+                  const SizedBox(height: 8),
+
                   if (isExtra) ...[
                     _buildSproutActionCard(
                       context: context,
