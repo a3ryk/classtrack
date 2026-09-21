@@ -27,7 +27,7 @@ class BackupService {
   BackupService._();
 
   static const String currentBackupVersion = '1';
-  static const int currentSchemaVersion = 2;
+  static const int currentSchemaVersion = 3;
   static const String appIdentifier = 'Attendly';
 
   /// Checks whether storage permissions are currently granted without requesting them
