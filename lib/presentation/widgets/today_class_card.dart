@@ -6,6 +6,8 @@ import '../../core/constants/app_theme_tokens.dart';
 import '../../core/utils/date_formatter.dart';
 import '../../domain/entities/class_session_entity.dart';
 import '../providers/app_state_provider.dart';
+import 'cancellation_reason_dialog.dart';
+import 'class_info_slider_sheet.dart';
 
 class TodayClassCard extends ConsumerWidget {
   final ClassSessionEntity session;
@@ -85,6 +87,8 @@ class TodayClassCard extends ConsumerWidget {
     final absentColor = isCute ? (tokens?.absentColor ?? AppColors.absentRed) : AppColors.absentRed;
     final cancelledColor = isCute ? (tokens?.cancelledColor ?? AppColors.cancelledViolet) : AppColors.cancelledViolet;
     final buttonRadius = BorderRadius.circular(isCute ? 999 : 8);
+    final hasInfo = (session.notes != null && session.notes!.trim().isNotEmpty) ||
+        (session.cancellationReason != null && session.cancellationReason!.trim().isNotEmpty);
 
     return InkWell(
       onTap: onTap,
@@ -116,7 +120,7 @@ class TodayClassCard extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header: Subject Name & Live Status Badge / Holiday Badge
+                  // Header: Subject Name & Live Status Badge / Holiday Badge / Info Badge
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -129,6 +133,8 @@ class TodayClassCard extends ConsumerWidget {
                             color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                             letterSpacing: isCute ? -0.1 : -0.2,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       if (isHoliday)
@@ -170,8 +176,8 @@ class TodayClassCard extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(isCute ? 999 : 5),
                             border: Border.all(
                               color: liveStatus.startsWith('🟢')
-                                   ? (isDark ? const Color(0xFF059669).withValues(alpha: 0.4) : const Color(0xFF86EFAC))
-                                   : (isDark ? AppColors.borderDark : const Color(0xFFCBD5E1)),
+                                  ? (isDark ? const Color(0xFF059669).withValues(alpha: 0.4) : const Color(0xFF86EFAC))
+                                  : (isDark ? AppColors.borderDark : const Color(0xFFCBD5E1)),
                               width: 0.7,
                             ),
                           ),
@@ -186,6 +192,10 @@ class TodayClassCard extends ConsumerWidget {
                             ),
                           ),
                         ),
+                      if (hasInfo) ...[
+                        const SizedBox(width: 8),
+                        _buildInfoBadge(context, session, isDark),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 3),
@@ -306,7 +316,17 @@ class TodayClassCard extends ConsumerWidget {
                             idleBgColor: isDark ? const Color(0xFF2E1065).withValues(alpha: 0.25) : AppColors.cancelledContainerLight,
                             idleTextColor: isDark ? const Color(0xFFA78BFA) : AppColors.cancelledVioletText,
                             borderRadius: buttonRadius,
-                            onTap: () => onOutcomeChanged('CANCELLED'),
+                            onTap: () {
+                              CancellationReasonDialog.show(
+                                context,
+                                sessionId: session.id,
+                                slotId: session.sourceRefId ?? session.id,
+                                subjectId: session.subjectComponentId,
+                                sessionDate: session.sessionDate,
+                                subjectName: session.subjectName,
+                                initialReason: session.cancellationReason,
+                              );
+                            },
                           ),
                         ),
                       ],
@@ -315,6 +335,69 @@ class TodayClassCard extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    ),
+  );
+}
+
+Widget _buildInfoBadge(BuildContext context, ClassSessionEntity session, bool isDark) {
+  final tokens = Theme.of(context).extension<AppThemeTokens>();
+  final isCute = tokens?.isCute ?? false;
+
+  final hasReason = session.cancellationReason != null && session.cancellationReason!.trim().isNotEmpty;
+  final isCancelled = session.attendanceOutcome == 'CANCELLED' || hasReason;
+
+  final Color iconColor;
+  final Color bgColor;
+  final Color borderColor;
+
+  if (isCute) {
+    iconColor = isCancelled
+        ? (isDark ? const Color(0xFFC084FC) : const Color(0xFF7C3AED))
+        : (isDark ? const Color(0xFF68D391) : const Color(0xFF2E5A36));
+
+    bgColor = isCancelled
+        ? (isDark ? const Color(0xFF2E1A47) : const Color(0xFFF3E8FF))
+        : (isDark ? const Color(0xFF1B382B) : const Color(0xFFEBF2E8));
+
+    borderColor = isCancelled
+        ? (isDark ? const Color(0xFF7C3AED).withValues(alpha: 0.5) : const Color(0xFFD8B4FE))
+        : (isDark ? const Color(0xFF2E5A36).withValues(alpha: 0.5) : const Color(0xFFA7F3A0));
+  } else {
+    // Default Theme (Figma Slate)
+    iconColor = isCancelled
+        ? (isDark ? AppColors.cancelledVioletDark : AppColors.cancelledVioletText)
+        : (isDark ? AppColors.accentIndigoDark : AppColors.accentBlue);
+
+    bgColor = isCancelled
+        ? (isDark ? AppColors.cancelledContainerDark : AppColors.cancelledContainerLight)
+        : (isDark ? AppColors.pillDark : const Color(0xFFF1F5F9));
+
+    borderColor = isCancelled
+        ? (isDark ? const Color(0xFF4C1D95) : const Color(0xFFDDD6FE))
+        : (isDark ? AppColors.borderDark : const Color(0xFFCBD5E1));
+  }
+
+  return GestureDetector(
+    behavior: HitTestBehavior.opaque,
+    onTap: () {
+      HapticFeedback.lightImpact();
+      ClassInfoSliderSheet.show(context, session);
+    },
+    child: Container(
+      width: 24,
+      height: 24,
+      decoration: BoxDecoration(
+        color: bgColor,
+        shape: BoxShape.circle,
+        border: Border.all(color: borderColor, width: 1.0),
+      ),
+      child: Center(
+        child: Icon(
+          Icons.info_outline_rounded,
+          size: 14,
+          color: iconColor,
+        ),
       ),
     ),
   );
