@@ -13,8 +13,19 @@ import '../../../domain/entities/class_session_entity.dart';
 import '../../../domain/services/schedule_engine.dart';
 import '../../providers/app_state_provider.dart';
 import '../../providers/app_theme_style_provider.dart';
+import '../../widgets/cancellation_reason_dialog.dart';
+import '../../widgets/class_info_slider_sheet.dart';
 import '../../widgets/declare_holiday_dialog.dart';
 import '../../widgets/mascot_peek_overlay.dart';
+class _SproutHeroResult {
+  final ClassSessionEntity session;
+  final String title; // 'Ongoing Class' or 'Next Class'
+
+  const _SproutHeroResult({
+    required this.session,
+    required this.title,
+  });
+}
 
 /// Sprout Mascot Dashboard view for the Today screen
 class SproutTodayView extends ConsumerStatefulWidget {
@@ -127,25 +138,64 @@ class _SproutTodayViewState extends ConsumerState<SproutTodayView> {
         : 'assets/themes/sprout/mascots/sprout_home_wave.png';
   }
 
-  ClassSessionEntity? _findNextOrOngoingSession(List<ClassSessionEntity> sessions, String todayIso) {
+  _SproutHeroResult? _evaluateHeroSession(
+    List<ClassSessionEntity> sessions,
+    String todayIso,
+    DateTime now,
+  ) {
     if (sessions.isEmpty) return null;
-    final now = DateTime.now();
     final nowIso = DateFormatter.toIsoDate(now);
     if (todayIso != nowIso) {
-      return sessions.first;
+      return null;
     }
 
     final nowMinutes = now.hour * 60 + now.minute;
+
+    // 1. Check for currently active/ongoing session
     for (final s in sessions) {
+      if (s.attendanceOutcome == 'CANCELLED' ||
+          s.attendanceOutcome == 'HOLIDAY' ||
+          s.status == 'CANCELLED' ||
+          s.status == 'HOLIDAY') {
+        continue;
+      }
       try {
+        final startParts = s.startTime.split(':');
         final endParts = s.endTime.split(':');
+        final startMinutes = int.parse(startParts[0]) * 60 + int.parse(startParts[1]);
         final endMinutes = int.parse(endParts[0]) * 60 + int.parse(endParts[1]);
-        if (endMinutes >= nowMinutes && s.attendanceOutcome != 'CANCELLED' && s.attendanceOutcome != 'HOLIDAY') {
-          return s;
+        if (startMinutes <= nowMinutes && nowMinutes < endMinutes) {
+          return _SproutHeroResult(session: s, title: 'Ongoing Class');
         }
       } catch (_) {}
     }
-    return sessions.first;
+
+    // 2. Check for next upcoming session today
+    ClassSessionEntity? nextUpcoming;
+    int earliestUpcomingMinutes = 99999;
+    for (final s in sessions) {
+      if (s.attendanceOutcome == 'CANCELLED' ||
+          s.attendanceOutcome == 'HOLIDAY' ||
+          s.status == 'CANCELLED' ||
+          s.status == 'HOLIDAY') {
+        continue;
+      }
+      try {
+        final startParts = s.startTime.split(':');
+        final startMinutes = int.parse(startParts[0]) * 60 + int.parse(startParts[1]);
+        if (startMinutes > nowMinutes && startMinutes < earliestUpcomingMinutes) {
+          earliestUpcomingMinutes = startMinutes;
+          nextUpcoming = s;
+        }
+      } catch (_) {}
+    }
+
+    if (nextUpcoming != null) {
+      return _SproutHeroResult(session: nextUpcoming, title: 'Next Class');
+    }
+
+    // 3. All classes today have finished (or remaining are cancelled/holiday)
+    return null;
   }
 
   @override
@@ -211,7 +261,8 @@ class _SproutTodayViewState extends ConsumerState<SproutTodayView> {
     final themeStyle = ref.watch(appThemeStyleProvider);
     final themeDef = AppThemeRegistry.getTheme(themeStyle);
 
-    final isToday = DateUtils.dateOnly(pageDate) == DateUtils.dateOnly(DateTime.now());
+    final realtimeNow = ref.watch(realtimeClockProvider).value ?? DateTime.now();
+    final isToday = DateUtils.dateOnly(pageDate) == DateUtils.dateOnly(realtimeNow);
     final isHoliday = holidays.any((h) => pageDateIso.compareTo(h.startDate) >= 0 && pageDateIso.compareTo(h.endDate) <= 0);
     final HolidayItem? currentHoliday = holidays.where((h) => pageDateIso.compareTo(h.startDate) >= 0 && pageDateIso.compareTo(h.endDate) <= 0).firstOrNull;
 
@@ -219,7 +270,7 @@ class _SproutTodayViewState extends ConsumerState<SproutTodayView> {
         ? profile.studentName.trim().split(' ').first
         : 'Friend';
 
-    final nextSession = _findNextOrOngoingSession(sessions, pageDateIso);
+    final heroResult = isToday ? _evaluateHeroSession(sessions, pageDateIso, realtimeNow) : null;
 
     return SingleChildScrollView(
       key: ValueKey(pageDateIso),
@@ -238,19 +289,74 @@ class _SproutTodayViewState extends ConsumerState<SproutTodayView> {
 
           const SizedBox(height: 24),
 
-          // Schedule Section: Next Class (Hero Card Only on Today)
+          // Schedule Section: Next/Ongoing Class (Hero Card Only on Today)
           if (isHoliday)
             _buildHolidayBanner(context, currentHoliday, isDark, tokens, themeDef)
           else if (sessions.isEmpty)
             _buildEmptyClassesCard(context, isDark, tokens, themeDef)
           else if (isToday) ...[
-            // Next Class Hero Section only (per design specification)
-            if (nextSession != null) ...[
-              _buildSectionHeader('Next Class', isDark, tokens),
-              const SizedBox(height: 10),
-              _buildNextClassHeroCard(context, ref, nextSession, pageDateIso, isDark, tokens),
-            ] else ...[
-              _buildEmptyClassesCard(context, isDark, tokens, themeDef),
+            // Ongoing or Next Class Hero Section (animated height & cross-fade)
+            AnimatedSize(
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeInOutCubic,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                transitionBuilder: (child, animation) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SizeTransition(
+                      sizeFactor: animation,
+                      axisAlignment: -1.0,
+                      child: child,
+                    ),
+                  );
+                },
+                child: heroResult != null
+                    ? Column(
+                        key: ValueKey('hero_${heroResult.session.id}_${heroResult.title}'),
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildSectionHeader(
+                            heroResult.title,
+                            isDark,
+                            tokens,
+                          ),
+                          const SizedBox(height: 10),
+                          _buildNextClassHeroCard(
+                            context,
+                            ref,
+                            heroResult.session,
+                            pageDateIso,
+                            isDark,
+                            tokens,
+                          ),
+                          const SizedBox(height: 20),
+                        ],
+                      )
+                    : const SizedBox.shrink(key: ValueKey('no_hero')),
+              ),
+            ),
+            // Full list of today's scheduled classes
+            _buildSectionHeader(
+              "Today's Classes",
+              isDark,
+              tokens,
+              count: sessions.length,
+            ),
+            const SizedBox(height: 10),
+            for (int i = 0; i < sessions.length; i++) ...[
+              _buildSproutSessionCard(
+                context: context,
+                ref: ref,
+                session: sessions[i],
+                dateIso: pageDateIso,
+                isFuture: false,
+                isDark: isDark,
+                tokens: tokens,
+              ),
+              if (i < sessions.length - 1) const SizedBox(height: 10),
             ],
           ] else ...[
             // All Sessions when viewing another Date
@@ -678,8 +784,9 @@ class _SproutTodayViewState extends ConsumerState<SproutTodayView> {
     ClassSessionEntity session,
     String dateIso,
     bool isDark,
-    AppThemeTokens tokens,
-  ) {
+    AppThemeTokens tokens, {
+    Key? key,
+  }) {
     final hasOutcome = session.attendanceOutcome != 'PENDING';
     final isPresent = session.attendanceOutcome == 'PRESENT';
     final isAbsent = session.attendanceOutcome == 'ABSENT';
@@ -717,129 +824,153 @@ class _SproutTodayViewState extends ConsumerState<SproutTodayView> {
                 ? 'Cancelled'
                 : 'Mark';
 
+    final hasInfo = (session.notes != null && session.notes!.trim().isNotEmpty) ||
+        (session.cancellationReason != null && session.cancellationReason!.trim().isNotEmpty);
+
     return GestureDetector(
+      key: key,
       onTap: () => widget.onSessionTap(session, dateIso),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1B3626) : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isDark ? const Color(0xFF2E593E) : const Color(0xFFEDE9DF),
-            width: 1.2,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            // Vertical Accent Bar
-            Container(
-              width: 4.5,
-              height: 48,
-              decoration: BoxDecoration(
-                color: tokens.primaryAccent,
-                borderRadius: BorderRadius.circular(4),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1B3626) : Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isDark ? const Color(0xFF2E593E) : const Color(0xFFEDE9DF),
+                width: 1.2,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-
-            // Class Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    session.subjectName,
-                    style: GoogleFonts.quicksand(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      color: tokens.textPrimary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    '${DateFormatter.formatTime12h(session.startTime)} – ${DateFormatter.formatTime12h(session.endTime)}',
-                    style: GoogleFonts.quicksand(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
-                      color: tokens.textSecondary,
-                    ),
-                  ),
-                  if (session.room != null && session.room!.trim().isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      'Room ${session.room}',
-                      style: GoogleFonts.quicksand(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: tokens.textSecondary,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-
-            const SizedBox(width: 10),
-
-            // Pill Outcome Button (Tap to select Present, Absent, Cancelled, or Reset)
-            GestureDetector(
-              onTap: () {
-                HapticFeedback.selectionClick();
-                _showOutcomeSelectionSheet(context, ref, session, dateIso, tokens, isDark);
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  color: outcomeBg,
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: hasOutcome ? outcomeColor : (isDark ? const Color(0xFF388E3C) : const Color(0xFF81C784)),
-                    width: 1.2,
+            child: Row(
+              children: [
+                // Vertical Accent Bar
+                Container(
+                  width: 4.5,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: tokens.primaryAccent,
+                    borderRadius: BorderRadius.circular(4),
                   ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    hasOutcome
-                        ? Icon(
-                            outcomeIcon,
-                            size: 15,
-                            color: outcomeColor,
-                          )
-                        : const Text(
-                            '🌱',
-                            style: TextStyle(fontSize: 13.5),
+                const SizedBox(width: 12),
+
+                // Class Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        session.subjectName,
+                        style: GoogleFonts.quicksand(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: tokens.textPrimary,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        '${DateFormatter.formatTime12h(session.startTime)} – ${DateFormatter.formatTime12h(session.endTime)}',
+                        style: GoogleFonts.quicksand(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: tokens.textSecondary,
+                        ),
+                      ),
+                      if (session.room != null && session.room!.trim().isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          session.room!.trim().toLowerCase().startsWith('room')
+                              ? session.room!.trim()
+                              : 'Room ${session.room!.trim()}',
+                          style: GoogleFonts.quicksand(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: tokens.textSecondary,
                           ),
-                    const SizedBox(width: 5),
-                    Text(
-                      outcomeLabel,
-                      style: GoogleFonts.quicksand(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: outcomeColor,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 10),
+
+                // Pill Outcome Button (Tap to select Present, Absent, Cancelled, or Reset)
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    if (hasInfo) const SizedBox(height: 14),
+                    GestureDetector(
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        _showOutcomeSelectionSheet(context, ref, session, dateIso, tokens, isDark);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: outcomeBg,
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color: hasOutcome ? outcomeColor : (isDark ? const Color(0xFF388E3C) : const Color(0xFF81C784)),
+                            width: 1.2,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            hasOutcome
+                                ? Icon(
+                                    outcomeIcon,
+                                    size: 15,
+                                    color: outcomeColor,
+                                  )
+                                : const Text(
+                                    '🌱',
+                                    style: TextStyle(fontSize: 13.5),
+                                  ),
+                            const SizedBox(width: 5),
+                            Text(
+                              outcomeLabel,
+                              style: GoogleFonts.quicksand(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: outcomeColor,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              size: 14,
+                              color: outcomeColor,
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      size: 14,
-                      color: outcomeColor,
                     ),
                   ],
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
+          ),
+          if (hasInfo)
+            Positioned(
+              top: 8,
+              right: 8,
+              child: _buildClassInfoBadge(context, session, isDark, tokens),
+            ),
+        ],
       ),
     );
   }
@@ -900,7 +1031,7 @@ class _SproutTodayViewState extends ConsumerState<SproutTodayView> {
                     fontWeight: FontWeight.w800,
                     color: tokens.textPrimary,
                   ),
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
                 ),
@@ -908,7 +1039,10 @@ class _SproutTodayViewState extends ConsumerState<SproutTodayView> {
                 Text(
                   [
                     '${DateFormatter.formatTime12h(session.startTime)} – ${DateFormatter.formatTime12h(session.endTime)}',
-                    if (session.room != null && session.room!.trim().isNotEmpty) 'Room ${session.room}',
+                    if (session.room != null && session.room!.trim().isNotEmpty)
+                      session.room!.trim().toLowerCase().startsWith('room')
+                          ? session.room!.trim()
+                          : 'Room ${session.room!.trim()}',
                   ].join('  •  '),
                   style: GoogleFonts.quicksand(
                     fontSize: 12,
@@ -1037,13 +1171,25 @@ class _SproutTodayViewState extends ConsumerState<SproutTodayView> {
         onTap: () async {
           Navigator.pop(context);
           HapticFeedback.selectionClick();
-          await ref.read(attendanceRecordsProvider.notifier).markAttendance(
-                sessionId: session.id,
-                slotId: session.sourceRefId ?? session.id,
-                subjectId: session.subjectComponentId,
-                sessionDate: dateIso,
-                outcome: outcome,
-              );
+          if (outcome == 'CANCELLED') {
+            CancellationReasonDialog.show(
+              context,
+              sessionId: session.id,
+              slotId: session.sourceRefId ?? session.id,
+              subjectId: session.subjectComponentId,
+              sessionDate: dateIso,
+              subjectName: session.subjectName,
+              initialReason: session.cancellationReason,
+            );
+          } else {
+            await ref.read(attendanceRecordsProvider.notifier).markAttendance(
+                  sessionId: session.id,
+                  slotId: session.sourceRefId ?? session.id,
+                  subjectId: session.subjectComponentId,
+                  sessionDate: dateIso,
+                  outcome: outcome,
+                );
+          }
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
@@ -1143,188 +1289,258 @@ class _SproutTodayViewState extends ConsumerState<SproutTodayView> {
       stripeColor = tokens.primaryAccent;
     }
 
+    final hasInfo = (session.notes != null && session.notes!.trim().isNotEmpty) ||
+        (session.cancellationReason != null && session.cancellationReason!.trim().isNotEmpty);
+
     return GestureDetector(
       onTap: () => widget.onSessionTap(session, dateIso),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1B3626) : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isDark ? const Color(0xFF2E593E) : const Color(0xFFEDE9DF),
-            width: 1.2,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            // Rounded Vertical Accent Bar
-            Container(
-              width: 4.5,
-              height: 48,
-              decoration: BoxDecoration(
-                color: isHoliday ? const Color(0xFFD97706) : stripeColor,
-                borderRadius: BorderRadius.circular(4),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1B3626) : Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isDark ? const Color(0xFF2E593E) : const Color(0xFFEDE9DF),
+                width: 1.2,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-
-            // Class Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    session.subjectName,
-                    style: GoogleFonts.quicksand(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      color: tokens.textPrimary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    '${DateFormatter.formatTime12h(session.startTime)} – ${DateFormatter.formatTime12h(session.endTime)}',
-                    style: GoogleFonts.quicksand(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
-                      color: tokens.textSecondary,
-                    ),
-                  ),
-                  if (session.room != null && session.room!.trim().isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      'Room ${session.room}',
-                      style: GoogleFonts.quicksand(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: tokens.textSecondary,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-
-            const SizedBox(width: 10),
-
-            // Trailing indicator: Upcoming badge (future) vs Outcome pill (past/today)
-            if (isHoliday)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF78350F).withValues(alpha: 0.35) : const Color(0xFFFEF3C7),
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: isDark ? const Color(0xFFB45309).withValues(alpha: 0.4) : const Color(0xFFFDE68A),
-                    width: 1.0,
-                  ),
-                ),
-                child: Text(
-                  'Holiday',
-                  style: GoogleFonts.quicksand(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w700,
-                    color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
-                  ),
-                ),
-              )
-            else if (isFuture)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E3A2B) : const Color(0xFFF1F5F0),
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: isDark ? const Color(0xFF2C553C) : const Color(0xFFDCE6DA),
-                    width: 1.0,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.lock_clock_outlined,
-                      size: 13,
-                      color: tokens.textSecondary,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Upcoming',
-                      style: GoogleFonts.quicksand(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
-                        color: tokens.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            else
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  _showOutcomeSelectionSheet(context, ref, session, dateIso, tokens, isDark);
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            child: Row(
+              children: [
+                // Rounded Vertical Accent Bar
+                Container(
+                  width: 4.5,
+                  height: 48,
                   decoration: BoxDecoration(
-                    color: outcomeBg,
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: hasOutcome ? outcomeColor : (isDark ? const Color(0xFF388E3C) : const Color(0xFF81C784)),
-                      width: 1.2,
-                    ),
+                    color: isHoliday ? const Color(0xFFD97706) : stripeColor,
+                    borderRadius: BorderRadius.circular(4),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                ),
+                const SizedBox(width: 12),
+
+                // Class Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      hasOutcome
-                          ? Icon(
-                              outcomeIcon,
-                              size: 15,
-                              color: outcomeColor,
-                            )
-                          : const Text(
-                              '🌱',
-                              style: TextStyle(fontSize: 13.5),
-                            ),
-                      const SizedBox(width: 5),
                       Text(
-                        outcomeLabel,
+                        session.subjectName,
                         style: GoogleFonts.quicksand(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: outcomeColor,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: tokens.textPrimary,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        '${DateFormatter.formatTime12h(session.startTime)} – ${DateFormatter.formatTime12h(session.endTime)}',
+                        style: GoogleFonts.quicksand(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: tokens.textSecondary,
                         ),
                       ),
-                      const SizedBox(width: 4),
-                      Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        size: 14,
-                        color: outcomeColor,
-                      ),
+                      if (session.room != null && session.room!.trim().isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          session.room!.trim().toLowerCase().startsWith('room')
+                              ? session.room!.trim()
+                              : 'Room ${session.room!.trim()}',
+                          style: GoogleFonts.quicksand(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: tokens.textSecondary,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
-              ),
-          ],
+
+                const SizedBox(width: 10),
+
+                // Trailing indicator: Upcoming badge (future) vs Outcome pill (past/today)
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    if (hasInfo) const SizedBox(height: 14),
+                    if (isHoliday)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF78350F).withValues(alpha: 0.35) : const Color(0xFFFEF3C7),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color: isDark ? const Color(0xFFB45309).withValues(alpha: 0.4) : const Color(0xFFFDE68A),
+                            width: 1.0,
+                          ),
+                        ),
+                        child: Text(
+                          'Holiday',
+                          style: GoogleFonts.quicksand(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
+                          ),
+                        ),
+                      )
+                    else if (isFuture)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF1E3A2B) : const Color(0xFFF1F5F0),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color: isDark ? const Color(0xFF2C553C) : const Color(0xFFDCE6DA),
+                            width: 1.0,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.lock_clock_outlined,
+                              size: 13,
+                              color: tokens.textSecondary,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Upcoming',
+                              style: GoogleFonts.quicksand(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                                color: tokens.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          _showOutcomeSelectionSheet(context, ref, session, dateIso, tokens, isDark);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: outcomeBg,
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                              color: hasOutcome ? outcomeColor : (isDark ? const Color(0xFF388E3C) : const Color(0xFF81C784)),
+                              width: 1.2,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              hasOutcome
+                                  ? Icon(
+                                      outcomeIcon,
+                                      size: 15,
+                                      color: outcomeColor,
+                                    )
+                                  : const Text(
+                                      '🌱',
+                                      style: TextStyle(fontSize: 13.5),
+                                    ),
+                              const SizedBox(width: 5),
+                              Text(
+                                outcomeLabel,
+                                style: GoogleFonts.quicksand(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: outcomeColor,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Icon(
+                                Icons.keyboard_arrow_down_rounded,
+                                size: 14,
+                                color: outcomeColor,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          if (hasInfo)
+            Positioned(
+              top: 8,
+              right: 8,
+              child: _buildClassInfoBadge(context, session, isDark, tokens),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildClassInfoBadge(
+    BuildContext context,
+    ClassSessionEntity session,
+    bool isDark,
+    AppThemeTokens tokens,
+  ) {
+    final hasReason = session.cancellationReason != null && session.cancellationReason!.trim().isNotEmpty;
+    final isCancelled = session.attendanceOutcome == 'CANCELLED' || hasReason;
+
+    final Color iconColor = isCancelled
+        ? (isDark ? const Color(0xFFC084FC) : const Color(0xFF7C3AED))
+        : (isDark ? const Color(0xFF68D391) : const Color(0xFF2E5A36));
+
+    final Color bgColor = isCancelled
+        ? (isDark ? const Color(0xFF2E1A47) : const Color(0xFFF3E8FF))
+        : (isDark ? const Color(0xFF1B382B) : const Color(0xFFEBF2E8));
+
+    final Color borderColor = isCancelled
+        ? (isDark ? const Color(0xFF7C3AED).withValues(alpha: 0.5) : const Color(0xFFD8B4FE))
+        : (isDark ? const Color(0xFF2E5A36).withValues(alpha: 0.5) : const Color(0xFFA7F3A0));
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        HapticFeedback.lightImpact();
+        ClassInfoSliderSheet.show(context, session);
+      },
+      child: Container(
+        width: 24,
+        height: 24,
+        decoration: BoxDecoration(
+          color: bgColor,
+          shape: BoxShape.circle,
+          border: Border.all(color: borderColor, width: 1.0),
+        ),
+        child: Center(
+          child: Icon(
+            Icons.info_outline_rounded,
+            size: 14,
+            color: iconColor,
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title, bool isDark, AppThemeTokens tokens, {int? count}) {
+  Widget _buildSectionHeader(String title, bool isDark, AppThemeTokens tokens, {int? count, Key? key}) {
     return Row(
+      key: key,
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
