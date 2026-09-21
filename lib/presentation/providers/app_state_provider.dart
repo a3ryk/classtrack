@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/database/app_database.dart';
@@ -585,6 +586,9 @@ class NotificationPreferencesNotifier extends StateNotifier<NotificationPreferen
 // 8.5. REAL-TIME TICKER PROVIDER (15-second live pulse)
 // ==========================================
 final realtimeClockProvider = StreamProvider<DateTime>((ref) {
+  if (Platform.environment.containsKey('FLUTTER_TEST')) {
+    return Stream.value(DateTime.now());
+  }
   return Stream.periodic(const Duration(seconds: 15), (_) => DateTime.now());
 });
 
@@ -1084,8 +1088,15 @@ class AttendanceRecordsNotifier extends StateNotifier<Map<String, AttendanceReco
     required String sessionDate,
     required String outcome,
     String? notes,
+    String? cancellationReason,
   }) async {
     final nowIso = DateTime.now().toIso8601String();
+    final existing = state[sessionId];
+    final effectiveNotes = notes ?? existing?.notes;
+    final effectiveReason = outcome == 'CANCELLED'
+        ? (cancellationReason ?? existing?.cancellationReason)
+        : null;
+
     final record = AttendanceRecordData(
       id: sessionId,
       classSessionId: sessionId,
@@ -1094,9 +1105,10 @@ class AttendanceRecordsNotifier extends StateNotifier<Map<String, AttendanceReco
       sessionDate: sessionDate,
       outcome: outcome,
       markedAt: nowIso,
-      notes: notes,
+      notes: effectiveNotes,
+      cancellationReason: effectiveReason,
       syncVersion: 1,
-      createdAt: nowIso,
+      createdAt: existing?.createdAt ?? nowIso,
       updatedAt: nowIso,
     );
 
@@ -1116,6 +1128,45 @@ class AttendanceRecordsNotifier extends StateNotifier<Map<String, AttendanceReco
     unawaited(NotificationService.instance.cancelNotification(endReminderId));
     ref?.read(widgetSyncProvider).syncWidgets();
   }
+
+  Future<void> saveSessionNote({
+    required String sessionId,
+    required String slotId,
+    required String subjectId,
+    required String sessionDate,
+    String? notes,
+    String? cancellationReason,
+  }) async {
+    final nowIso = DateTime.now().toIso8601String();
+    final existing = state[sessionId];
+    final effectiveOutcome = existing?.outcome ?? 'PENDING';
+    final effectiveReason = cancellationReason ?? existing?.cancellationReason;
+
+    final record = AttendanceRecordData(
+      id: sessionId,
+      classSessionId: sessionId,
+      slotId: slotId,
+      subjectId: subjectId,
+      sessionDate: sessionDate,
+      outcome: effectiveOutcome,
+      markedAt: existing?.markedAt ?? nowIso,
+      notes: notes,
+      cancellationReason: effectiveReason,
+      syncVersion: 1,
+      createdAt: existing?.createdAt ?? nowIso,
+      updatedAt: nowIso,
+    );
+
+    // Save to SQLite
+    await db.saveAttendanceRecord(record);
+
+    // Update in-memory map reactively
+    state = {
+      ...state,
+      sessionId: record,
+    };
+    ref?.read(widgetSyncProvider).syncWidgets();
+  }
 }
 
 // ==========================================
@@ -1131,11 +1182,10 @@ final resolvedDayScheduleProvider = Provider.family<List<ClassSessionEntity>, Da
   final timetableSlots = ref.watch(timetableSlotsProvider);
   final attendanceMap = ref.watch(attendanceRecordsProvider);
 
-  // Match targetDate against all semesters if present
+  // Auto-resolve semester
   SemesterEntity effectiveSem = activeSem;
   if (allSemesters.isNotEmpty) {
     final matched = allSemesters.where((s) {
-      if (s.isUnset) return false;
       final isAfterStart = targetDate.isAfter(s.startDate) || DateFormatter.toIsoDate(targetDate) == DateFormatter.toIsoDate(s.startDate);
       final isBeforeEnd = s.endDate == null || targetDate.isBefore(s.endDate!) || DateFormatter.toIsoDate(targetDate) == DateFormatter.toIsoDate(s.endDate!);
       return isAfterStart && isBeforeEnd;
@@ -1146,8 +1196,15 @@ final resolvedDayScheduleProvider = Provider.family<List<ClassSessionEntity>, Da
   }
 
   final outcomesMap = <String, String>{};
+  final recordsMap = <String, AttendanceRecordItem>{};
   for (final entry in attendanceMap.entries) {
     outcomesMap[entry.key] = entry.value.outcome;
+    recordsMap[entry.key] = AttendanceRecordItem(
+      outcome: entry.value.outcome,
+      markedAt: entry.value.markedAt,
+      notes: entry.value.notes,
+      cancellationReason: entry.value.cancellationReason,
+    );
   }
 
   final exceptions = ref.watch(scheduleExceptionsProvider);
@@ -1164,6 +1221,7 @@ final resolvedDayScheduleProvider = Provider.family<List<ClassSessionEntity>, Da
     exceptions: exceptions,
     extraClasses: extraClasses,
     existingOutcomes: outcomesMap,
+    existingRecords: recordsMap,
   );
 });
 
