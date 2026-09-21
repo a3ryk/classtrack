@@ -514,6 +514,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Row(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             Expanded(
                                               child: Text(
@@ -524,16 +525,21 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                                                   color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                                                   letterSpacing: -0.2,
                                                 ),
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
                                               ),
                                             ),
                                             const SizedBox(width: 8),
                                             // Category Color Dot
-                                            Container(
-                                              width: 8,
-                                              height: 8,
-                                              decoration: BoxDecoration(
-                                                color: dotColor,
-                                                shape: BoxShape.circle,
+                                            Padding(
+                                              padding: const EdgeInsets.only(top: 4),
+                                              child: Container(
+                                                width: 8,
+                                                height: 8,
+                                                decoration: BoxDecoration(
+                                                  color: dotColor,
+                                                  shape: BoxShape.circle,
+                                                ),
                                               ),
                                             ),
                                           ],
@@ -917,40 +923,46 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '${_fullDayNames[_selectedDayIndex].toUpperCase()} SCHEDULE',
-                style: GoogleFonts.quicksand(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  color: textMuted,
-                  letterSpacing: 0.8,
-                ),
-              ),
-              if (isToday) ...[
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: primaryLight,
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: borderColor, width: 1),
-                  ),
+          Expanded(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
                   child: Text(
-                    'TODAY',
+                    '${_fullDayNames[_selectedDayIndex].toUpperCase()} SCHEDULE',
                     style: GoogleFonts.quicksand(
-                      fontSize: 9.5,
+                      fontSize: 11,
                       fontWeight: FontWeight.w800,
-                      color: primaryAccent,
-                      letterSpacing: 0.5,
+                      color: textMuted,
+                      letterSpacing: 0.8,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (isToday) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: primaryLight,
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: borderColor, width: 1),
+                    ),
+                    child: Text(
+                      'TODAY',
+                      style: GoogleFonts.quicksand(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w800,
+                        color: primaryAccent,
+                        letterSpacing: 0.5,
+                      ),
                     ),
                   ),
-                ),
+                ],
               ],
-            ],
+            ),
           ),
+          const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
             decoration: BoxDecoration(
@@ -1050,99 +1062,105 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
               ),
             ],
           ),
-          child: Row(
-            children: [
-              // Left Time Column
-              SizedBox(
-                width: 64,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      s.startTime,
-                      style: GoogleFonts.quicksand(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: textPrimary,
-                        letterSpacing: -0.4,
-                      ),
-                    ),
-                    const SizedBox(height: 1),
-                    Text(
-                      s.endTime,
-                      style: GoogleFonts.quicksand(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: textMuted,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: timeBadgeBg,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        durationStr,
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Left Time Column
+                SizedBox(
+                  width: 64,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        s.startTime,
                         style: GoogleFonts.quicksand(
-                          fontSize: 9.5,
+                          fontSize: 16,
                           fontWeight: FontWeight.w800,
-                          color: primaryAccent,
+                          color: textPrimary,
+                          letterSpacing: -0.4,
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 1),
+                      Text(
+                        s.endTime,
+                        style: GoogleFonts.quicksand(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: textMuted,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: timeBadgeBg,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          durationStr,
+                          style: GoogleFonts.quicksand(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w800,
+                            color: primaryAccent,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
 
-              // Divider
-              Container(
-                width: 1.5,
-                height: 48,
-                margin: const EdgeInsets.symmetric(horizontal: 14),
-                color: borderColor,
-              ),
+                // Divider
+                Container(
+                  width: 1.5,
+                  margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                  color: borderColor,
+                ),
 
-              // Right Subject Info Column
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Title + Dot Indicator
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            s.subjectName,
-                            style: GoogleFonts.quicksand(
-                              fontSize: 15.5,
-                              fontWeight: FontWeight.w800,
-                              color: textPrimary,
-                              letterSpacing: -0.3,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          width: 10,
-                          height: 10,
-                          decoration: BoxDecoration(
-                            color: dotColor,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: cardBg, width: 2),
-                            boxShadow: [
-                              BoxShadow(
-                                color: borderColor,
-                                spreadRadius: 1,
+                // Right Subject Info Column
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Title + Dot Indicator
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              s.subjectName,
+                              style: GoogleFonts.quicksand(
+                                fontSize: 15.5,
+                                fontWeight: FontWeight.w800,
+                                color: textPrimary,
+                                letterSpacing: -0.3,
                               ),
-                            ],
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
+                          const SizedBox(width: 8),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Container(
+                              width: 10,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                color: dotColor,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: cardBg, width: 2),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: borderColor,
+                                    spreadRadius: 1,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     const SizedBox(height: 7),
 
                     // Tag Chips Row
@@ -1213,8 +1231,9 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildSproutTag({
     required String label,
