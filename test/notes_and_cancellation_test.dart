@@ -12,6 +12,7 @@ import 'package:attendly/presentation/providers/app_state_provider.dart';
 import 'package:attendly/presentation/widgets/cancellation_reason_dialog.dart';
 import 'package:attendly/presentation/widgets/class_info_slider_sheet.dart';
 import 'package:attendly/presentation/widgets/class_note_dialog.dart';
+import 'package:attendly/presentation/widgets/today_class_card.dart';
 
 void main() {
   group('Class Notes & Cancellation Notes Feature Tests', () {
@@ -576,5 +577,157 @@ void main() {
       expect(record, isNotNull);
       expect(record!.notes, 'Dynamic programming practice');
     });
+
+    testWidgets('TodayClassCard: Tapping Cancelled is a direct 1-tap action with no dialog', (tester) async {
+      String? updatedOutcome;
+      final session = ClassSessionEntity(
+        id: 'direct_cancel_1',
+        semesterId: 'sem1',
+        subjectComponentId: 'sub1',
+        subjectName: 'Compiler Design',
+        category: 'THEORY',
+        componentType: 'LECTURE',
+        colorHex: '#4F46E5',
+        sessionDate: '2026-09-22',
+        startTime: '10:00',
+        endTime: '11:00',
+        sessionSource: 'TIMETABLE',
+        status: 'HELD',
+        attendanceOutcome: 'PENDING',
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: TodayClassCard(
+                session: session,
+                onOutcomeChanged: (val) => updatedOutcome = val,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Cancelled'));
+      await tester.pumpAndSettle();
+
+      expect(updatedOutcome, 'CANCELLED');
+      // Verify no dialog was opened
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(find.text('Cancellation Reason'), findsNothing);
+    });
+
+    testWidgets('Classic Theme: ClassInfoSliderSheet shows Add Cancel Reason when session is cancelled with no reason', (tester) async {
+      final session = ClassSessionEntity(
+        id: 'cancel_no_reason_1',
+        semesterId: 'sem1',
+        subjectComponentId: 'sub1',
+        subjectName: 'Computer Networks',
+        category: 'THEORY',
+        componentType: 'LECTURE',
+        colorHex: '#4F46E5',
+        sessionDate: '2026-09-22',
+        startTime: '11:00',
+        endTime: '12:00',
+        sessionSource: 'TIMETABLE',
+        status: 'HELD',
+        attendanceOutcome: 'CANCELLED',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (ctx) => ElevatedButton(
+                onPressed: () => ClassInfoSliderSheet.show(ctx, session),
+                child: const Text('Open'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Computer Networks'), findsOneWidget);
+      expect(find.text('Add Cancel Reason'), findsNWidgets(2)); // Card in body + primary button
+    });
+
+    testWidgets('Sprouts Theme: ClassInfoSliderSheet shows Add Cancel Reason when session is cancelled with no reason', (tester) async {
+      final session = ClassSessionEntity(
+        id: 'cancel_sprout_no_reason_1',
+        semesterId: 'sem1',
+        subjectComponentId: 'sub1',
+        subjectName: 'Computer Networks',
+        category: 'THEORY',
+        componentType: 'LECTURE',
+        colorHex: '#4F46E5',
+        sessionDate: '2026-09-22',
+        startTime: '11:00',
+        endTime: '12:00',
+        sessionSource: 'TIMETABLE',
+        status: 'HELD',
+        attendanceOutcome: 'CANCELLED',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(extensions: [AppThemeTokens.cuteSproutLight]),
+          home: Scaffold(
+            body: Builder(
+              builder: (ctx) => ElevatedButton(
+                onPressed: () => ClassInfoSliderSheet.show(ctx, session),
+                child: const Text('Open Cute'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open Cute'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Computer Networks'), findsOneWidget);
+      expect(find.text('Add Cancel Reason'), findsNWidgets(2)); // Card in body + primary button
+    });
+
+    testWidgets('CancellationReasonDialog shows Cancel instead of Skip Reason and tapping Cancel dismisses dialog', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (ctx) => ElevatedButton(
+                  onPressed: () => CancellationReasonDialog.show(
+                    ctx,
+                    sessionId: 'sess_cancel_test',
+                    slotId: 'slot_1',
+                    subjectId: 'sub_1',
+                    sessionDate: '2026-09-22',
+                    subjectName: 'Operating Systems',
+                  ),
+                  child: const Text('Show Dialog'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Show Dialog'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Cancel'), findsOneWidget);
+      expect(find.text('Skip Reason'), findsNothing);
+      expect(find.text('Save Reason'), findsOneWidget);
+
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Cancel'), findsNothing);
+    });
   });
 }
+

@@ -200,7 +200,7 @@ void main() {
             userProfileProvider.overrideWith((ref) => FakeUserProfileNotifier('Hirok')),
             overallStatsProvider.overrideWithValue(stats),
             resolvedDayScheduleProvider(targetDate).overrideWithValue(sampleSessions),
-            realtimeClockProvider.overrideWith((ref) => Stream.value(DateTime.now())),
+            realtimeClockProvider.overrideWith((ref) => Stream.value(DateTime(targetDate.year, targetDate.month, targetDate.day, 9, 30))),
           ],
           child: MaterialApp(
             theme: cuteTheme,
@@ -518,7 +518,7 @@ void main() {
               subjectStats: [],
             )),
             resolvedDayScheduleProvider(now).overrideWithValue(sampleSessions),
-            realtimeClockProvider.overrideWith((ref) => Stream.value(now)),
+            realtimeClockProvider.overrideWith((ref) => Stream.value(DateTime(now.year, now.month, now.day, 8, 30))),
           ],
           child: MaterialApp(
             theme: cuteTheme,
@@ -796,8 +796,8 @@ void main() {
       expect(cuteDef.assets.navSettings, isNotNull);
 
       final classicDef = AppThemeRegistry.getTheme('classic_indigo');
-      expect(classicDef.navItems.length, 4);
-      expect(classicDef.navItems.map((e) => e.label).toList(), ['Today', 'Analytics', 'Timetable', 'Calendar']);
+      expect(classicDef.navItems.length, 5);
+      expect(classicDef.navItems.map((e) => e.label).toList(), ['Today', 'Timetable', 'Calendar', 'Analytics', 'Settings']);
     });
 
     testWidgets('MainShell renders SproutFloatingNavBar with 5 tabs in cute theme', (tester) async {
@@ -830,6 +830,51 @@ void main() {
       expect(find.text('Calendar'), findsOneWidget);
       expect(find.text('Analytics'), findsOneWidget);
       expect(find.text('Settings'), findsOneWidget);
+
+      await db.close();
+    });
+
+    testWidgets('MainShell renders 5 tabs in classic theme and TodayScreen has NO settings button in header', (tester) async {
+      final db = AppDatabase.inMemory();
+
+      final classicTheme = AppTheme.buildTheme(
+        brightness: Brightness.light,
+        styleId: 'classic_indigo',
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+            appThemeStyleProvider.overrideWith((ref) => FakeThemeStyleNotifier(ref, 'classic_indigo')),
+            realtimeClockProvider.overrideWith((ref) => Stream.value(DateTime.now())),
+          ],
+          child: MaterialApp(
+            theme: classicTheme,
+            home: const MainShell(),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Verify all 5 classic nav tabs exist
+      expect(find.text('Today'), findsOneWidget);
+      expect(find.text('Timetable'), findsOneWidget);
+      expect(find.text('Calendar'), findsOneWidget);
+      expect(find.text('Analytics'), findsOneWidget);
+      expect(find.text('Settings'), findsOneWidget);
+
+      // Verify NO settings button exists inside TodayScreen header
+      expect(find.descendant(of: find.byType(TodayScreen), matching: find.byIcon(Icons.settings_outlined)), findsNothing);
+
+      // Tap Settings in the bottom nav bar
+      await tester.tap(find.text('Settings'));
+      await tester.pumpAndSettle();
+
+      // Verify SettingsScreen is rendered without back button
+      expect(find.byType(SettingsScreen), findsOneWidget);
+      expect(find.byIcon(Icons.chevron_left_rounded), findsNothing);
 
       await db.close();
     });

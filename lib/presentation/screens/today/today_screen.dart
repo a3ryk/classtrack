@@ -19,12 +19,12 @@ import '../../widgets/semester_transition_wizard.dart';
 import '../../widgets/declare_holiday_dialog.dart';
 import '../../widgets/add_extra_class_sheet.dart';
 import '../../widgets/class_note_dialog.dart';
+import '../../widgets/cancellation_reason_dialog.dart';
 import '../../../domain/services/schedule_engine.dart';
 import '../schedule/add_edit_slot_screen.dart';
 import '../schedule/manage_subject_slots_screen.dart';
 import '../schedule/reschedule_session_screen.dart';
 import '../schedule/subject_room_manager_screen.dart';
-import '../settings/settings_screen.dart';
 import 'sprout_today_view.dart';
 
 class TodayScreen extends ConsumerStatefulWidget {
@@ -287,43 +287,26 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                                   )
                                 : const SizedBox.shrink(),
                           ),
-                          Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: TactileIconButton(
-                              icon: isSelectedDateHoliday ? Icons.beach_access_rounded : Icons.beach_access_outlined,
-                              iconSize: 18,
-                              size: 38,
-                              backgroundColor: isSelectedDateHoliday
-                                  ? (isDark ? const Color(0xFF78350F).withValues(alpha: 0.4) : const Color(0xFFFEF3C7))
-                                  : (isDark ? AppColors.cardDark : Colors.white),
-                              borderColor: isSelectedDateHoliday
-                                  ? (isDark ? const Color(0xFFB45309).withValues(alpha: 0.5) : const Color(0xFFFDE68A))
-                                  : (isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
-                              iconColor: isSelectedDateHoliday
-                                  ? const Color(0xFFD97706)
-                                  : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
-                              onTap: () {
-                                if (isSelectedDateHoliday) {
-                                  ref.read(holidaysProvider.notifier).removeHolidayForDate(selectedDateIso);
-                                  AppToast.info(context, 'Holiday removed for $selectedDateIso');
-                                } else {
-                                  DeclareHolidaySheet.show(context, initialDate: _selectedDate);
-                                }
-                              },
-                            ),
-                          ),
                           TactileIconButton(
-                            icon: Icons.settings_outlined,
-                            iconSize: 19,
+                            icon: isSelectedDateHoliday ? Icons.beach_access_rounded : Icons.beach_access_outlined,
+                            iconSize: 18,
                             size: 38,
-                            backgroundColor: isDark ? AppColors.cardDark : Colors.white,
-                            borderColor: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
-                            iconColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                            backgroundColor: isSelectedDateHoliday
+                                ? (isDark ? const Color(0xFF78350F).withValues(alpha: 0.4) : const Color(0xFFFEF3C7))
+                                : (isDark ? AppColors.cardDark : Colors.white),
+                            borderColor: isSelectedDateHoliday
+                                ? (isDark ? const Color(0xFFB45309).withValues(alpha: 0.5) : const Color(0xFFFDE68A))
+                                : (isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
+                            iconColor: isSelectedDateHoliday
+                                ? const Color(0xFFD97706)
+                                : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
                             onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => const SettingsScreen()),
-                              );
+                              if (isSelectedDateHoliday) {
+                                ref.read(holidaysProvider.notifier).removeHolidayForDate(selectedDateIso);
+                                AppToast.info(context, 'Holiday removed for $selectedDateIso');
+                              } else {
+                                DeclareHolidaySheet.show(context, initialDate: _selectedDate);
+                              }
                             },
                           ),
                         ],
@@ -463,6 +446,53 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                     style: TextStyle(fontSize: 12, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
                   ),
                   const SizedBox(height: 16),
+
+                  if (session.attendanceOutcome == 'CANCELLED') ...[
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF2E1065) : AppColors.cancelledContainerLight,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.block_rounded,
+                          size: 16,
+                          color: isDark ? const Color(0xFFA78BFA) : AppColors.cancelledVioletText,
+                        ),
+                      ),
+                      title: Text(
+                        session.cancellationReason != null && session.cancellationReason!.trim().isNotEmpty
+                            ? 'Cancellation Reason'
+                            : 'Add Cancel Reason',
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Text(
+                        session.cancellationReason != null && session.cancellationReason!.trim().isNotEmpty
+                            ? session.cancellationReason!
+                            : 'Add reason or details for cancelled class',
+                        style: const TextStyle(fontSize: 11),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing: const Icon(Icons.chevron_right_rounded, size: 18),
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        CancellationReasonDialog.show(
+                          context,
+                          sessionId: session.id,
+                          slotId: session.sourceRefId ?? session.id,
+                          subjectId: session.subjectComponentId,
+                          sessionDate: dateIso,
+                          subjectName: session.subjectName,
+                          initialReason: session.cancellationReason,
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 4),
+                  ],
 
                   ListTile(
                     dense: true,
@@ -875,6 +905,36 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                   const SizedBox(height: 18),
 
                   // Action Cards
+                  if (session.attendanceOutcome == 'CANCELLED') ...[
+                    _buildSproutActionCard(
+                      context: context,
+                      tokens: tokens,
+                      isDark: isDark,
+                      icon: Icons.block_rounded,
+                      iconBg: isDark ? const Color(0xFF2E1065) : const Color(0xFFEDE9FE),
+                      iconColor: isDark ? const Color(0xFFA78BFA) : const Color(0xFF7C3AED),
+                      title: session.cancellationReason != null && session.cancellationReason!.trim().isNotEmpty
+                          ? 'Cancellation Reason'
+                          : 'Add Cancel Reason',
+                      subtitle: session.cancellationReason != null && session.cancellationReason!.trim().isNotEmpty
+                          ? session.cancellationReason!
+                          : 'Add reason or details for cancelled class',
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        Navigator.pop(ctx);
+                        CancellationReasonDialog.show(
+                          context,
+                          sessionId: session.id,
+                          slotId: session.sourceRefId ?? session.id,
+                          subjectId: session.subjectComponentId,
+                          sessionDate: dateIso,
+                          subjectName: session.subjectName,
+                          initialReason: session.cancellationReason,
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                   _buildSproutActionCard(
                     context: context,
                     tokens: tokens,

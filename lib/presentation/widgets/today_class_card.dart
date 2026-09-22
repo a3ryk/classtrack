@@ -6,7 +6,6 @@ import '../../core/constants/app_theme_tokens.dart';
 import '../../core/utils/date_formatter.dart';
 import '../../domain/entities/class_session_entity.dart';
 import '../providers/app_state_provider.dart';
-import 'cancellation_reason_dialog.dart';
 import 'class_info_slider_sheet.dart';
 
 class TodayClassCard extends ConsumerWidget {
@@ -316,17 +315,7 @@ class TodayClassCard extends ConsumerWidget {
                             idleBgColor: isDark ? const Color(0xFF2E1065).withValues(alpha: 0.25) : AppColors.cancelledContainerLight,
                             idleTextColor: isDark ? const Color(0xFFA78BFA) : AppColors.cancelledVioletText,
                             borderRadius: buttonRadius,
-                            onTap: () {
-                              CancellationReasonDialog.show(
-                                context,
-                                sessionId: session.id,
-                                slotId: session.sourceRefId ?? session.id,
-                                subjectId: session.subjectComponentId,
-                                sessionDate: session.sessionDate,
-                                subjectName: session.subjectName,
-                                initialReason: session.cancellationReason,
-                              );
-                            },
+                            onTap: () => onOutcomeChanged('CANCELLED'),
                           ),
                         ),
                       ],

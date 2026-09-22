@@ -1280,15 +1280,14 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                             label: const Text('Cancelled', style: TextStyle(fontWeight: FontWeight.w600)),
                             onPressed: () {
                               Navigator.pop(context);
-                              CancellationReasonDialog.show(
-                                context,
+                              ref.read(attendanceRecordsProvider.notifier).markAttendance(
                                 sessionId: session.id,
                                 slotId: session.sourceRefId ?? session.id,
                                 subjectId: session.subjectComponentId,
                                 sessionDate: dateIso,
-                                subjectName: session.subjectName,
-                                initialReason: session.cancellationReason,
+                                outcome: 'CANCELLED',
                               );
+                              AppToast.info(context, 'Marked Cancelled for ${session.subjectName}');
                             },
                           ),
                         ),
@@ -1308,6 +1307,53 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                     ),
                   ),
                   const SizedBox(height: 8),
+
+                  if (session.attendanceOutcome == 'CANCELLED') ...[
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF2E1065) : AppColors.cancelledContainerLight,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.block_rounded,
+                          size: 16,
+                          color: isDark ? const Color(0xFFA78BFA) : AppColors.cancelledVioletText,
+                        ),
+                      ),
+                      title: Text(
+                        session.cancellationReason != null && session.cancellationReason!.trim().isNotEmpty
+                            ? 'Cancellation Reason'
+                            : 'Add Cancel Reason',
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Text(
+                        session.cancellationReason != null && session.cancellationReason!.trim().isNotEmpty
+                            ? session.cancellationReason!
+                            : 'Add reason or details for cancelled class',
+                        style: const TextStyle(fontSize: 11),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing: const Icon(Icons.chevron_right_rounded, size: 18),
+                      onTap: () {
+                        Navigator.pop(context);
+                        CancellationReasonDialog.show(
+                          context,
+                          sessionId: session.id,
+                          slotId: session.sourceRefId ?? session.id,
+                          subjectId: session.subjectComponentId,
+                          sessionDate: dateIso,
+                          subjectName: session.subjectName,
+                          initialReason: session.cancellationReason,
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 4),
+                  ],
 
                   ListTile(
                     dense: true,
@@ -2783,15 +2829,14 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                             ),
                             onPressed: () {
                               Navigator.pop(context);
-                              CancellationReasonDialog.show(
-                                context,
+                              ref.read(attendanceRecordsProvider.notifier).markAttendance(
                                 sessionId: session.id,
                                 slotId: session.sourceRefId ?? session.id,
                                 subjectId: session.subjectComponentId,
                                 sessionDate: dateIso,
-                                subjectName: session.subjectName,
-                                initialReason: session.cancellationReason,
+                                outcome: 'CANCELLED',
                               );
+                              AppToast.info(context, 'Marked Cancelled for ${session.subjectName}');
                             },
                           ),
                         ),
@@ -2811,6 +2856,61 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                     ),
                   ),
                   const SizedBox(height: 10),
+
+                  if (session.attendanceOutcome == 'CANCELLED') ...[
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF2E1065) : const Color(0xFFEDE9FE),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          Icons.block_rounded,
+                          size: 16,
+                          color: isDark ? const Color(0xFFA78BFA) : const Color(0xFF7C3AED),
+                        ),
+                      ),
+                      title: Text(
+                        session.cancellationReason != null && session.cancellationReason!.trim().isNotEmpty
+                            ? 'Cancellation Reason'
+                            : 'Add Cancel Reason',
+                        style: GoogleFonts.quicksand(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700,
+                          color: textPrimary,
+                        ),
+                      ),
+                      subtitle: Text(
+                        session.cancellationReason != null && session.cancellationReason!.trim().isNotEmpty
+                            ? session.cancellationReason!
+                            : 'Add reason or details for cancelled class',
+                        style: GoogleFonts.quicksand(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: textSecondary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing: Icon(Icons.chevron_right_rounded, size: 18, color: textSecondary),
+                      onTap: () {
+                        Navigator.pop(context);
+                        CancellationReasonDialog.show(
+                          context,
+                          sessionId: session.id,
+                          slotId: session.sourceRefId ?? session.id,
+                          subjectId: session.subjectComponentId,
+                          sessionDate: dateIso,
+                          subjectName: session.subjectName,
+                          initialReason: session.cancellationReason,
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 4),
+                  ],
 
                   ListTile(
                     dense: true,

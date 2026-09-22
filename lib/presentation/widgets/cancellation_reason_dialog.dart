@@ -97,21 +97,19 @@ class _CancellationReasonDialogState extends ConsumerState<CancellationReasonDia
     super.dispose();
   }
 
-  void _save({bool skip = false}) {
+  void _save() {
     String? reason;
-    if (!skip) {
-      final customDetail = _detailController.text.trim();
-      if (_selectedPreset != null && _selectedPreset!.isNotEmpty) {
-        if (_selectedPreset == 'Other') {
-          reason = customDetail.isNotEmpty ? customDetail : 'Other Reason';
-        } else {
-          reason = customDetail.isNotEmpty
-              ? '$_selectedPreset: $customDetail'
-              : _selectedPreset;
-        }
-      } else if (customDetail.isNotEmpty) {
-        reason = customDetail;
+    final customDetail = _detailController.text.trim();
+    if (_selectedPreset != null && _selectedPreset!.isNotEmpty) {
+      if (_selectedPreset == 'Other') {
+        reason = customDetail.isNotEmpty ? customDetail : 'Other Reason';
+      } else {
+        reason = customDetail.isNotEmpty
+            ? '$_selectedPreset: $customDetail'
+            : _selectedPreset;
       }
+    } else if (customDetail.isNotEmpty) {
+      reason = customDetail;
     }
 
     ref.read(attendanceRecordsProvider.notifier).markAttendance(
@@ -328,14 +326,14 @@ class _CancellationReasonDialogState extends ConsumerState<CancellationReasonDia
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => _save(skip: true),
+                    onPressed: () => Navigator.pop(context),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       side: BorderSide(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                     child: Text(
-                      'Skip Reason',
+                      'Cancel',
                       style: TextStyle(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w600,
@@ -347,7 +345,7 @@ class _CancellationReasonDialogState extends ConsumerState<CancellationReasonDia
                 const SizedBox(width: 10),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () => _save(skip: false),
+                    onPressed: _save,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: isDark ? const Color(0xFF7C3AED) : AppColors.cancelledViolet,
                       foregroundColor: Colors.white,
@@ -570,7 +568,7 @@ class _CancellationReasonDialogState extends ConsumerState<CancellationReasonDia
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => _save(skip: true),
+                    onPressed: () => Navigator.pop(context),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 13),
                       side: BorderSide(color: tokens.cardBorder, width: 1.2),
@@ -579,7 +577,7 @@ class _CancellationReasonDialogState extends ConsumerState<CancellationReasonDia
                       ),
                     ),
                     child: Text(
-                      'Skip Reason',
+                      'Cancel',
                       style: GoogleFonts.quicksand(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w700,
@@ -591,7 +589,7 @@ class _CancellationReasonDialogState extends ConsumerState<CancellationReasonDia
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () => _save(skip: false),
+                    onPressed: _save,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF7C3AED),
                       foregroundColor: Colors.white,

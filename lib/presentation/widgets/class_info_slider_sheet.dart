@@ -261,8 +261,75 @@ class ClassInfoSliderSheet extends StatelessWidget {
             const SizedBox(height: 16),
           ],
 
+          if (session.attendanceOutcome == 'CANCELLED' && !hasCancellationReason) ...[
+            InkWell(
+              onTap: () {
+                Navigator.pop(context);
+                CancellationReasonDialog.show(
+                  context,
+                  sessionId: session.id,
+                  slotId: session.sourceRefId ?? session.id,
+                  subjectId: session.subjectComponentId,
+                  sessionDate: session.sessionDate,
+                  subjectName: session.subjectName,
+                  initialReason: session.cancellationReason,
+                );
+              },
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF2E1065).withValues(alpha: 0.3) : const Color(0xFFF5F3FF),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isDark ? const Color(0xFF6D28D9) : const Color(0xFFDDD6FE),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.add_circle_outline_rounded,
+                      size: 18,
+                      color: isDark ? const Color(0xFFA78BFA) : const Color(0xFF7C3AED),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Add Cancel Reason',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? const Color(0xFFA78BFA) : const Color(0xFF7C3AED),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Record reason or details for this cancellation',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      size: 18,
+                      color: isDark ? const Color(0xFFA78BFA) : const Color(0xFF7C3AED),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+
           // Fallback if neither exists
-          if (!hasCancellationReason && !hasNote) ...[
+          if (!hasCancellationReason && !hasNote && session.attendanceOutcome != 'CANCELLED') ...[
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 20),
               child: Center(
@@ -326,7 +393,9 @@ class ClassInfoSliderSheet extends StatelessWidget {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                   child: Text(
-                    session.attendanceOutcome == 'CANCELLED' ? 'Edit Reason' : 'Edit Note',
+                    session.attendanceOutcome == 'CANCELLED'
+                        ? (hasCancellationReason ? 'Edit Reason' : 'Add Cancel Reason')
+                        : (hasNote ? 'Edit Note' : 'Add Note'),
                     style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -578,8 +647,84 @@ class ClassInfoSliderSheet extends StatelessWidget {
             const SizedBox(height: 16),
           ],
 
+          if (session.attendanceOutcome == 'CANCELLED' && !hasCancellationReason) ...[
+            InkWell(
+              onTap: () {
+                Navigator.pop(context);
+                CancellationReasonDialog.show(
+                  context,
+                  sessionId: session.id,
+                  slotId: session.sourceRefId ?? session.id,
+                  subjectId: session.subjectComponentId,
+                  sessionDate: session.sessionDate,
+                  subjectName: session.subjectName,
+                  initialReason: session.cancellationReason,
+                );
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF2E1065).withValues(alpha: 0.4) : const Color(0xFFFAF5FF),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isDark ? const Color(0xFF7C3AED) : const Color(0xFFE9D5FF),
+                    width: 1.2,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF3B1A75) : const Color(0xFFEDE9FE),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        Icons.add_rounded,
+                        size: 18,
+                        color: isDark ? const Color(0xFFA78BFA) : const Color(0xFF7C3AED),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Add Cancel Reason',
+                            style: GoogleFonts.quicksand(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? const Color(0xFFA78BFA) : const Color(0xFF7C3AED),
+                            ),
+                          ),
+                          const SizedBox(height: 1),
+                          Text(
+                            'Record reason or details for this cancellation',
+                            style: GoogleFonts.quicksand(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: tokens.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      size: 20,
+                      color: isDark ? const Color(0xFFA78BFA) : const Color(0xFF7C3AED),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+
           // If neither exists (fallback empty state)
-          if (!hasCancellationReason && !hasNote) ...[
+          if (!hasCancellationReason && !hasNote && session.attendanceOutcome != 'CANCELLED') ...[
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 20),
               child: Center(
@@ -651,7 +796,9 @@ class ClassInfoSliderSheet extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    session.attendanceOutcome == 'CANCELLED' ? 'Edit Reason' : 'Edit Note',
+                    session.attendanceOutcome == 'CANCELLED'
+                        ? (hasCancellationReason ? 'Edit Reason' : 'Add Cancel Reason')
+                        : (hasNote ? 'Edit Note' : 'Add Note'),
                     style: GoogleFonts.quicksand(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
