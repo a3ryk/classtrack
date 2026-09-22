@@ -1,25 +1,26 @@
 {
-  "latest_version": "2.0.0-alpha.2",
-  "build_number": 16,
+  "latest_version": "2.0.0-alpha.3",
+  "build_number": 17,
   "min_supported_version": "0.0.1",
   "release_date": "2026-09-22",
-  "release_title": "Attendly v2.0.0-alpha.2 (Class Notes, Dynamic Hero Timing & Info Badges)",
+  "release_title": "Attendly v2.0.0-alpha.3 (Attendance Notification Redesign, In-App Share & Rich Markdown Updater)",
   "changelog": [
-    "✨ Dynamic Hero Timing: Sprout Today screen distinguishes between 'Ongoing Class' and 'Next Class' in real time with smooth minute cross-fade transitions.",
-    "✨ Smart Cancelled Class Handling: Marking a class as cancelled seamlessly shifts the hero view to the next upcoming session without page reloads.",
-    "✨ Option C Corner Info Action: Relocated session info badges to the top-right corner across Today, Calendar, and Schedule screens for clean visual balance.",
-    "✨ Class Notes & Cancellation Reasons: Add, edit, and persist rich notes and cancellation reasons per session in the SQLite database.",
-    "✨ Class Info Slider Sheet: Bottom sheet providing instant access to full session timing, room, teacher, notes, and cancellation details.",
-    "✨ Seamless Backup & Migration: Full backup schema support for class notes and reasons; safe migration guidelines for users upgrading from older package releases."
+    "✨ Notification Redesign: Universal symbol actions (✓ Present, ✕ Absent, ⊘ Cancelled) with BigTextStyle auto-expansion for long subject names.",
+    "✨ Stage 1 Auto-Dismissal: Reminder notifications automatically dismiss when the class conclusion prompt arrives, preventing notification clutter.",
+    "✨ Smart Early-Mark Completion Notice: Clean confirmation alert when attendance was already recorded at the start of class, controllable via Notification Settings.",
+    "✨ Developer Tools Notification Sandbox: Live notification simulator in Developer Tools with customizable subject name input and length presets.",
+    "✨ Sprouts Header Share: Relocated share action to the Sprout theme header with interactive slider sheet, QR preview, and 1-tap link sharing.",
+    "✨ Stacked GitHub Alert Cards: Native parsing and rendering of sequential GitHub alerts ([!NOTE], [!TIP], [!IMPORTANT], [!WARNING], [!CAUTION]) in the in-app updater.",
+    "✨ Quick Cancellation & Session Notes: Instant cancellation reason dialog and slide-out metadata drawer across all screens."
   ],
-  "download_url": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.2/Attendly-v2.0.0-alpha.2.apk",
+  "download_url": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.3/Attendly-v2.0.0-alpha.3.apk",
   "abi_assets": {
-    "arm64-v8a": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.2/app-arm64-v8a-release.apk",
-    "armeabi-v7a": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.2/app-armeabi-v7a-release.apk",
-    "x86_64": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.2/app-x86_64-release.apk",
-    "universal": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.2/Attendly-v2.0.0-alpha.2.apk"
+    "arm64-v8a": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.3/app-arm64-v8a-release.apk",
+    "armeabi-v7a": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.3/app-armeabi-v7a-release.apk",
+    "x86_64": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.3/app-x86_64-release.apk",
+    "universal": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.3/Attendly-v2.0.0-alpha.3.apk"
   },
-  "release_page_url": "https://github.com/a3ryk/classtrack/releases/tag/v2.0.0-alpha.2",
+  "release_page_url": "https://github.com/a3ryk/classtrack/releases/tag/v2.0.0-alpha.3",
   "is_mandatory": false,
   "warning_message": null
 }

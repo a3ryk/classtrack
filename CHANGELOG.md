@@ -5,6 +5,30 @@ All notable changes to **ClassTrack** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0-alpha.3] - 2026-09-22
+
+### Attendance Notification Redesign & Smart Flow
+- **Option A Visual Actions**: Replaced wordy actions with universal symbol actions (`✓ Present`, `✕ Absent`, `⊘ Cancelled`) that look sharp and legible across light and dark system notification shades.
+- **BigTextStyle Auto-Expansion**: Long subject names expand cleanly in system notifications without ellipsis truncation.
+- **Stage 1 Auto-Dismissal**: Configured reminder notifications to auto-dismiss via timeout when the end-of-class prompt arrives, eliminating duplicate stacked notifications.
+- **Smart Early-Mark Completion Notice**: When attendance is recorded prior to class completion, Stage 2 notifies with a clean completion notice (*"Class has ended • You already marked your attendance as Present at the start of class"*) without prompt buttons.
+- **Settings Toggle**: Added "Notify If Already Marked" toggle in both Classic and Sprouts notification settings.
+- **Developer Tools Sandbox**: Full test notification simulator with live customizable subject name input and length presets.
+
+### Sprout Header Share & Interactive Slider Sheet
+- **Relocated Header Share Action**: Replaced redundant settings icons in the Sprout theme header with a direct Share action.
+- **Interactive Share Sheet**: Built `ShareAppSliderSheet` bottom sheet with 1-tap link copying, native Android sharing (`share_plus`), and QR preview.
+
+### Sequential GitHub Alert Cards & In-App Updater
+- **Sequential Alert Callouts**: Native parsing and rendering of stacked GitHub alerts (`[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`) with custom tint icons and borders.
+- **Rich Markdown Formatting**: Preserves full formatting across release dialogs and What's New screens without truncation.
+
+### Non-Mandatory Upgrade & Migration Safety
+- **Non-Mandatory Release**: Configured `is_mandatory: false` and `min_supported_version: 0.0.1` so existing installations continue running without lockout.
+- **Pre-v2.0.0 Migration Guidance**: Clear 3-step export/restore instructions for users migrating from `com.classtrack.app`.
+
+---
+
 ## [2.0.0-alpha.2] - 2026-09-22
 
 ### Dynamic Hero Timing & Class Lifecycle

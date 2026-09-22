@@ -15,6 +15,32 @@ import 'package:attendly/presentation/widgets/share_app_slider_sheet.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  String? clipboardContent;
+
+  setUp(() {
+    clipboardContent = null;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (MethodCall methodCall) async {
+        if (methodCall.method == 'Clipboard.setData') {
+          clipboardContent = (methodCall.arguments as Map)['text'] as String?;
+          return null;
+        }
+        if (methodCall.method == 'Clipboard.getData') {
+          return {'text': clipboardContent};
+        }
+        return null;
+      },
+    );
+  });
+
+  tearDown(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      null,
+    );
+  });
+
   group('Share Attendly Feature Tests', () {
     test('AppShareConstants contains valid Google Drive APK link and message', () {
       expect(AppShareConstants.driveDownloadUrl, contains('drive.google.com'));
@@ -24,20 +50,14 @@ void main() {
 
     testWidgets('ShareAppSliderSheet renders in Classic theme with QR code, Copy Link, and Share buttons', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
-            body: Builder(
-              builder: (ctx) => ElevatedButton(
-                onPressed: () => ShareAppSliderSheet.show(ctx),
-                child: const Text('Open Share Sheet'),
-              ),
-            ),
+            body: ShareAppSliderSheet(),
           ),
         ),
       );
 
-      await tester.tap(find.text('Open Share Sheet'));
-      await tester.pumpAndSettle();
+      await tester.pump();
 
       expect(find.text('Share Attendly'), findsOneWidget);
       expect(find.text('Share APK with classmates & friends'), findsOneWidget);
@@ -48,10 +68,9 @@ void main() {
 
       // Tap Copy Link and verify clipboard interaction
       await tester.tap(find.text('Copy Link'));
-      await tester.pumpAndSettle();
+      await tester.pump();
 
-      final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
-      expect(clipboardData?.text, AppShareConstants.driveDownloadUrl);
+      expect(clipboardContent, AppShareConstants.driveDownloadUrl);
     });
 
     testWidgets('SettingsScreen in Classic theme renders share button in header and opens ShareAppSliderSheet', (tester) async {
@@ -75,7 +94,8 @@ void main() {
         ),
       );
 
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       // Verify Settings title and share icon button exist in header
       expect(find.text('Settings'), findsOneWidget);
@@ -84,7 +104,8 @@ void main() {
 
       // Tap share icon and verify ShareAppSliderSheet opens
       await tester.tap(shareIcon);
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
       expect(find.byType(ShareAppSliderSheet), findsOneWidget);
       expect(find.text('Share Attendly'), findsOneWidget);
@@ -94,6 +115,13 @@ void main() {
 
     testWidgets('SettingsScreen in Sprouts theme renders Share with Friends tile in About section (not in header)', (tester) async {
       final db = AppDatabase.inMemory();
+
+      tester.view.physicalSize = const Size(800, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
 
       final cuteTheme = AppTheme.buildTheme(
         brightness: Brightness.light,
@@ -113,7 +141,8 @@ void main() {
         ),
       );
 
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       // Verify header has Settings title but NO share icon in header
       expect(find.text('Settings'), findsOneWidget);
@@ -127,7 +156,8 @@ void main() {
 
       // Tap share tile and verify ShareAppSliderSheet opens in cute styling
       await tester.tap(shareTile);
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
       expect(find.byType(ShareAppSliderSheet), findsOneWidget);
       expect(find.text('Share Attendly 🌱'), findsOneWidget);

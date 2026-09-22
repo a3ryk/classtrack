@@ -4,9 +4,27 @@ import '../services/app_update_service.dart';
 class AppReleaseNotes {
   AppReleaseNotes._();
 
-  static const String currentVersion = '2.0.0-alpha.2';
+  static const String currentVersion = '2.0.0-alpha.3';
 
   static final Map<String, AppReleaseInfo> _releases = {
+    '2.0.0-alpha.3': const AppReleaseInfo(
+      latestVersion: '2.0.0-alpha.3',
+      buildNumber: 17,
+      minSupportedVersion: '0.0.1',
+      releaseDate: 'September 2026',
+      releaseTitle: 'Attendly v2.0.0-alpha.3 (Attendance Notification Redesign, In-App Share & Rich Markdown Updater)',
+      changelog: [
+        '✨ Notification Redesign: Universal symbol actions (✓ Present, ✕ Absent, ⊘ Cancelled) with BigTextStyle auto-expansion for long subject names.',
+        '✨ Stage 1 Auto-Dismissal: Reminder notifications automatically dismiss when the class conclusion prompt arrives, preventing notification clutter.',
+        '✨ Smart Early-Mark Completion Notice: Clean confirmation alert when attendance was already recorded at the start of class, controllable via Notification Settings.',
+        '✨ Developer Tools Notification Sandbox: Live notification simulator in Developer Tools with customizable subject name input and length presets.',
+        '✨ Sprouts Header Share: Relocated share action to the Sprout theme header with interactive slider sheet, QR preview, and 1-tap link sharing.',
+        '✨ Stacked GitHub Alert Cards: Native parsing and rendering of sequential GitHub alerts ([!NOTE], [!TIP], [!IMPORTANT], [!WARNING], [!CAUTION]) in the in-app updater.',
+        '✨ Quick Cancellation & Session Notes: Instant cancellation reason dialog and slide-out metadata drawer across all screens.',
+      ],
+      isMandatory: false,
+      warningMessage: null,
+    ),
     '2.0.0-alpha.2': const AppReleaseInfo(
       latestVersion: '2.0.0-alpha.2',
       buildNumber: 16,

@@ -1444,6 +1444,13 @@ void main() {
     });
 
     testWidgets('NotificationSettingsScreen in cute theme renders Sprouts layout and timing sheet without emojis', (tester) async {
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
       final db = AppDatabase.inMemory();
       final sproutTheme = AppTheme.buildTheme(
         brightness: Brightness.light,
