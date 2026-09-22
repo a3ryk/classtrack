@@ -7,6 +7,7 @@ import '../../core/constants/update_constants.dart';
 import '../../core/services/app_update_service.dart';
 import '../../core/constants/app_theme_tokens.dart';
 import '../../core/ui/app_toast.dart';
+import 'release_alert_callout_card.dart';
 
 class UpdateAvailableDialog extends StatelessWidget {
   final AppReleaseInfo releaseInfo;
@@ -150,44 +151,26 @@ class UpdateAvailableDialog extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
 
-                // Mandatory notice if applicable
-                if (isMandatory) ...[
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.absentContainerDark : AppColors.absentContainerLight,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: isDark ? AppColors.absentRedDark.withValues(alpha: 0.3) : AppColors.absentRed.withValues(alpha: 0.3),
-                        width: 0.8,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.warning_amber_rounded,
-                          size: 16,
-                          color: isDark ? AppColors.absentRedDark : AppColors.absentRedText,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            releaseInfo.warningMessage ??
-                                (isMandatory
-                                    ? 'Mandatory update required for app stability and features.'
-                                    : 'Important notice for this release.'),
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w600,
-                              color: isDark ? AppColors.absentRedDark : AppColors.absentRedText,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                // Alert callouts (Caution, Warning, Note, Tip, etc.)
+                if (releaseInfo.alertCallouts.isNotEmpty) ...[
+                  ReleaseAlertCalloutsList(
+                    alertCallouts: releaseInfo.alertCallouts,
+                    isCute: false,
+                    isDark: isDark,
+                    onLinkTap: (url) => _launchUrl(context, url),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 4),
+                ] else if (isMandatory) ...[
+                  ReleaseAlertCalloutCard(
+                    callout: ReleaseAlertCallout(
+                      type: AlertCalloutType.caution,
+                      markdown: releaseInfo.warningMessage ?? 'Mandatory update required for app stability and features.',
+                    ),
+                    isCute: false,
+                    isDark: isDark,
+                    onLinkTap: (url) => _launchUrl(context, url),
+                  ),
+                  const SizedBox(height: 4),
                 ],
 
                 // Description Subtitle
@@ -504,42 +487,26 @@ class UpdateAvailableDialog extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
 
-                // Mandatory notice if applicable
-                if (isMandatory) ...[
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.absentContainerDark : AppColors.absentContainerLight,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: isDark ? AppColors.absentRedDark.withValues(alpha: 0.35) : AppColors.absentRed.withValues(alpha: 0.35),
-                        width: 1.0,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.warning_amber_rounded,
-                          size: 18,
-                          color: isDark ? AppColors.absentRedDark : AppColors.absentRedText,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            releaseInfo.warningMessage ??
-                                'Mandatory update required for app stability and features.',
-                            style: GoogleFonts.quicksand(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: isDark ? AppColors.absentRedDark : AppColors.absentRedText,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                // Alert callouts (Caution, Warning, Note, Tip, etc.)
+                if (releaseInfo.alertCallouts.isNotEmpty) ...[
+                  ReleaseAlertCalloutsList(
+                    alertCallouts: releaseInfo.alertCallouts,
+                    isCute: true,
+                    isDark: isDark,
+                    onLinkTap: (url) => _launchUrl(context, url),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 4),
+                ] else if (isMandatory) ...[
+                  ReleaseAlertCalloutCard(
+                    callout: ReleaseAlertCallout(
+                      type: AlertCalloutType.caution,
+                      markdown: releaseInfo.warningMessage ?? 'Mandatory update required for app stability and features.',
+                    ),
+                    isCute: true,
+                    isDark: isDark,
+                    onLinkTap: (url) => _launchUrl(context, url),
+                  ),
+                  const SizedBox(height: 4),
                 ],
 
                 // Description Subtitle

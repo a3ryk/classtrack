@@ -8,6 +8,7 @@ import '../../../core/constants/update_constants.dart';
 import '../../../core/services/app_update_service.dart';
 import '../../../core/constants/app_theme_tokens.dart';
 import '../../../core/ui/app_toast.dart';
+import '../../widgets/release_alert_callout_card.dart';
 
 class UpdateScreen extends StatefulWidget {
   final AppReleaseInfo releaseInfo;
@@ -477,50 +478,25 @@ class _UpdateScreenState extends State<UpdateScreen> {
                           ),
                         ],
                         const SizedBox(height: 16),
-                        if (!widget.isWhatsNewMode && (isMandatory || (widget.releaseInfo.warningMessage != null && widget.releaseInfo.warningMessage!.isNotEmpty))) ...[
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                            decoration: BoxDecoration(
-                              color: isMandatory
-                                  ? (isDark ? AppColors.absentContainerDark : AppColors.absentContainerLight)
-                                  : (isDark ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF)),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: isMandatory
-                                    ? (isDark ? AppColors.absentRedDark.withValues(alpha: 0.35) : AppColors.absentRed.withValues(alpha: 0.35))
-                                    : (isDark ? const Color(0xFF3B82F6).withValues(alpha: 0.35) : const Color(0xFF93C5FD)),
-                                width: 0.8,
-                              ),
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Icon(
-                                  isMandatory ? Icons.warning_amber_rounded : Icons.info_outline_rounded,
-                                  size: 18,
-                                  color: isMandatory
-                                      ? (isDark ? AppColors.absentRedDark : AppColors.absentRedText)
-                                      : (isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB)),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    widget.releaseInfo.warningMessage ?? (isMandatory ? 'Mandatory update required for app stability and features.' : 'Important notice for this release.'),
-                                    style: TextStyle(
-                                      fontSize: 12.5,
-                                      height: 1.4,
-                                      fontWeight: FontWeight.w600,
-                                      color: isMandatory
-                                          ? (isDark ? AppColors.absentRedDark : AppColors.absentRedText)
-                                          : (isDark ? const Color(0xFF93C5FD) : const Color(0xFF1E40AF)),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                        if (widget.releaseInfo.alertCallouts.isNotEmpty) ...[
+                          ReleaseAlertCalloutsList(
+                            alertCallouts: widget.releaseInfo.alertCallouts,
+                            isCute: false,
+                            isDark: isDark,
+                            onLinkTap: _launchUrl,
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 6),
+                        ] else if (!widget.isWhatsNewMode && (isMandatory || (widget.releaseInfo.warningMessage != null && widget.releaseInfo.warningMessage!.isNotEmpty))) ...[
+                          ReleaseAlertCalloutCard(
+                            callout: ReleaseAlertCallout(
+                              type: isMandatory ? AlertCalloutType.caution : AlertCalloutType.warning,
+                              markdown: widget.releaseInfo.warningMessage ?? (isMandatory ? 'Mandatory update required for app stability and features.' : 'Important notice for this release.'),
+                            ),
+                            isCute: false,
+                            isDark: isDark,
+                            onLinkTap: _launchUrl,
+                          ),
+                          const SizedBox(height: 6),
                         ],
                         Text(
                           widget.isWhatsNewMode
@@ -1046,50 +1022,25 @@ class _UpdateScreenState extends State<UpdateScreen> {
                           ),
                         ],
                         const SizedBox(height: 16),
-                        if (!widget.isWhatsNewMode && (isMandatory || (widget.releaseInfo.warningMessage != null && widget.releaseInfo.warningMessage!.isNotEmpty))) ...[
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                            decoration: BoxDecoration(
-                              color: isMandatory
-                                  ? (isDark ? AppColors.absentContainerDark : AppColors.absentContainerLight)
-                                  : badgeBg,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: isMandatory
-                                    ? (isDark ? AppColors.absentRedDark.withValues(alpha: 0.35) : AppColors.absentRed.withValues(alpha: 0.35))
-                                    : badgeBorder,
-                                width: 1.0,
-                              ),
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Icon(
-                                  isMandatory ? Icons.warning_amber_rounded : Icons.info_outline_rounded,
-                                  size: 18,
-                                  color: isMandatory
-                                      ? (isDark ? AppColors.absentRedDark : AppColors.absentRedText)
-                                      : tokens.primaryAccent,
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    widget.releaseInfo.warningMessage ?? (isMandatory ? 'Mandatory update required for app stability and features.' : 'Important notice for this release.'),
-                                    style: GoogleFonts.quicksand(
-                                      fontSize: 12.5,
-                                      height: 1.4,
-                                      fontWeight: FontWeight.w600,
-                                      color: isMandatory
-                                          ? (isDark ? AppColors.absentRedDark : AppColors.absentRedText)
-                                          : tokens.textPrimary,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                        if (widget.releaseInfo.alertCallouts.isNotEmpty) ...[
+                          ReleaseAlertCalloutsList(
+                            alertCallouts: widget.releaseInfo.alertCallouts,
+                            isCute: true,
+                            isDark: isDark,
+                            onLinkTap: _launchUrl,
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 6),
+                        ] else if (!widget.isWhatsNewMode && (isMandatory || (widget.releaseInfo.warningMessage != null && widget.releaseInfo.warningMessage!.isNotEmpty))) ...[
+                          ReleaseAlertCalloutCard(
+                            callout: ReleaseAlertCallout(
+                              type: isMandatory ? AlertCalloutType.caution : AlertCalloutType.warning,
+                              markdown: widget.releaseInfo.warningMessage ?? (isMandatory ? 'Mandatory update required for app stability and features.' : 'Important notice for this release.'),
+                            ),
+                            isCute: true,
+                            isDark: isDark,
+                            onLinkTap: _launchUrl,
+                          ),
+                          const SizedBox(height: 6),
                         ],
                         // Zero emojis in section header!
                         Padding(

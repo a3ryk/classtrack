@@ -10,6 +10,26 @@ import 'package:path/path.dart' as p;
 import '../constants/app_release_notes.dart';
 import '../constants/update_constants.dart';
 
+/// Types of alert callouts supported in release notes (matching GitHub Flavored Markdown alerts)
+enum AlertCalloutType {
+  caution,   // Red container (🛑)
+  warning,   // Yellow container (⚠️)
+  note,      // Soft Green container (📝)
+  tip,       // Warm Gold container with bulb icon (💡)
+  important, // Blue container (📌)
+}
+
+/// Represents a single alert callout in a release, rendered in serial order
+class ReleaseAlertCallout {
+  final AlertCalloutType type;
+  final String markdown;
+
+  const ReleaseAlertCallout({
+    required this.type,
+    required this.markdown,
+  });
+}
+
 /// Release Information Model
 class AppReleaseInfo {
   final String latestVersion;
@@ -23,6 +43,7 @@ class AppReleaseInfo {
   final String? releasePageUrl;
   final bool isMandatory;
   final String? warningMessage;
+  final List<ReleaseAlertCallout> alertCallouts;
   final Map<String, String> abiAssets;
 
   const AppReleaseInfo({
@@ -37,6 +58,7 @@ class AppReleaseInfo {
     this.releasePageUrl,
     this.isMandatory = false,
     this.warningMessage,
+    this.alertCallouts = const [],
     this.abiAssets = const {},
   });
 
@@ -51,7 +73,10 @@ class AppReleaseInfo {
         if (trimmed.startsWith('* ') ||
             trimmed.startsWith('- ') ||
             trimmed.startsWith('• ') ||
-            trimmed.startsWith('#')) {
+            trimmed.startsWith('#') ||
+            RegExp(r'^\d+[\.\)]\s').hasMatch(trimmed) ||
+            trimmed.startsWith('>') ||
+            trimmed.startsWith('|')) {
           return trimmed.replaceAll(RegExp(r'^[•]\s*'), '* ');
         }
         return '* $trimmed';
@@ -81,6 +106,63 @@ class AppReleaseInfo {
         json['mandatory_message']?.toString().trim() ??
         json['notice']?.toString().trim() ??
         json['alert']?.toString().trim();
+
+    final bool isMandatory = json['is_mandatory'] == true || json['mandatory'] == true;
+
+    // Parse alert callouts serially in exact order written
+    final List<ReleaseAlertCallout> parsedAlerts = [];
+    if (json['alerts'] is List) {
+      for (final item in json['alerts'] as List) {
+        if (item is Map) {
+          final typeStr = item['type']?.toString().toLowerCase() ?? 'note';
+          final md = item['markdown']?.toString() ?? item['content']?.toString() ?? item['text']?.toString() ?? '';
+          if (md.trim().isNotEmpty) {
+            AlertCalloutType type = AlertCalloutType.note;
+            if (typeStr == 'caution' || typeStr == 'danger' || typeStr == 'critical') {
+              type = AlertCalloutType.caution;
+            } else if (typeStr == 'warning') {
+              type = AlertCalloutType.warning;
+            } else if (typeStr == 'tip') {
+              type = AlertCalloutType.tip;
+            } else if (typeStr == 'important') {
+              type = AlertCalloutType.important;
+            }
+            parsedAlerts.add(ReleaseAlertCallout(type: type, markdown: md.trim()));
+          }
+        }
+      }
+    } else {
+      // Fallback: build from individual keys in manifest
+      if (json['caution'] != null && json['caution'].toString().trim().isNotEmpty) {
+        parsedAlerts.add(ReleaseAlertCallout(type: AlertCalloutType.caution, markdown: json['caution'].toString().trim()));
+      }
+      if (customWarning != null && customWarning.isNotEmpty) {
+        parsedAlerts.add(ReleaseAlertCallout(
+          type: isMandatory ? AlertCalloutType.caution : AlertCalloutType.warning,
+          markdown: customWarning,
+        ));
+      } else if (isMandatory) {
+        parsedAlerts.add(const ReleaseAlertCallout(
+          type: AlertCalloutType.caution,
+          markdown: 'Mandatory update required for app stability and features.',
+        ));
+      }
+
+      final noteContent = json['note']?.toString().trim() ?? json['notes']?.toString().trim() ?? json['instructions']?.toString().trim();
+      if (noteContent != null && noteContent.isNotEmpty) {
+        parsedAlerts.add(ReleaseAlertCallout(type: AlertCalloutType.note, markdown: noteContent));
+      }
+
+      final tipContent = json['tip']?.toString().trim() ?? json['tips']?.toString().trim();
+      if (tipContent != null && tipContent.isNotEmpty) {
+        parsedAlerts.add(ReleaseAlertCallout(type: AlertCalloutType.tip, markdown: tipContent));
+      }
+
+      final importantContent = json['important']?.toString().trim();
+      if (importantContent != null && importantContent.isNotEmpty) {
+        parsedAlerts.add(ReleaseAlertCallout(type: AlertCalloutType.important, markdown: importantContent));
+      }
+    }
 
     final Map<String, String> abiAssets = {};
     if (json['abi_assets'] is Map) {
@@ -117,8 +199,9 @@ class AppReleaseInfo {
       releaseNotesMarkdown: markdownContent,
       downloadUrl: downloadUrl,
       releasePageUrl: json['release_page_url']?.toString().trim() ?? json['page_url']?.toString().trim() ?? json['play_store_url']?.toString().trim(),
-      isMandatory: json['is_mandatory'] == true || json['mandatory'] == true,
+      isMandatory: isMandatory,
       warningMessage: customWarning?.isNotEmpty == true ? customWarning : null,
+      alertCallouts: parsedAlerts,
       abiAssets: abiAssets,
     );
   }
@@ -351,22 +434,70 @@ class AppReleaseInfo {
     String minSupported = '1.0.0';
     bool isMandatory = false;
     final List<String> changelog = [];
-    final List<String> alertLines = [];
-    bool inAlertBlock = false;
+    final List<ReleaseAlertCallout> alertCallouts = [];
+    AlertCalloutType? currentBlockType;
+    final List<String> currentBlockLines = [];
+
+    void flushCurrentAlertBlock() {
+      if (currentBlockType != null && currentBlockLines.isNotEmpty) {
+        final content = currentBlockLines.join('\n').trim();
+        if (content.isNotEmpty) {
+          alertCallouts.add(ReleaseAlertCallout(
+            type: currentBlockType!,
+            markdown: content,
+          ));
+        }
+      }
+      currentBlockType = null;
+      currentBlockLines.clear();
+    }
 
     for (final rawLine in body.split('\n')) {
       final line = rawLine.trim();
-      if (line.isEmpty) {
-        inAlertBlock = false;
+      final cleanLine = line.replaceAll(RegExp(r'<!--|-->'), '').trim();
+      final upper = cleanLine.toUpperCase();
+
+      // Check for GitHub Alert Callout Block (e.g. > [!WARNING], > [!CAUTION], > [!IMPORTANT], > [!NOTE], > [!TIP])
+      if (upper.startsWith('> [!CAUTION]')) {
+        flushCurrentAlertBlock();
+        isMandatory = true;
+        currentBlockType = AlertCalloutType.caution;
         continue;
-      }
-      if (line.startsWith('#')) {
-        inAlertBlock = false;
+      } else if (upper.startsWith('> [!WARNING]')) {
+        flushCurrentAlertBlock();
+        currentBlockType = AlertCalloutType.warning;
+        continue;
+      } else if (upper.startsWith('> [!NOTE]')) {
+        flushCurrentAlertBlock();
+        currentBlockType = AlertCalloutType.note;
+        continue;
+      } else if (upper.startsWith('> [!TIP]')) {
+        flushCurrentAlertBlock();
+        currentBlockType = AlertCalloutType.tip;
+        continue;
+      } else if (upper.startsWith('> [!IMPORTANT]')) {
+        flushCurrentAlertBlock();
+        currentBlockType = AlertCalloutType.important;
         continue;
       }
 
-      final cleanLine = line.replaceAll(RegExp(r'<!--|-->'), '').trim();
-      final upper = cleanLine.toUpperCase();
+      // Check if we are currently inside an alert blockquote
+      if (currentBlockType != null) {
+        if (cleanLine.startsWith('>')) {
+          final contentLine = rawLine.replaceFirst(RegExp(r'^\s*>\s?'), '');
+          currentBlockLines.add(contentLine);
+          continue;
+        } else {
+          flushCurrentAlertBlock();
+        }
+      }
+
+      if (line.isEmpty) {
+        continue;
+      }
+      if (line.startsWith('#')) {
+        continue;
+      }
 
       // Skip markdown tables, horizontal rules, and link footnotes
       if (cleanLine.startsWith('|') ||
@@ -391,58 +522,40 @@ class AppReleaseInfo {
         continue;
       }
 
-      // Check for GitHub Alert Callout Block (e.g. > [!WARNING], > [!CAUTION], > [!IMPORTANT], > [!NOTE])
-      if (upper.startsWith('> [!WARNING]') ||
-          upper.startsWith('> [!CAUTION]') ||
-          upper.startsWith('> [!IMPORTANT]')) {
-        isMandatory = true;
-        inAlertBlock = true;
-        continue;
-      } else if (upper.startsWith('> [!NOTE]') || upper.startsWith('> [!TIP]')) {
-        inAlertBlock = true;
-        continue;
-      }
-
-      // If currently inside an alert blockquote, capture all subsequent `>` lines
-      if (inAlertBlock) {
-        if (cleanLine.startsWith('>')) {
-          final content = cleanLine
-              .replaceAll(RegExp(r'^>\s*'), '')
-              .replaceAll(RegExp(r'\*\*'), '')
-              .replaceAll(RegExp(r'^(Mandatory Update|Critical|Warning|Notice|Alert|Important):\s*', caseSensitive: false), '')
-              .trim();
-          if (content.isNotEmpty) {
-            alertLines.add(content);
-          }
-          continue;
-        } else {
-          inAlertBlock = false;
-        }
-      }
-
       // Single-line alert checks (e.g. ⚠️ Warning message, MANDATORY: message)
-      if (line.contains('⚠️') ||
-          line.contains('🚨') ||
+      if (cleanLine.startsWith('🚨') ||
+          cleanLine.startsWith('🛑') ||
           upper.startsWith('MANDATORY:') ||
-          upper.startsWith('REQUIRED:') ||
-          upper.startsWith('BREAKING:') ||
           upper.startsWith('CRITICAL:') ||
-          upper.startsWith('WARNING:')) {
+          upper.startsWith('BREAKING:')) {
         isMandatory = true;
         final msg = line
-            .replaceAll(RegExp(r'^(>\s*|[⚠️🚨📌]\s*|(MANDATORY|REQUIRED|BREAKING|CRITICAL|WARNING|ALERT|NOTICE|NOTE):\s*)', caseSensitive: false), '')
-            .replaceAll(RegExp(r'\*\*'), '')
+            .replaceAll(RegExp(r'^(>\s*|[🚨🛑]\s*|(MANDATORY|CRITICAL|BREAKING):\s*)', caseSensitive: false), '')
             .trim();
-        if (msg.isNotEmpty) alertLines.add(msg);
-      } else if (line.contains('📌') ||
-          upper.startsWith('ALERT:') ||
-          upper.startsWith('NOTICE:') ||
-          upper.startsWith('NOTE:')) {
+        if (msg.isNotEmpty) {
+          alertCallouts.add(ReleaseAlertCallout(type: AlertCalloutType.caution, markdown: msg));
+        }
+      } else if (cleanLine.startsWith('⚠️') || upper.startsWith('WARNING:') || upper.startsWith('REQUIRED:')) {
         final msg = line
-            .replaceAll(RegExp(r'^(>\s*|[⚠️🚨📌]\s*|(MANDATORY|REQUIRED|BREAKING|CRITICAL|WARNING|ALERT|NOTICE|NOTE):\s*)', caseSensitive: false), '')
-            .replaceAll(RegExp(r'\*\*'), '')
+            .replaceAll(RegExp(r'^(>\s*|[⚠️]\s*|(WARNING|REQUIRED):\s*)', caseSensitive: false), '')
             .trim();
-        if (msg.isNotEmpty) alertLines.add(msg);
+        if (msg.isNotEmpty) {
+          alertCallouts.add(ReleaseAlertCallout(type: AlertCalloutType.warning, markdown: msg));
+        }
+      } else if (cleanLine.startsWith('💡') || upper.startsWith('TIP:')) {
+        final msg = line
+            .replaceAll(RegExp(r'^(>\s*|[💡]\s*|(TIP):\s*)', caseSensitive: false), '')
+            .trim();
+        if (msg.isNotEmpty) {
+          alertCallouts.add(ReleaseAlertCallout(type: AlertCalloutType.tip, markdown: msg));
+        }
+      } else if (cleanLine.startsWith('📝') || cleanLine.startsWith('📌') || upper.startsWith('NOTE:') || upper.startsWith('NOTICE:')) {
+        final msg = line
+            .replaceAll(RegExp(r'^(>\s*|[📝📌]\s*|(NOTE|NOTICE):\s*)', caseSensitive: false), '')
+            .trim();
+        if (msg.isNotEmpty) {
+          alertCallouts.add(ReleaseAlertCallout(type: AlertCalloutType.note, markdown: msg));
+        }
       } else {
         final rawItem = line.replaceAll(RegExp(r'^[•\-\*]\s*'), '').trim();
         if (rawItem.isNotEmpty) {
@@ -451,7 +564,23 @@ class AppReleaseInfo {
       }
     }
 
-    final String? warningMessage = alertLines.isNotEmpty ? alertLines.join(' ') : null;
+    flushCurrentAlertBlock();
+
+    if (isMandatory && !alertCallouts.any((c) => c.type == AlertCalloutType.caution)) {
+      alertCallouts.insert(
+        0,
+        const ReleaseAlertCallout(
+          type: AlertCalloutType.caution,
+          markdown: 'Mandatory update required for app stability and features.',
+        ),
+      );
+    }
+
+    final firstWarningOrCaution = alertCallouts.cast<ReleaseAlertCallout?>().firstWhere(
+      (c) => c?.type == AlertCalloutType.caution || c?.type == AlertCalloutType.warning,
+      orElse: () => null,
+    );
+    final String? warningMessage = firstWarningOrCaution?.markdown;
     final String cleanMarkdown = _extractCleanMarkdown(body);
 
     return AppReleaseInfo(
@@ -466,6 +595,7 @@ class AppReleaseInfo {
       releasePageUrl: htmlUrl,
       isMandatory: isMandatory,
       warningMessage: warningMessage,
+      alertCallouts: alertCallouts,
       abiAssets: abiAssets,
     );
   }
@@ -611,6 +741,19 @@ class AppReleaseInfo {
         ? changelog.map((c) => '* $c').join('\n')
         : null;
 
+    final List<ReleaseAlertCallout> atomAlerts = [];
+    if (warningMessage != null && warningMessage.isNotEmpty) {
+      atomAlerts.add(ReleaseAlertCallout(
+        type: isMandatory ? AlertCalloutType.caution : AlertCalloutType.warning,
+        markdown: warningMessage,
+      ));
+    } else if (isMandatory) {
+      atomAlerts.add(const ReleaseAlertCallout(
+        type: AlertCalloutType.caution,
+        markdown: 'Mandatory update required for app stability and features.',
+      ));
+    }
+
     return AppReleaseInfo(
       latestVersion: cleanVersion,
       buildNumber: buildNumber,
@@ -623,6 +766,7 @@ class AppReleaseInfo {
       releasePageUrl: 'https://github.com/$owner/$repo/releases/tag/$rawTag',
       isMandatory: isMandatory,
       warningMessage: warningMessage,
+      alertCallouts: atomAlerts,
       abiAssets: abiAssets,
     );
   }
