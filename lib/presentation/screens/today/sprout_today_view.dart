@@ -13,7 +13,6 @@ import '../../../domain/entities/class_session_entity.dart';
 import '../../../domain/services/schedule_engine.dart';
 import '../../providers/app_state_provider.dart';
 import '../../providers/app_theme_style_provider.dart';
-import '../../widgets/cancellation_reason_dialog.dart';
 import '../../widgets/class_info_slider_sheet.dart';
 import '../../widgets/declare_holiday_dialog.dart';
 import '../../widgets/mascot_peek_overlay.dart';
@@ -1171,25 +1170,13 @@ class _SproutTodayViewState extends ConsumerState<SproutTodayView> {
         onTap: () async {
           Navigator.pop(context);
           HapticFeedback.selectionClick();
-          if (outcome == 'CANCELLED') {
-            CancellationReasonDialog.show(
-              context,
-              sessionId: session.id,
-              slotId: session.sourceRefId ?? session.id,
-              subjectId: session.subjectComponentId,
-              sessionDate: dateIso,
-              subjectName: session.subjectName,
-              initialReason: session.cancellationReason,
-            );
-          } else {
-            await ref.read(attendanceRecordsProvider.notifier).markAttendance(
-                  sessionId: session.id,
-                  slotId: session.sourceRefId ?? session.id,
-                  subjectId: session.subjectComponentId,
-                  sessionDate: dateIso,
-                  outcome: outcome,
-                );
-          }
+          await ref.read(attendanceRecordsProvider.notifier).markAttendance(
+                sessionId: session.id,
+                slotId: session.sourceRefId ?? session.id,
+                subjectId: session.subjectComponentId,
+                sessionDate: dateIso,
+                outcome: outcome,
+              );
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
