@@ -11,42 +11,47 @@ import urllib.error
 import subprocess
 
 REPO = "a3ryk/classtrack"
-TAG = "v2.0.0-alpha.2"
-TITLE = "Attendly v2.0.0-alpha.2 (Class Notes, Dynamic Hero Timing & Info Badges)"
+TAG = "v2.0.0-alpha.3"
+TITLE = "Attendly v2.0.0-alpha.3 (Attendance Notification Redesign, In-App Share & Rich Markdown Updater)"
 
-RELEASE_NOTES = """# Attendly v2.0.0-alpha.2 (Class Notes, Dynamic Hero Timing & Info Badges)
+RELEASE_NOTES = """# Attendly v2.0.0-alpha.3 (Attendance Notification Redesign, In-App Share & Rich Markdown Updater)
 
 > [!NOTE]
-> **Optional Update (Non-Mandatory)**: This is a feature release and is **not mandatory**. Existing installations on v2.0.0-alpha.1 or prior versions will continue to function normally without any lockout.
+> **Optional Update (Non-Mandatory)**: This release contains feature enhancements and UI refinements. It is **not mandatory** (`is_mandatory: false`). Your existing installation will continue functioning normally without interruption.
 
 > [!IMPORTANT]
 > **Notice for Users Migrating from Earlier Packages (`com.classtrack.app`)**:
-> If you are upgrading from an older version released before `v2.0.0-alpha.1` (which used package identity `com.classtrack.app`), Android's security architecture does not permit different application IDs to overwrite each other in-place:
+> If you are upgrading from an older version released before `v2.0.0-alpha.1` (when the app used the `com.classtrack.app` package identity), Android's security architecture does not permit different application IDs to overwrite each other directly:
 > 1. In your existing app, navigate to **Settings > Backup & Restore > Export Backup** and save your `.attendly` backup file safely.
 > 2. Uninstall the old `com.classtrack.app` build.
-> 3. Install **Attendly `v2.0.0-alpha.2`** (`com.attendly`).
+> 3. Install **Attendly `v2.0.0-alpha.3`** (`com.attendly`).
 > 4. Go to **Settings > Backup & Restore > Restore Backup** and select your backup file. All your attendance, schedules, subjects, notes, and records will be fully restored!
 > 
-> *If you are already on `v2.0.0-alpha.1` (`com.attendly`), you can simply install this update directly over your existing app without uninstalling.*
+> *If you are already on `v2.0.0-alpha.1` or `v2.0.0-alpha.2` (`com.attendly`), you can simply install this update directly over your existing app without uninstalling.*
 
 ---
 
-### What's New in v2.0.0-alpha.2
+### What's New in v2.0.0-alpha.3
 
-#### ⏱ Dynamic Hero Class Timing (Sprout Theme)
-- **Ongoing Class vs. Next Class**: The hero banner on the Today screen dynamically distinguishes between a session currently in progress (`Ongoing Class`) and an upcoming session (`Next Class`).
-- **Smooth Real-Time Cross-Fade**: When crossing the minute boundary (e.g. 10:59 to 11:00), the status header smoothly updates using an animated cross-fade without rebuilding the entire screen.
-- **Smart Cancellation Advance**: When the current or next class is marked as cancelled, the hero card automatically shifts to display the following active class. If all remaining sessions for the day are concluded or cancelled, the hero card gracefully collapses.
+#### 🔔 Notification Redesign: Option A Symbol Actions & Smart Completion
+- **Option A Visual Actions**: Notification quick actions now use crisp, universal symbols (`✓ Present`, `✕ Absent`, `⊘ Cancelled`), ensuring clean readability across both light and dark system notification shades.
+- **BigTextStyle Auto-Expansion**: Long subject names (e.g., *Advanced Principles of Operating Systems & Distributed Systems*) now expand cleanly without truncation in the notification shade.
+- **Stage 1 Auto-Dismissal**: Configured reminder notifications to auto-dismiss via timeout when the end-of-class prompt arrives, eliminating duplicate stacked notifications.
+- **Smart Early-Mark Completion Notice**: When attendance is recorded prior to class completion, Stage 2 notifies with a clean completion notice (*"Class has ended • You already marked your attendance as Present at the start of class"*) without prompt buttons.
+- **Notification Settings Toggle**: Control the completion notice via the new **Notify If Already Marked** switch in Notification Settings.
+- **Developer Notification Sandbox**: Test all 4 notification stages directly from **Settings > Developer Tools** with live customizable subject names and length presets.
 
-#### 📍 Option C: Top-Right Corner Action for Info Badges
-- **Clean Visual Ergonomics**: Moved session info action badges to the top-right corner across Today (both Sprouts and Classic themes), Calendar, and Schedule screens, eliminating awkward middle placements.
-- **Class Info Slider Sheet**: Tapping any info badge slides open an intuitive bottom sheet revealing full session metadata: subject, timing, classroom, teacher name, notes, and cancellation details.
+#### 🌿 Sprouts Header Share & Native Share Sheet
+- **Relocated Header Share Action**: Replaced redundant settings icons in the Sprout theme header with an elegant, direct Share action.
+- **Interactive Share Sheet**: Tapping Share opens a smooth bottom slider sheet with 1-tap link copying, native Android sharing (`share_plus`), and high-resolution QR preview.
 
-#### 📝 Class Notes & Cancellation Reasons
-- **Per-Session Custom Notes**: Add, edit, or clear rich notes for individual class sessions via the streamlined `ClassNoteDialog`.
-- **Cancellation Reasons**: Log standard or custom cancellation reasons when marking classes as cancelled with `CancellationReasonDialog`.
-- **Drift SQLite Schema Persistence**: Fully persisted in local SQLite with dedicated `notes` and `cancellation_reason` columns.
-- **Backup & Restore Integration**: Class notes and cancellation reasons are fully preserved across `.attendly` JSON backups.
+#### 📢 Rich Markdown Alerts in Updater & What's New
+- **Sequential GitHub Alert Callouts**: The in-app updater and What's New screen now parse and render stacked GitHub alert banners (`[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`) with authentic border accents and custom icons.
+- **Zero Truncation**: Release notes and changelogs preserve complete markdown formatting, tables, lists, and bold text.
+
+#### 📝 Instant Cancellation & Session Notes
+- **Direct Cancellation Reason Dialog**: Quick-select standard reasons (Sick Leave, Extracurricular, Travel) or enter custom remarks when cancelling a session.
+- **Class Info Slider Sheet**: Complete metadata view with timing, classroom, teacher, notes, and cancellation records accessible from any screen.
 
 ---
 
@@ -54,12 +59,12 @@ RELEASE_NOTES = """# Attendly v2.0.0-alpha.2 (Class Notes, Dynamic Hero Timing &
 
 | Architecture | Package Type | File Name | Size | SHA-256 Checksum |
 | :--- | :--- | :--- | :--- | :--- |
-| **All Devices** | Universal Fat APK | `Attendly-v2.0.0-alpha.2.apk` | 121.65 MB | `dde54dc95b8f3c6761a2be9ea0f6fe44310385a8dc2b80fe74708f7a09829d41` |
-| **ARM64** | Split-per-ABI APK | `app-arm64-v8a-release.apk` | 47.57 MB | `ceecfe57013358c4b513bd52c324687c43c462543a64c5c449fee6149a28fc84` |
-| **ARMv7** | Split-per-ABI APK | `app-armeabi-v7a-release.apk` | 40.33 MB | `c401265dec53da3520e881349a6b7b2e57227d2190e7265898efa45a7b03c6bc` |
-| **x86_64** | Split-per-ABI APK | `app-x86_64-release.apk` | 50.32 MB | `b660178007b1ce9d9d291b12078d386afc444a94506576054ffed7a765d7c89f` |
+| **All Devices** | Universal Fat APK | `Attendly-v2.0.0-alpha.3.apk` | 121.77 MB | `7b7b10771e67906d604d085311b3aa271f31ea2a89323f88f7dd612f5362d9d4` |
+| **ARM64** | Split-per-ABI APK | `app-arm64-v8a-release.apk` | 47.57 MB | `0ccbb27e49e4822b5925d8eb286a0180880c5019ff990cbe3ed43fce9d070989` |
+| **ARMv7** | Split-per-ABI APK | `app-armeabi-v7a-release.apk` | 40.39 MB | `e693afcf0a030a26e3dc43873e643230a174dba433d190faa690d215fe1f41a4` |
+| **x86_64** | Split-per-ABI APK | `app-x86_64-release.apk` | 50.38 MB | `f1c2a5662870362626af17d4745124883a0459bfda0a8b016115f64a0f6ca674` |
 
-*Recommended: Use `app-arm64-v8a-release.apk` for modern 64-bit Android smartphones for the fastest download and smallest footprint, or `Attendly-v2.0.0-alpha.2.apk` for universal compatibility.*
+*Recommended: Use `app-arm64-v8a-release.apk` for modern 64-bit Android smartphones for the fastest download and smallest footprint, or `Attendly-v2.0.0-alpha.3.apk` for universal compatibility.*
 """
 
 def get_github_token():
@@ -119,7 +124,7 @@ def main():
     # 2. Upload assets
     apk_dir = os.path.join('build', 'app', 'outputs', 'flutter-apk')
     assets_to_upload = [
-        ('Attendly-v2.0.0-alpha.2.apk', 'Attendly-v2.0.0-alpha.2.apk'),
+        ('Attendly-v2.0.0-alpha.3.apk', 'Attendly-v2.0.0-alpha.3.apk'),
         ('app-arm64-v8a-release.apk', 'app-arm64-v8a-release.apk'),
         ('app-armeabi-v7a-release.apk', 'app-armeabi-v7a-release.apk'),
         ('app-x86_64-release.apk', 'app-x86_64-release.apk')
