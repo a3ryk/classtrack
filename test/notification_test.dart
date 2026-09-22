@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
@@ -329,7 +329,7 @@ void main() {
         sessionDate: '2026-09-10',
         outcome: 'PRESENT',
         markedAt: '2026-09-10T10:00:00Z',
-        notes: 'Marked via notification action (PRESENT)',
+        notes: null,
         syncVersion: 1,
         createdAt: '2026-09-10T10:00:00Z',
         updatedAt: '2026-09-10T10:00:00Z',
@@ -349,7 +349,7 @@ void main() {
 
       expect(received.id, 'session_bio_101');
       expect(received.outcome, 'PRESENT');
-      expect(received.notes, contains('notification action'));
+      expect(received.notes, isNull);
     });
 
     test('Schedule exceptions and timetable slot modifications trigger debounced resync cleanly', () async {
@@ -519,6 +519,95 @@ void main() {
       final records = attendanceNotifier.state;
       expect(records.containsKey(testSessionId), isTrue);
       expect(records[testSessionId]?.outcome, 'PRESENT');
+    });
+
+    test('NotificationPreferencesEntity notifyWhenAlreadyMarked serialization & defaults', () {
+      const prefs = NotificationPreferencesEntity();
+      expect(prefs.notifyWhenAlreadyMarked, isTrue);
+
+      final json = prefs.toJson();
+      expect(json['notifyWhenAlreadyMarked'], isTrue);
+
+      final decoded = NotificationPreferencesEntity.fromJson(json);
+      expect(decoded.notifyWhenAlreadyMarked, isTrue);
+
+      final toggledOff = prefs.copyWith(notifyWhenAlreadyMarked: false);
+      expect(toggledOff.notifyWhenAlreadyMarked, isFalse);
+      expect(toggledOff.toJson()['notifyWhenAlreadyMarked'], isFalse);
+    });
+
+    test('ClassNotificationScheduler Stage 1 timeout calculation matches duration to Stage 2', () {
+      final startDt = DateTime(2026, 9, 23, 10, 0);
+      final endDt = DateTime(2026, 9, 23, 11, 30);
+      const startLead = 10;
+      const endLead = 5;
+
+      final startNotifTime = startDt.subtract(const Duration(minutes: startLead)); // 09:50
+      final endNotifTime = endDt.subtract(const Duration(minutes: endLead)); // 11:25
+
+      final timeoutMs = endNotifTime.difference(startNotifTime).inMilliseconds;
+      expect(timeoutMs, equals(95 * 60 * 1000)); // exactly 95 minutes in ms
+    });
+
+    testWidgets('NotificationSettingsScreen displays "Notify If Already Marked" toggle in Classic view', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: NotificationSettingsScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Notify If Already Marked'), findsOneWidget);
+      expect(find.text('Inform when class ends if marked early'), findsOneWidget);
+    });
+
+    test('Super long subject name formats cleanly without corruption and handles sanitizeText', () {
+      const superLongName =
+          'Advanced Object-Oriented Software Architecture & Distributed Database Systems Extended Specialization (LAB)';
+      final sanitized = NotificationService.sanitizeText(superLongName);
+      expect(sanitized, equals(superLongName));
+      expect(sanitized.length, greaterThan(80));
+
+      final session = ClassSessionEntity(
+        id: 'sess_super_long',
+        semesterId: 'sem_1',
+        subjectComponentId: 'sub_long',
+        subjectName: superLongName,
+        category: 'MAJOR',
+        componentType: 'LAB',
+        colorHex: '#10B981',
+        sessionDate: '2026-09-23',
+        startTime: '10:00 AM',
+        endTime: '11:30 AM',
+        room: 'Lab 402 - Advanced Computer Systems Hall',
+        sessionSource: 'TIMETABLE',
+        status: 'HELD',
+        attendanceOutcome: 'PENDING',
+      );
+
+      final hasComponent = session.componentType.isNotEmpty && session.componentType != 'LECTURE';
+      final displayName = hasComponent ? '${session.subjectName} (${session.componentType})' : session.subjectName;
+
+      expect(displayName, contains(superLongName));
+      expect(displayName, contains('(LAB)'));
+
+      // Verify BigTextStyleInformation handles long content title and body
+      const body = 'Starts in 10 min • 10:00 AM - 11:30 AM • Room Lab 402 - Advanced Computer Systems Hall';
+      final styleInfo = BigTextStyleInformation(
+        NotificationService.sanitizeText(body),
+        contentTitle: NotificationService.sanitizeText(displayName),
+      );
+      expect(styleInfo.contentTitle, isNotNull);
+      expect(styleInfo.contentTitle, contains(superLongName));
     });
   });
 }

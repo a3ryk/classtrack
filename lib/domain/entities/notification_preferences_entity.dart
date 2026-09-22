@@ -5,6 +5,7 @@ class NotificationPreferencesEntity {
   final bool enableClassEnd;
   final int endLeadMinutes; // 0, 5, 10
   final bool enableQuickActions; // Present, Absent, Cancelled actions
+  final bool notifyWhenAlreadyMarked; // Notify class ended without asking if already marked
   final bool vibrate;
   final bool sound;
 
@@ -15,6 +16,7 @@ class NotificationPreferencesEntity {
     this.enableClassEnd = true,
     this.endLeadMinutes = 0,
     this.enableQuickActions = true,
+    this.notifyWhenAlreadyMarked = true,
     this.vibrate = true,
     this.sound = true,
   });
@@ -26,6 +28,7 @@ class NotificationPreferencesEntity {
     'enableClassEnd': enableClassEnd,
     'endLeadMinutes': endLeadMinutes,
     'enableQuickActions': enableQuickActions,
+    'notifyWhenAlreadyMarked': notifyWhenAlreadyMarked,
     'vibrate': vibrate,
     'sound': sound,
   };
@@ -38,6 +41,7 @@ class NotificationPreferencesEntity {
       enableClassEnd: json['enableClassEnd'] as bool? ?? true,
       endLeadMinutes: json['endLeadMinutes'] as int? ?? 0,
       enableQuickActions: json['enableQuickActions'] as bool? ?? true,
+      notifyWhenAlreadyMarked: json['notifyWhenAlreadyMarked'] as bool? ?? true,
       vibrate: json['vibrate'] as bool? ?? true,
       sound: json['sound'] as bool? ?? true,
     );
@@ -50,6 +54,7 @@ class NotificationPreferencesEntity {
     bool? enableClassEnd,
     int? endLeadMinutes,
     bool? enableQuickActions,
+    bool? notifyWhenAlreadyMarked,
     bool? vibrate,
     bool? sound,
   }) {
@@ -60,6 +65,7 @@ class NotificationPreferencesEntity {
       enableClassEnd: enableClassEnd ?? this.enableClassEnd,
       endLeadMinutes: endLeadMinutes ?? this.endLeadMinutes,
       enableQuickActions: enableQuickActions ?? this.enableQuickActions,
+      notifyWhenAlreadyMarked: notifyWhenAlreadyMarked ?? this.notifyWhenAlreadyMarked,
       vibrate: vibrate ?? this.vibrate,
       sound: sound ?? this.sound,
     );

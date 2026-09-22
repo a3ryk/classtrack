@@ -29,14 +29,7 @@ class _MainShellState extends ConsumerState<MainShell> with WidgetsBindingObserv
   Timer? _updateTimer;
   Timer? _autoBackupTimer;
 
-  final List<Widget> _classicScreens = const [
-    TodayScreen(),
-    AttendanceScreen(),
-    ScheduleScreen(),
-    CalendarScreen(),
-  ];
-
-  final List<Widget> _sproutScreens = const [
+  final List<Widget> _screens = const [
     TodayScreen(),
     ScheduleScreen(),
     CalendarScreen(),
@@ -123,30 +116,7 @@ class _MainShellState extends ConsumerState<MainShell> with WidgetsBindingObserv
     final tokens = Theme.of(context).extension<AppThemeTokens>();
     final isCute = tokens?.isCute ?? false;
 
-    final navItems = [
-      _NavItemData(
-        label: 'Today',
-        icon: themeDef.navIcons['today_unselected'] ?? Icons.space_dashboard_outlined,
-        activeIcon: themeDef.navIcons['today'] ?? Icons.space_dashboard_rounded,
-      ),
-      _NavItemData(
-        label: 'Analytics',
-        icon: themeDef.navIcons['analytics_unselected'] ?? Icons.insights_outlined,
-        activeIcon: themeDef.navIcons['analytics'] ?? Icons.insights_rounded,
-      ),
-      _NavItemData(
-        label: 'Timetable',
-        icon: themeDef.navIcons['timetable_unselected'] ?? Icons.calendar_view_week_outlined,
-        activeIcon: themeDef.navIcons['timetable'] ?? Icons.calendar_view_week_rounded,
-      ),
-      _NavItemData(
-        label: 'Calendar',
-        icon: themeDef.navIcons['calendar_unselected'] ?? Icons.calendar_month_outlined,
-        activeIcon: themeDef.navIcons['calendar'] ?? Icons.calendar_month_rounded,
-      ),
-    ];
-
-    final screens = isCute ? _sproutScreens : _classicScreens;
+    final screens = _screens;
     final currentIndex = ref.watch(mainShellTabProvider);
     final safeIndex = currentIndex >= screens.length ? 0 : currentIndex;
 
@@ -200,14 +170,14 @@ class _MainShellState extends ConsumerState<MainShell> with WidgetsBindingObserv
                 top: false,
                 child: SizedBox(
                   height: 58,
-                  child: _buildNavRow(navItems, isCute, isDark, safeIndex),
+                  child: _buildNavRow(themeDef.navItems, isCute, isDark, safeIndex),
                 ),
               ),
             ),
     );
   }
 
-  Widget _buildNavRow(List<_NavItemData> navItems, bool isCute, bool isDark, int selectedIndex) {
+  Widget _buildNavRow(List<ThemeNavItem> navItems, bool isCute, bool isDark, int selectedIndex) {
     return Row(
       children: List.generate(navItems.length, (index) {
         final item = navItems[index];
@@ -229,7 +199,7 @@ class _MainShellState extends ConsumerState<MainShell> with WidgetsBindingObserv
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
-                  isSelected ? item.activeIcon : item.icon,
+                  isSelected ? item.activeIcon : item.inactiveIcon,
                   size: isCute ? 24 : 22,
                   color: isSelected ? activeColor : inactiveColor,
                 ),
@@ -250,18 +220,6 @@ class _MainShellState extends ConsumerState<MainShell> with WidgetsBindingObserv
       }),
     );
   }
-}
-
-class _NavItemData {
-  final String label;
-  final IconData icon;
-  final IconData activeIcon;
-
-  const _NavItemData({
-    required this.label,
-    required this.icon,
-    required this.activeIcon,
-  });
 }
 
 /// A true dual-layer crossfade stack that smoothly transitions between screens

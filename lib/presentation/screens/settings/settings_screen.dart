@@ -23,6 +23,8 @@ import 'appearance_screen.dart';
 import 'backup_restore_screen.dart';
 import 'developer_tools_screen.dart';
 import 'notification_settings_screen.dart';
+import '../../../core/ui/tactile_button.dart';
+import '../../widgets/share_app_slider_sheet.dart';
 import '../main_shell.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -71,21 +73,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final Color groupBorder = isDark ? AppColors.borderDark : const Color(0xFFE2E8F0);
     final Color dividerColor = isDark ? AppColors.borderDark.withValues(alpha: 0.6) : const Color(0xFFF1F5F9);
 
-    final bool showBackButton = Navigator.canPop(context);
+    final bool isInMainShell = context.findAncestorWidgetOfExactType<MainShell>() != null;
+    final bool showBackButton = !isInMainShell && Navigator.canPop(context);
     final Color scaffoldBg = isCute
         ? (tokens?.scaffoldBg ?? (isDark ? const Color(0xFF14291D) : const Color(0xFFFAF7F2)))
         : (isDark ? AppColors.bgDark : const Color(0xFFF8FAFC));
 
     return Scaffold(
       backgroundColor: scaffoldBg,
-      appBar: AppBar(
-        backgroundColor: scaffoldBg,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        automaticallyImplyLeading: false,
-        leadingWidth: showBackButton ? 100 : 0,
-        leading: showBackButton
-            ? InkWell(
+      appBar: showBackButton
+          ? AppBar(
+              backgroundColor: scaffoldBg,
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              automaticallyImplyLeading: false,
+              leadingWidth: 100,
+              leading: InkWell(
                 onTap: () => Navigator.pop(context),
                 borderRadius: BorderRadius.circular(8),
                 child: const Row(
@@ -102,30 +105,62 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                   ],
                 ),
-              )
-            : null,
-        title: Text(
-          'Settings',
-          style: isCute
-              ? GoogleFonts.quicksand(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: tokens?.textPrimary ?? (isDark ? const Color(0xFFF4F8F3) : const Color(0xFF1E3526)),
-                )
-              : TextStyle(
+              ),
+              title: Text(
+                'Settings',
+                style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
                   color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                 ),
-        ),
-        centerTitle: true,
-      ),
-      body: ListView(
-        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        children: [
-          // 1. ACCOUNT / PROFILE
-          _buildSectionHeader('Account', isDark),
+              ),
+              centerTitle: true,
+            )
+          : null,
+      body: SafeArea(
+        top: !showBackButton,
+        bottom: false,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          children: [
+            if (!showBackButton) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 4, 4, 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Settings',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w800,
+                            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                            letterSpacing: -0.8,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                      ],
+                    ),
+                    TactileIconButton(
+                      icon: Icons.share_outlined,
+                      size: 38,
+                      iconSize: 18,
+                      backgroundColor: isDark ? AppColors.cardDark : Colors.white,
+                      borderColor: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
+                      iconColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                      tooltip: 'Share Attendly',
+                      onTap: () => ShareAppSliderSheet.show(context),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            // 1. ACCOUNT / PROFILE
+            _buildSectionHeader('Account', isDark),
           RepaintBoundary(
             child: Container(
               decoration: BoxDecoration(
@@ -409,6 +444,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           const SizedBox(height: 32),
         ],
+      ),
       ),
     );
   }
@@ -898,6 +934,36 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             child: Column(
               children: [
+                _buildSproutTile(
+                  icon: Icons.share_rounded,
+                  iconBg: isDark ? const Color(0xFF163424) : const Color(0xFFEAF8E7),
+                  iconColor: isDark ? const Color(0xFF8BC34A) : const Color(0xFF2E7D32),
+                  title: 'Share with Friends',
+                  subtitle: 'QR code & APK download link',
+                  tokens: tokens,
+                  isDark: isDark,
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF163424) : const Color(0xFFEAF8E7),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: isDark ? const Color(0xFF2E593E) : const Color(0xFFD7F0D6),
+                        width: 1.0,
+                      ),
+                    ),
+                    child: Text(
+                      'Share ›',
+                      style: GoogleFonts.quicksand(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? const Color(0xFFEAF8EA) : const Color(0xFF1E6B3F),
+                      ),
+                    ),
+                  ),
+                  onTap: () => ShareAppSliderSheet.show(context),
+                ),
+                Divider(height: 1, indent: 56, endIndent: 16, color: dividerColor),
                 _buildSproutTile(
                   icon: Icons.explore_rounded,
                   iconBg: isDark ? const Color(0xFF164E63) : const Color(0xFFECFEFF),

@@ -49,39 +49,39 @@ class _AppWalkthroughOverlayState extends State<AppWalkthroughOverlay> {
         targetTabIndex: 0,
         badgeText: 'LIVE TODAY SCREEN',
       ),
-      WalkthroughStepData(
+      const WalkthroughStepData(
         title: '2. Weekly Timetable Grid',
         description: 'View your full weekly Sunday-to-Saturday schedule. Filter by day, inspect room and faculty details, and manage course categories.',
         icon: Icons.grid_view_rounded,
-        targetTabIndex: isCute ? 1 : 2,
+        targetTabIndex: 1,
         badgeText: 'WEEKLY TIMETABLE',
       ),
-      WalkthroughStepData(
+      const WalkthroughStepData(
         title: '3. Supercharged Batch Setup',
         description: 'Tap the repeat icon in Timetable to add lectures, practical labs, and tutorials across multiple days (e.g. Mon, Wed, Fri) in one single click!',
         icon: Icons.event_repeat_rounded,
-        targetTabIndex: isCute ? 1 : 2,
+        targetTabIndex: 1,
         badgeText: 'BATCH SCHEDULING',
       ),
-      WalkthroughStepData(
+      const WalkthroughStepData(
         title: '4. Calendar & Date Overrides',
         description: 'Need to reschedule a lab or cancel a class for one day only? Tap any session in Calendar to reschedule, remove, or add extra makeup classes.',
         icon: Icons.edit_calendar_rounded,
-        targetTabIndex: isCute ? 2 : 3,
+        targetTabIndex: 2,
         badgeText: 'CALENDAR & EXCEPTIONS',
       ),
-      WalkthroughStepData(
+      const WalkthroughStepData(
         title: '5. Subject Analytics & Margins',
         description: 'Track attendance for every Major, Minor, and Lab. See the exact number of classes you can safely miss (+N margin) or must attend to stay above target.',
         icon: Icons.insights_rounded,
-        targetTabIndex: isCute ? 3 : 1,
+        targetTabIndex: 3,
         badgeText: 'MARGIN ANALYTICS',
       ),
-      WalkthroughStepData(
+      const WalkthroughStepData(
         title: '6. What-If Leave Simulator',
         description: 'Planning a trip, college fest, or medical leave? Use the What-If Simulator on Analytics to test attendance impacts before taking leaves!',
         icon: Icons.calculate_rounded,
-        targetTabIndex: isCute ? 3 : 1,
+        targetTabIndex: 3,
         badgeText: 'WHAT-IF SIMULATOR',
       ),
       WalkthroughStepData(
@@ -90,7 +90,7 @@ class _AppWalkthroughOverlayState extends State<AppWalkthroughOverlay> {
             ? 'Attendly is 100% offline. Customize your academic mascot companion, generate multi-date attendance registers, and configure backups.'
             : 'Attendly is 100% offline. Generate multi-date PDF/Excel attendance registers, configure your student profile, and create encrypted .ctbackup snapshots.',
         icon: isCute ? Icons.spa_rounded : Icons.security_rounded,
-        targetTabIndex: isCute ? 4 : 0,
+        targetTabIndex: 4,
         badgeText: isCute ? 'SETTINGS & MASCOT' : 'OFFLINE & PRIVACY',
       ),
     ];

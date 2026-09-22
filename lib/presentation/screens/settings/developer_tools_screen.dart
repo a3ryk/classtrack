@@ -51,14 +51,121 @@ class _DeveloperToolsScreenState extends ConsumerState<DeveloperToolsScreen> {
     super.dispose();
   }
 
-  Future<void> _sendTestNotification() async {
+  String _testSubjectName = 'Database Systems (LAB)';
+
+  Future<bool> _ensureNotificationPermission() async {
     final hasPerm = await NotificationService.checkAndRequestNotificationPermission();
-    if (!hasPerm) {
-      if (mounted) {
-        AppToast.error(context, 'Notification permission is required to display notifications.');
-      }
-      return;
+    if (!hasPerm && mounted) {
+      AppToast.error(context, 'Notification permission is required to display notifications.');
     }
+    return hasPerm;
+  }
+
+  void _showCustomSubjectDialog(bool isDark) {
+    final controller = TextEditingController(text: _testSubjectName);
+    showDialog(
+      context: context,
+      builder: (dlgCtx) => AlertDialog(
+        backgroundColor: isDark ? AppColors.cardDark : Colors.white,
+        title: Text(
+          'Customize Subject Name',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Enter a subject name or pick a preset to test short, standard, or super long titles in notifications:',
+              style: TextStyle(
+                fontSize: 12,
+                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              maxLines: 2,
+              decoration: InputDecoration(
+                hintText: 'e.g. Database Systems (LAB)',
+                filled: true,
+                fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                _buildPresetChip('Standard', 'Database Systems (LAB)', controller, isDark),
+                _buildPresetChip(
+                  'Super Long Name',
+                  'Advanced Object-Oriented Software Architecture & Distributed Database Systems Extended Specialization (LAB)',
+                  controller,
+                  isDark,
+                ),
+                _buildPresetChip('Tutorial', 'Linear Algebra & Differential Equations (TUTORIAL)', controller, isDark),
+                _buildPresetChip('Code Only', 'CS402', controller, isDark),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dlgCtx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final text = controller.text.trim();
+              if (text.isNotEmpty) {
+                setState(() {
+                  _testSubjectName = text;
+                });
+              }
+              Navigator.pop(dlgCtx);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPresetChip(String label, String value, TextEditingController controller, bool isDark) {
+    return InkWell(
+      onTap: () {
+        controller.text = value;
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _sendClassStartTest({bool startingNow = false}) async {
+    if (!await _ensureNotificationPermission()) return;
 
     final today = DateTime.now();
     final testDate = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
@@ -70,13 +177,18 @@ class _DeveloperToolsScreenState extends ConsumerState<DeveloperToolsScreen> {
       'slotId': 'test_slot',
       'subjectId': 'test_subject',
       'sessionDate': testDate,
-      'subjectName': 'Sample Class (Test Alert)',
+      'subjectName': _testSubjectName,
+      'startTime': '10:00 AM',
+      'endTime': '11:30 AM',
+      'room': 'Room 304',
     });
 
+    final leadText = startingNow ? 'Starts now' : 'Starts in 10 min';
+
     await NotificationService.instance.showImmediateClassNotification(
-      id: 9999,
-      title: 'Sample Class (Test Alert) • Attendance Reminder',
-      body: 'Class ended • Mark your attendance directly below:',
+      id: 9991,
+      title: _testSubjectName,
+      body: '$leadText • 10:00 AM – 11:30 AM • Room 304',
       payload: payload,
       withQuickActions: prefs.enableQuickActions,
       sound: prefs.sound,
@@ -84,10 +196,75 @@ class _DeveloperToolsScreenState extends ConsumerState<DeveloperToolsScreen> {
     );
 
     if (mounted) {
-      AppToast.success(
-        context,
-        'Test notification sent! Tap Present, Absent, or Cancelled to verify simulation.',
-      );
+      AppToast.success(context, 'Stage 1 notification sent! Tap an action to test simulation.');
+    }
+  }
+
+  Future<void> _sendClassEndTest() async {
+    if (!await _ensureNotificationPermission()) return;
+
+    final today = DateTime.now();
+    final testDate = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    final prefs = ref.read(notificationPreferencesProvider);
+
+    final payload = jsonEncode({
+      'isTest': true,
+      'sessionId': 'test_sample_session',
+      'slotId': 'test_slot',
+      'subjectId': 'test_subject',
+      'sessionDate': testDate,
+      'subjectName': _testSubjectName,
+      'startTime': '10:00 AM',
+      'endTime': '11:30 AM',
+      'room': 'Room 304',
+    });
+
+    await NotificationService.instance.showImmediateClassNotification(
+      id: 9992,
+      title: 'Mark Attendance: $_testSubjectName',
+      body: 'Class ended • 10:00 AM – 11:30 AM • Room 304',
+      payload: payload,
+      withQuickActions: prefs.enableQuickActions,
+      sound: prefs.sound,
+      vibrate: prefs.vibrate,
+    );
+
+    if (mounted) {
+      AppToast.success(context, 'Stage 2A notification sent! Tap an action to test simulation.');
+    }
+  }
+
+  Future<void> _sendClassEndAlreadyMarkedTest() async {
+    if (!await _ensureNotificationPermission()) return;
+
+    final today = DateTime.now();
+    final testDate = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    final prefs = ref.read(notificationPreferencesProvider);
+
+    final payload = jsonEncode({
+      'isTest': true,
+      'sessionId': 'test_sample_session',
+      'slotId': 'test_slot',
+      'subjectId': 'test_subject',
+      'sessionDate': testDate,
+      'subjectName': _testSubjectName,
+      'startTime': '10:00 AM',
+      'endTime': '11:30 AM',
+      'room': 'Room 304',
+    });
+
+    await NotificationService.instance.showImmediateClassNotification(
+      id: 9993,
+      title: _testSubjectName,
+      body: 'Class has ended • You already marked your attendance as Present at the start of class',
+      payload: payload,
+      withQuickActions: false,
+      sound: prefs.sound,
+      vibrate: prefs.vibrate,
+    );
+
+    if (mounted) {
+      AppToast.success(context, 'Stage 2B completion notice sent (zero prompt buttons).');
     }
   }
 
@@ -478,14 +655,49 @@ class _DeveloperToolsScreenState extends ConsumerState<DeveloperToolsScreen> {
                           }
                         },
                       ),
+                      _buildTile(
+                        title: 'Subject Name for Notification Tests',
+                        subtitle: _testSubjectName,
+                        isDark: isDark,
+                        icon: Icons.edit_note_rounded,
+                        iconColor: AppColors.accentBlue,
+                        onTap: () => _showCustomSubjectDialog(isDark),
+                      ),
                       Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
                       _buildTile(
-                        title: 'Send Test Notification',
-                        subtitle: 'Send sample alert with attendance actions',
+                        title: 'Stage 1: Class Start Reminder',
+                        subtitle: 'Starts in 10 min • With ✓ Present, ✕ Absent, ⊘ Cancelled',
                         isDark: isDark,
-                        icon: Icons.notifications_active_outlined,
-                        iconColor: AppColors.accentIndigoLight,
-                        onTap: _sendTestNotification,
+                        icon: Icons.alarm_on_rounded,
+                        iconColor: AppColors.accentBlue,
+                        onTap: () => _sendClassStartTest(startingNow: false),
+                      ),
+                      Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
+                      _buildTile(
+                        title: 'Stage 1: Class Starting Now',
+                        subtitle: 'Starts now • With 3 action buttons',
+                        isDark: isDark,
+                        icon: Icons.play_circle_outline_rounded,
+                        iconColor: Colors.teal,
+                        onTap: () => _sendClassStartTest(startingNow: true),
+                      ),
+                      Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
+                      _buildTile(
+                        title: 'Stage 2A: Class End Attendance Prompt',
+                        subtitle: 'Class ended • With ✓ Present, ✕ Absent, ⊘ Cancelled',
+                        isDark: isDark,
+                        icon: Icons.how_to_reg_rounded,
+                        iconColor: AppColors.presentGreen,
+                        onTap: _sendClassEndTest,
+                      ),
+                      Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
+                      _buildTile(
+                        title: 'Stage 2B: Class End (Already Marked Notice)',
+                        subtitle: 'Completion notice without buttons (when marked early)',
+                        isDark: isDark,
+                        icon: Icons.mark_email_read_rounded,
+                        iconColor: Colors.deepPurpleAccent,
+                        onTap: _sendClassEndAlreadyMarkedTest,
                       ),
                       Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
                       _buildTile(

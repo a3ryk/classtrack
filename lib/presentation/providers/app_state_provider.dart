@@ -1059,6 +1059,7 @@ class AttendanceRecordsNotifier extends StateNotifier<Map<String, AttendanceReco
       };
       loadFromDb();
       ref?.read(widgetSyncProvider).syncWidgets();
+      ref?.read(notificationPreferencesProvider.notifier).triggerDebouncedResync();
     });
   }
 

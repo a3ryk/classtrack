@@ -76,7 +76,7 @@ Future<void> _processNotificationAction(NotificationResponse response) async {
         sessionDate: sessionDate,
         outcome: outcome,
         markedAt: nowIso,
-        notes: 'Marked via notification action ($outcome)',
+        notes: null,
         syncVersion: 1,
         createdAt: nowIso,
         updatedAt: nowIso,
@@ -92,16 +92,54 @@ Future<void> _processNotificationAction(NotificationResponse response) async {
         NotificationService.onAttendanceActionMarked.add(record);
       }
 
-      // Dismiss the notification from tray
+      // Dismiss the notification from tray immediately
       if (response.id != null) {
         await NotificationService.instance.cancelNotification(response.id!);
       }
 
-      // Cancel BOTH start and end reminders for this session
+      // Always cancel the start reminder if it was still active in the tray
       final startReminderId = ('${sessionId}_start'.hashCode & 0x7FFFFFFF) % 1000000000;
       final endReminderId = ('${sessionId}_end'.hashCode & 0x7FFFFFFF) % 1000000000;
       await NotificationService.instance.cancelNotification(startReminderId);
-      await NotificationService.instance.cancelNotification(endReminderId);
+
+      // Check whether user wants completion notice at class end when already marked early
+      bool notifyWhenAlreadyMarked = true;
+      try {
+        final prefsJson = await db.getSetting('notification_preferences');
+        if (prefsJson != null && prefsJson.isNotEmpty) {
+          final prefsMap = jsonDecode(prefsJson) as Map<String, dynamic>;
+          notifyWhenAlreadyMarked = prefsMap['notifyWhenAlreadyMarked'] as bool? ?? true;
+        }
+      } catch (_) {}
+
+      final sessionDateStr = sessionDate ?? data['sessionDate'] as String?;
+      final endTimeStr = data['endTime'] as String?;
+      DateTime? endDt;
+      if (sessionDateStr != null && endTimeStr != null) {
+        try {
+          final dateParts = sessionDateStr.split('-').map(int.parse).toList();
+          final timeParts = endTimeStr.split(':').map(int.parse).toList();
+          endDt = DateTime(dateParts[0], dateParts[1], dateParts[2], timeParts[0], timeParts[1]);
+        } catch (_) {}
+      }
+
+      if (notifyWhenAlreadyMarked && endDt != null && endDt.isAfter(DateTime.now())) {
+        final subjectName = (data['subjectName'] as String?) ?? 'Class';
+        final outcomeFormatted = outcome == 'PRESENT'
+            ? 'Present'
+            : (outcome == 'ABSENT' ? 'Absent' : 'Cancelled');
+
+        await NotificationService.instance.scheduleClassNotification(
+          id: endReminderId,
+          title: subjectName,
+          body: 'Class has ended • You already marked your attendance as $outcomeFormatted at the start of class',
+          scheduledTime: endDt,
+          payload: payloadStr,
+          withQuickActions: false,
+        );
+      } else {
+        await NotificationService.instance.cancelNotification(endReminderId);
+      }
     }
   } catch (e) {
     debugPrint('Error handling notification background action: $e');
@@ -404,6 +442,7 @@ class NotificationService {
     bool withQuickActions = true,
     bool sound = true,
     bool vibrate = true,
+    int? timeoutAfterMs,
   }) async {
     if (!Platform.isAndroid && !Platform.isIOS) return;
     await init();
@@ -416,19 +455,19 @@ class NotificationService {
           ? const [
               AndroidNotificationAction(
                 actionPresent,
-                'Present',
+                '✓ Present',
                 showsUserInterface: false,
                 cancelNotification: true,
               ),
               AndroidNotificationAction(
                 actionAbsent,
-                'Absent',
+                '✕ Absent',
                 showsUserInterface: false,
                 cancelNotification: true,
               ),
               AndroidNotificationAction(
                 actionCancelled,
-                'Cancelled',
+                '⊘ Cancelled',
                 showsUserInterface: false,
                 cancelNotification: true,
               ),
@@ -436,6 +475,10 @@ class NotificationService {
           : const <AndroidNotificationAction>[];
 
       final channelId = resolveChannelId(sound: sound, vibrate: vibrate);
+      final styleInformation = BigTextStyleInformation(
+        sanitizeText(body),
+        contentTitle: sanitizeText(title),
+      );
       final androidDetails = AndroidNotificationDetails(
         channelId,
         classRemindersChannelName,
@@ -447,6 +490,9 @@ class NotificationService {
         vibrationPattern: vibrate ? null : Int64List.fromList([0]),
         actions: actions,
         autoCancel: true,
+        timeoutAfter: timeoutAfterMs,
+        styleInformation: styleInformation,
+        color: const Color(0xFF10B981),
         category: AndroidNotificationCategory.reminder,
         visibility: NotificationVisibility.public,
         groupKey: 'attendly_reminders_group',
@@ -492,6 +538,7 @@ class NotificationService {
     bool withQuickActions = true,
     bool sound = true,
     bool vibrate = true,
+    int? timeoutAfterMs,
   }) async {
     if (!Platform.isAndroid && !Platform.isIOS) return;
     await init();
@@ -510,19 +557,19 @@ class NotificationService {
           ? const [
               AndroidNotificationAction(
                 actionPresent,
-                'Present',
+                '✓ Present',
                 showsUserInterface: false,
                 cancelNotification: true,
               ),
               AndroidNotificationAction(
                 actionAbsent,
-                'Absent',
+                '✕ Absent',
                 showsUserInterface: false,
                 cancelNotification: true,
               ),
               AndroidNotificationAction(
                 actionCancelled,
-                'Cancelled',
+                '⊘ Cancelled',
                 showsUserInterface: false,
                 cancelNotification: true,
               ),
@@ -530,6 +577,10 @@ class NotificationService {
           : const <AndroidNotificationAction>[];
 
       final channelId = resolveChannelId(sound: sound, vibrate: vibrate);
+      final styleInformation = BigTextStyleInformation(
+        sanitizeText(body),
+        contentTitle: sanitizeText(title),
+      );
       final androidDetails = AndroidNotificationDetails(
         channelId,
         classRemindersChannelName,
@@ -541,6 +592,9 @@ class NotificationService {
         vibrationPattern: vibrate ? null : Int64List.fromList([0]),
         actions: actions,
         autoCancel: true,
+        timeoutAfter: timeoutAfterMs,
+        styleInformation: styleInformation,
+        color: const Color(0xFF10B981),
         category: AndroidNotificationCategory.reminder,
         visibility: NotificationVisibility.public,
         groupKey: 'attendly_reminders_group',

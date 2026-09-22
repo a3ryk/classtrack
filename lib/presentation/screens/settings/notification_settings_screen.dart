@@ -269,6 +269,16 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                           },
                         ),
                       ),
+                      Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
+                      _buildSwitchRow(
+                        title: 'Notify If Already Marked',
+                        subtitle: 'Inform when class ends if marked early',
+                        value: prefs.notifyWhenAlreadyMarked,
+                        isDark: isDark,
+                        onChanged: (val) {
+                          notifier.updatePreferences(prefs.copyWith(notifyWhenAlreadyMarked: val));
+                        },
+                      ),
                     ],
                     Divider(height: 1, indent: 16, endIndent: 16, color: dividerColor),
                     _buildSwitchRow(
@@ -593,6 +603,20 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                           notifier.updatePreferences(prefs.copyWith(endLeadMinutes: mins));
                         },
                       ),
+                    ),
+                    Divider(height: 1, indent: 56, endIndent: 16, color: dividerColor),
+                    _buildSproutSwitchRow(
+                      title: 'Notify If Already Marked',
+                      subtitle: 'Inform when class ends if marked early',
+                      icon: Icons.mark_email_read_rounded,
+                      iconBg: isDark ? const Color(0xFF1E3A2B) : const Color(0xFFE8F5E9),
+                      iconColor: isDark ? const Color(0xFF34D399) : const Color(0xFF2E7D32),
+                      value: prefs.notifyWhenAlreadyMarked,
+                      tokens: tokens,
+                      isDark: isDark,
+                      onChanged: (val) {
+                        notifier.updatePreferences(prefs.copyWith(notifyWhenAlreadyMarked: val));
+                      },
                     ),
                   ],
                   Divider(height: 1, indent: 56, endIndent: 16, color: dividerColor),
