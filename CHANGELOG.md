@@ -5,6 +5,16 @@ All notable changes to **ClassTrack** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0-alpha.6] - 2026-10-02
+
+### Pure AndroidX Native SplashScreen & 120 FPS Exit
+- **Pure AndroidX Native SplashScreen**: Fully adopted Android's official `androidx.core:core-splashscreen` API (matching Mihon architecture). Removed secondary Flutter in-app splash widgets, eliminating all scale mismatches and squircle curvature differences.
+- **Native 120 FPS Hardware-Accelerated Exit**: Splash dismissal executes directly on the Android UI compositor layer via `ObjectAnimator` and `PathInterpolator(0.2f, 0f, 0f, 1f)` (cubic ease-out), scaling the icon and fading out the background over 320ms with 0 jitter or dropped frames.
+- **Post-Frame Layout Synchronization**: Flutter signals dismissal via `com.attendly/splash` MethodChannel strictly inside `addPostFrameCallback`, guaranteeing the timetable dashboard is already rasterized into the window buffer before the splash exits.
+- **5000ms Safety Watchdog**: Integrated a 5-second automatic timeout in `setKeepOnScreenCondition` to prevent startup hangs under unexpected edge-case failures.
+
+---
+
 ## [2.0.0-alpha.5] - 2026-10-02
 
 ### Native Splash 192dp Alignment & Rich Alert Card Fix

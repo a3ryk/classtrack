@@ -13,39 +13,36 @@ import subprocess
 import time
 
 REPO = "a3ryk/classtrack"
-TAG = "v2.0.0-alpha.5"
-TITLE = "Attendly v2.0.0-alpha.5 (Native Splash 192dp Alignment & Rich Alert Card Fix)"
+TAG = "v2.0.0-alpha.6"
+TITLE = "Attendly v2.0.0-alpha.6 (Pure AndroidX Native SplashScreen & 120 FPS Exit)"
 
-RELEASE_NOTES_TEMPLATE = """# Attendly v2.0.0-alpha.5 (Native Splash 192dp Alignment & Rich Alert Card Fix)
+RELEASE_NOTES_TEMPLATE = """# Attendly v2.0.0-alpha.6 (Pure AndroidX Native SplashScreen & 120 FPS Exit)
 
 > [!NOTE]
-> **Optional Update**: This release fine-tunes the launch splash geometry to match Android 12+ native specifications, and restores rich alert callout cards in the main in-app updater. It is an optional update (`is_mandatory: false`). Your existing installation will continue functioning normally without interruption.
+> **Optional Update**: This release replaces duplicate Flutter splash widgets with the official AndroidX SplashScreen architecture (the same system used by Mihon), providing seamless 120 FPS launch continuity with zero scaling or framing discrepancies. It is an optional update (`is_mandatory: false`). Your existing installation will continue functioning normally without interruption.
 
 > [!TIP]
 > **Migration Guide for Users on Older Packages (`com.classtrack.app`)**:
 > If you are upgrading from an older version released before `v2.0.0-alpha.1` (when the app used the `com.classtrack.app` package identity):
 > 1. In your existing app, navigate to **Settings > Backup & Restore > Export Backup** and save your `.attendly` backup file safely.
 > 2. Uninstall the old `com.classtrack.app` build.
-> 3. Install **Attendly `v2.0.0-alpha.5`** (`com.attendly`).
+> 3. Install **Attendly `v2.0.0-alpha.6`** (`com.attendly`).
 > 4. Go to **Settings > Backup & Restore > Restore Backup** and select your backup file.
 > 
-> *If you are already on `v2.0.0-alpha.1` through `v2.0.0-alpha.4` (`com.attendly`), you can install this update directly over your existing app without uninstalling.*
+> *If you are already on `v2.0.0-alpha.1` through `v2.0.0-alpha.5` (`com.attendly`), you can install this update directly over your existing app without uninstalling.*
 
 ---
 
-### What's New in v2.0.0-alpha.5
+### What's New in v2.0.0-alpha.6
 
-#### 📱 Native Splash 192dp Geometry Alignment
-- **Pixel-Perfect 1:1 Match**: Rescaled Flutter's `ConstantNativeSplash` icon from 124dp to **192×192 dp** with a **42dp** squircle radius (`192 × 0.22`), perfectly matching the official Android 12+ starting window dimension (~48% screen width).
-- **Zero Scale Jump**: Completely eliminated the visible shrinking hitch between the native OS splash and the Flutter initialization layer.
+#### 🚀 Pure AndroidX Native SplashScreen
+- **Unified Launch Surface**: Replaced duplicate in-app splash widgets with Android's official `androidx.core:core-splashscreen` API (matching Mihon architecture). Completely eliminated dual-layer handoffs, sizing discrepancies, and squircle curvature differences.
+- **Theme-Aware Background**: Splash background automatically switches between Pure White (`#FFFFFF`) and Dark Slate (`#121316`) respecting system dark mode from millisecond 0.
 
-#### 📢 In-App Updater Rich Alert Cards Fix
-- **Card Callout Preservation**: Added `copyWith` to `AppReleaseInfo` and resolved a parameter omission in `AppUpdateNotifier.checkForUpdates` that previously dropped `alertCallouts` and `releaseNotesMarkdown` during release finalization.
-- **Rich Callout Display**: Release dialogs and update screens now consistently render styled GitHub Note and Tip cards across both Dev Options and standard Update checks.
-
-#### ⚡ Constant Native Launch Continuity
-- **Zero Spinners**: The launcher icon remains stationary and centered while background database hydration completes with zero circular progress indicators.
-- **60/120 FPS Zoom-Through**: Hardware-accelerated 350ms reveal (`Curves.easeOutCubic`) isolated via `RepaintBoundary` on dedicated GPU compositor layers.
+#### ⚡ Hardware-Accelerated 120 FPS Exit
+- **Compositor-Layer Animation**: Native `ObjectAnimator` scales the launcher icon ($1.0 \to 1.25$) and fades out the surface ($1.0 \to 0.0$) using a smooth `PathInterpolator(0.2f, 0f, 0f, 1f)` (cubic ease-out) over 320ms with 0 jitter or dropped frames.
+- **Post-Frame Layout Synchronization**: Flutter signals dismissal via MethodChannel (`com.attendly/splash`) strictly inside `addPostFrameCallback`, guaranteeing the timetable dashboard is already rasterized into the window buffer before the splash dismisses.
+- **5000ms Safety Watchdog**: Integrated a 5-second automatic timeout in `setKeepOnScreenCondition` to ensure the splash never hangs under unexpected startup errors.
 
 ---
 
@@ -53,7 +50,7 @@ RELEASE_NOTES_TEMPLATE = """# Attendly v2.0.0-alpha.5 (Native Splash 192dp Align
 
 {ASSET_TABLE}
 
-*Recommended: Use `app-arm64-v8a-release.apk` for modern 64-bit Android smartphones for the fastest download and smallest footprint, or `Attendly-v2.0.0-alpha.5.apk` for universal compatibility.*
+*Recommended: Use `app-arm64-v8a-release.apk` for modern 64-bit Android smartphones for the fastest download and smallest footprint, or `Attendly-v2.0.0-alpha.6.apk` for universal compatibility.*
 """
 
 def compute_sha256(filepath):
@@ -78,7 +75,7 @@ def main():
 
     apk_dir = os.path.join('build', 'app', 'outputs', 'flutter-apk')
     assets_to_upload = [
-        ('Attendly-v2.0.0-alpha.5.apk', 'Attendly-v2.0.0-alpha.5.apk', 'All Devices', 'Universal Fat APK'),
+        ('Attendly-v2.0.0-alpha.6.apk', 'Attendly-v2.0.0-alpha.6.apk', 'All Devices', 'Universal Fat APK'),
         ('app-arm64-v8a-release.apk', 'app-arm64-v8a-release.apk', 'ARM64', 'Split-per-ABI APK'),
         ('app-armeabi-v7a-release.apk', 'app-armeabi-v7a-release.apk', 'ARMv7', 'Split-per-ABI APK'),
         ('app-x86_64-release.apk', 'app-x86_64-release.apk', 'x86_64', 'Split-per-ABI APK')

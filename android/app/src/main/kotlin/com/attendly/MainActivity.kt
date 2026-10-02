@@ -1,21 +1,72 @@
-﻿package com.attendly
+package com.attendly
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
+import android.provider.Settings
+import android.view.View
+import android.view.animation.PathInterpolator
 import androidx.core.content.FileProvider
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
 
-import android.provider.Settings
-
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.attendly/package_installer"
+    private val SPLASH_CHANNEL = "com.attendly/splash"
+    private var isAppReady = false
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
+        super.onCreate(savedInstanceState)
+
+        val startTime = System.currentTimeMillis()
+        splashScreen.setKeepOnScreenCondition {
+            val elapsed = System.currentTimeMillis() - startTime
+            !isAppReady && (elapsed < 5000)
+        }
+
+        splashScreen.setOnExitAnimationListener { splashScreenViewProvider ->
+            val splashView = splashScreenViewProvider.view
+            val iconView = splashScreenViewProvider.iconView
+
+            // Hardware-accelerated smooth zoom + fade out on Android compositor layer
+            val scaleX = ObjectAnimator.ofFloat(iconView, View.SCALE_X, 1.0f, 1.25f)
+            val scaleY = ObjectAnimator.ofFloat(iconView, View.SCALE_Y, 1.0f, 1.25f)
+            val alpha = ObjectAnimator.ofFloat(splashView, View.ALPHA, 1.0f, 0.0f)
+
+            AnimatorSet().apply {
+                duration = 320L
+                interpolator = PathInterpolator(0.2f, 0.0f, 0.0f, 1.0f)
+                playTogether(scaleX, scaleY, alpha)
+                addListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        splashScreenViewProvider.remove()
+                    }
+                })
+                start()
+            }
+        }
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, SPLASH_CHANNEL).setMethodCallHandler { call, result ->
+            if (call.method == "dismissSplash") {
+                isAppReady = true
+                result.success(true)
+            } else {
+                result.notImplemented()
+            }
+        }
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {

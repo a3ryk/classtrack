@@ -8,7 +8,6 @@ import 'presentation/providers/app_state_provider.dart';
 import 'presentation/providers/theme_provider.dart';
 import 'presentation/providers/app_theme_style_provider.dart';
 import 'presentation/screens/main_shell.dart';
-import 'presentation/widgets/constant_native_splash.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -91,32 +90,26 @@ class _AppLaunchGate extends StatefulWidget {
 }
 
 class _AppLaunchGateState extends State<_AppLaunchGate> {
-  bool _showSplash = true;
+  static const MethodChannel _splashChannel = MethodChannel('com.attendly/splash');
+  bool _dismissSent = false;
+
+  void _notifyReady() {
+    if (_dismissSent) return;
+    _dismissSent = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _splashChannel.invokeMethod('dismissSplash').catchError((_) {});
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final isReady = widget.initAsync.hasValue || widget.initAsync.hasError;
 
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        if (isReady)
-          RepaintBoundary(
-            child: widget.child,
-          ),
-        if (_showSplash)
-          ConstantNativeSplash(
-            isReady: isReady,
-            onFinished: () {
-              if (mounted) {
-                setState(() {
-                  _showSplash = false;
-                });
-              }
-            },
-          ),
-      ],
-    );
+    if (isReady) {
+      _notifyReady();
+    }
+
+    return widget.child;
   }
 }
 

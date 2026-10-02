@@ -4,9 +4,24 @@ import '../services/app_update_service.dart';
 class AppReleaseNotes {
   AppReleaseNotes._();
 
-  static const String currentVersion = '2.0.0-alpha.5';
+  static const String currentVersion = '2.0.0-alpha.6';
 
   static final Map<String, AppReleaseInfo> _releases = {
+    '2.0.0-alpha.6': const AppReleaseInfo(
+      latestVersion: '2.0.0-alpha.6',
+      buildNumber: 20,
+      minSupportedVersion: '0.0.1',
+      releaseDate: 'October 2026',
+      releaseTitle: 'Attendly v2.0.0-alpha.6 (Pure AndroidX Native SplashScreen & 120 FPS Exit)',
+      changelog: [
+        '🚀 Pure AndroidX Native SplashScreen: Replaced Flutter duplicate splash widget with Android official androidx.core:core-splashscreen API, matching Mihon architecture with zero scale mismatches.',
+        '⚡ Hardware-Accelerated 120 FPS Exit: Native AnimatorSet animates splash icon and background directly on the Android UI compositor with cubic ease-out, revealing the timetable with 0 jitter.',
+        '🛡️ Post-Frame Synchronization: MethodChannel coordinates dismissal strictly after initial frame layout, ensuring the dashboard is pre-rasterized before the splash dismisses.',
+        '⏱️ 5000ms Safety Watchdog: Native keep-on-screen guard with automatic timeout preventing launch hangs.',
+      ],
+      isMandatory: false,
+      warningMessage: null,
+    ),
     '2.0.0-alpha.5': const AppReleaseInfo(
       latestVersion: '2.0.0-alpha.5',
       buildNumber: 19,
