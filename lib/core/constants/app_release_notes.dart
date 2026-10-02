@@ -4,9 +4,25 @@ import '../services/app_update_service.dart';
 class AppReleaseNotes {
   AppReleaseNotes._();
 
-  static const String currentVersion = '2.0.0-alpha.4';
+  static const String currentVersion = '2.0.0-alpha.5';
 
   static final Map<String, AppReleaseInfo> _releases = {
+    '2.0.0-alpha.5': const AppReleaseInfo(
+      latestVersion: '2.0.0-alpha.5',
+      buildNumber: 19,
+      minSupportedVersion: '0.0.1',
+      releaseDate: 'October 2026',
+      releaseTitle: 'Attendly v2.0.0-alpha.5 (Native Splash 192dp Alignment & Rich Alert Card Fix)',
+      changelog: [
+        '📱 Native Splash 192dp Alignment: Scaled ConstantNativeSplash to 192x192 dp with 42dp squircle radius, matching Android 12+ native starting surface dimensions for seamless 1:1 continuity.',
+        '📢 In-App Updater Rich Alert Cards: Fixed AppUpdateNotifier to preserve alertCallouts and releaseNotesMarkdown, displaying rich GitHub Note and Tip cards in the main updater.',
+        '⚡ Constant Native Launch: Stationary launcher icon during background database hydration with zero circular spinners.',
+        '🚀 60/120 FPS Smooth Zoom-Through: Hardware-accelerated 350ms zoom-through reveal (Curves.easeOutCubic) uncovering your timetable with zero frame drops or visual jitter.',
+        '🎨 RepaintBoundary Layer Isolation: Isolated GPU compositor layers for both splash and dashboard, preventing unnecessary layout and render invalidation passes.',
+      ],
+      isMandatory: false,
+      warningMessage: null,
+    ),
     '2.0.0-alpha.4': const AppReleaseInfo(
       latestVersion: '2.0.0-alpha.4',
       buildNumber: 18,

@@ -5,6 +5,14 @@ All notable changes to **ClassTrack** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0-alpha.5] - 2026-10-02
+
+### Native Splash 192dp Alignment & Rich Alert Card Fix
+- **Native Splash 192dp Alignment**: Rescaled `ConstantNativeSplash` icon from 124dp to **192×192 dp** with **42dp** squircle radius, matching Android 12+ native starting surface dimensions for seamless 1:1 continuity without scale jumps on handoff.
+- **In-App Updater Rich Alert Cards Fix**: Added `copyWith` to `AppReleaseInfo` and updated `AppUpdateNotifier.checkForUpdates` to preserve `alertCallouts` and `releaseNotesMarkdown`, restoring rich GitHub Note and Tip cards in the main in-app updater.
+
+---
+
 ## [2.0.0-alpha.4] - 2026-10-02
 
 ### X / Instagram Constant Launch & 120 FPS Anti-Jitter Transition

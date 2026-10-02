@@ -62,6 +62,38 @@ class AppReleaseInfo {
     this.abiAssets = const {},
   });
 
+  AppReleaseInfo copyWith({
+    String? latestVersion,
+    int? buildNumber,
+    String? minSupportedVersion,
+    String? releaseDate,
+    String? releaseTitle,
+    List<String>? changelog,
+    String? releaseNotesMarkdown,
+    String? downloadUrl,
+    String? releasePageUrl,
+    bool? isMandatory,
+    String? warningMessage,
+    List<ReleaseAlertCallout>? alertCallouts,
+    Map<String, String>? abiAssets,
+  }) {
+    return AppReleaseInfo(
+      latestVersion: latestVersion ?? this.latestVersion,
+      buildNumber: buildNumber ?? this.buildNumber,
+      minSupportedVersion: minSupportedVersion ?? this.minSupportedVersion,
+      releaseDate: releaseDate ?? this.releaseDate,
+      releaseTitle: releaseTitle ?? this.releaseTitle,
+      changelog: changelog ?? this.changelog,
+      releaseNotesMarkdown: releaseNotesMarkdown ?? this.releaseNotesMarkdown,
+      downloadUrl: downloadUrl ?? this.downloadUrl,
+      releasePageUrl: releasePageUrl ?? this.releasePageUrl,
+      isMandatory: isMandatory ?? this.isMandatory,
+      warningMessage: warningMessage ?? this.warningMessage,
+      alertCallouts: alertCallouts ?? this.alertCallouts,
+      abiAssets: abiAssets ?? this.abiAssets,
+    );
+  }
+
   /// Returns clean, render-ready Markdown representation of the release notes.
   String get effectiveMarkdown {
     if (releaseNotesMarkdown != null && releaseNotesMarkdown!.trim().isNotEmpty) {

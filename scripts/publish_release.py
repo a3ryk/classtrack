@@ -12,44 +12,39 @@ import urllib.error
 import subprocess
 
 REPO = "a3ryk/classtrack"
-TAG = "v2.0.0-alpha.4"
-TITLE = "Attendly v2.0.0-alpha.4 (X / Instagram Constant Launch & 120 FPS Anti-Jitter Transition)"
+TAG = "v2.0.0-alpha.5"
+TITLE = "Attendly v2.0.0-alpha.5 (Native Splash 192dp Alignment & Rich Alert Card Fix)"
 
-RELEASE_NOTES_TEMPLATE = """# Attendly v2.0.0-alpha.4 (X / Instagram Constant Launch & 120 FPS Anti-Jitter Transition)
+RELEASE_NOTES_TEMPLATE = """# Attendly v2.0.0-alpha.5 (Native Splash 192dp Alignment & Rich Alert Card Fix)
 
 > [!NOTE]
-> **Optional Update**: This release introduces a seamless launcher-to-app splash transition similar to modern apps like X and Instagram, alongside launch stability optimizations. It is an optional update (`is_mandatory: false`). Your existing installation will continue functioning normally without interruption.
+> **Optional Update**: This release fine-tunes the launch splash geometry to match Android 12+ native specifications, and restores rich alert callout cards in the main in-app updater. It is an optional update (`is_mandatory: false`). Your existing installation will continue functioning normally without interruption.
 
 > [!TIP]
 > **Migration Guide for Users on Older Packages (`com.classtrack.app`)**:
 > If you are upgrading from an older version released before `v2.0.0-alpha.1` (when the app used the `com.classtrack.app` package identity):
 > 1. In your existing app, navigate to **Settings > Backup & Restore > Export Backup** and save your `.attendly` backup file safely.
 > 2. Uninstall the old `com.classtrack.app` build.
-> 3. Install **Attendly `v2.0.0-alpha.4`** (`com.attendly`).
+> 3. Install **Attendly `v2.0.0-alpha.5`** (`com.attendly`).
 > 4. Go to **Settings > Backup & Restore > Restore Backup** and select your backup file.
 > 
-> *If you are already on `v2.0.0-alpha.1`, `v2.0.0-alpha.2`, or `v2.0.0-alpha.3` (`com.attendly`), you can install this update directly over your existing app without uninstalling.*
+> *If you are already on `v2.0.0-alpha.1` through `v2.0.0-alpha.4` (`com.attendly`), you can install this update directly over your existing app without uninstalling.*
 
 ---
 
-### What's New in v2.0.0-alpha.4
+### What's New in v2.0.0-alpha.5
 
-#### ⚡ X / Instagram Constant Launch Experience
-- **Eliminated the Circular Loader**: Removed the generic spinning circular progress indicator and blank loading canvas entirely during cold start.
-- **Unbroken Visual Continuity**: The native Android launch screen (the centered app launcher icon on a clean background) now stays 100% constant and stationary while database hydration completes in the background. To the user's eye, it never leaves the native splash screen.
-- **Zero Clutter**: Completely free of loading bars, percentage counters, and secondary subtitles.
+#### 📱 Native Splash 192dp Geometry Alignment
+- **Pixel-Perfect 1:1 Match**: Rescaled Flutter's `ConstantNativeSplash` icon from 124dp to **192×192 dp** with a **42dp** squircle radius (`192 × 0.22`), perfectly matching the official Android 12+ starting window dimension (~48% screen width).
+- **Zero Scale Jump**: Completely eliminated the visible shrinking hitch between the native OS splash and the Flutter initialization layer.
 
-#### 🚀 60/120 FPS Hardware-Accelerated Zoom-Through Reveal
-- **Silky Easing**: The moment SQLite hydration finishes, the centered icon smoothly scales up (`1.0 → 1.45`) and dissolves over **350ms** (`Curves.easeOutCubic`) as your timetable dashboard smoothly reveals underneath.
-- **`RepaintBoundary` Isolation**: Both the splash overlay and the `MainShell` are isolated on dedicated GPU compositor render layers, preventing repaint cascades and layout passes on underlying timetable cards.
-- **Asset Precaching**: The launcher icon is precached in memory on mount (`precacheImage`), eliminating image decode hitches or initial frame blanking.
-- **Post-Frame Layout Coordination**: The zoom-through sequence starts on `WidgetsBinding.instance.addPostFrameCallback`, guaranteeing the transition only begins after the initial frame of `MainShell` has already laid out cleanly.
+#### 📢 In-App Updater Rich Alert Cards Fix
+- **Card Callout Preservation**: Added `copyWith` to `AppReleaseInfo` and resolved a parameter omission in `AppUpdateNotifier.checkForUpdates` that previously dropped `alertCallouts` and `releaseNotesMarkdown` during release finalization.
+- **Rich Callout Display**: Release dialogs and update screens now consistently render styled GitHub Note and Tip cards across both Dev Options and standard Update checks.
 
-#### 📱 Prominent 124dp Native Icon Geometry
-- **Scaled for High-Density Displays**: Sized the centered icon prominently at **124×124 dp** with a clean 28dp squircle radius, matching modern Android 12+ adaptive icon display bounds.
-
-#### 📖 Expanded Documentation & Trigger Safety
-- **Mandatory Trigger Reference**: Thoroughly documented update parsing behavior across GitHub API and Atom fallback feeds in `UPDATER_GUIDE.md` and `docs/RELEASE_AND_UPDATES_GUIDE.md`.
+#### ⚡ Constant Native Launch Continuity
+- **Zero Spinners**: The launcher icon remains stationary and centered while background database hydration completes with zero circular progress indicators.
+- **60/120 FPS Zoom-Through**: Hardware-accelerated 350ms reveal (`Curves.easeOutCubic`) isolated via `RepaintBoundary` on dedicated GPU compositor layers.
 
 ---
 
@@ -57,7 +52,7 @@ RELEASE_NOTES_TEMPLATE = """# Attendly v2.0.0-alpha.4 (X / Instagram Constant La
 
 {ASSET_TABLE}
 
-*Recommended: Use `app-arm64-v8a-release.apk` for modern 64-bit Android smartphones for the fastest download and smallest footprint, or `Attendly-v2.0.0-alpha.4.apk` for universal compatibility.*
+*Recommended: Use `app-arm64-v8a-release.apk` for modern 64-bit Android smartphones for the fastest download and smallest footprint, or `Attendly-v2.0.0-alpha.5.apk` for universal compatibility.*
 """
 
 def compute_sha256(filepath):
@@ -82,7 +77,7 @@ def main():
 
     apk_dir = os.path.join('build', 'app', 'outputs', 'flutter-apk')
     assets_to_upload = [
-        ('Attendly-v2.0.0-alpha.4.apk', 'Attendly-v2.0.0-alpha.4.apk', 'All Devices', 'Universal Fat APK'),
+        ('Attendly-v2.0.0-alpha.5.apk', 'Attendly-v2.0.0-alpha.5.apk', 'All Devices', 'Universal Fat APK'),
         ('app-arm64-v8a-release.apk', 'app-arm64-v8a-release.apk', 'ARM64', 'Split-per-ABI APK'),
         ('app-armeabi-v7a-release.apk', 'app-armeabi-v7a-release.apk', 'ARMv7', 'Split-per-ABI APK'),
         ('app-x86_64-release.apk', 'app-x86_64-release.apk', 'x86_64', 'Split-per-ABI APK')

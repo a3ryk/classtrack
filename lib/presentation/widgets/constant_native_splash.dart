@@ -121,11 +121,11 @@ class _ConstantNativeSplashState extends State<ConstantNativeSplash>
           child: ScaleTransition(
             scale: _scaleAnimation,
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(28),
+              borderRadius: BorderRadius.circular(42),
               child: Image.asset(
                 'assets/icon/app_icon.png',
-                width: 124,
-                height: 124,
+                width: 192,
+                height: 192,
                 fit: BoxFit.cover,
                 filterQuality: FilterQuality.medium,
               ),

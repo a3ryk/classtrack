@@ -458,5 +458,35 @@ Full details in [PR #42](https://github.com/a3ryk/classtrack/pull/42).
         }
       }
     });
+
+    test('AppReleaseInfo.copyWith preserves alertCallouts and releaseNotesMarkdown', () {
+      const original = AppReleaseInfo(
+        latestVersion: '2.0.0-alpha.5',
+        buildNumber: 19,
+        minSupportedVersion: '0.0.1',
+        releaseDate: '2026-10-02',
+        releaseTitle: 'Attendly v2.0.0-alpha.5',
+        changelog: ['Feature 1', 'Feature 2'],
+        releaseNotesMarkdown: '# Release Notes\n> [!NOTE]\n> Note content',
+        alertCallouts: [
+          ReleaseAlertCallout(type: AlertCalloutType.note, markdown: 'Note content'),
+          ReleaseAlertCallout(type: AlertCalloutType.tip, markdown: 'Tip content'),
+        ],
+      );
+
+      final copied = original.copyWith(
+        downloadUrl: 'https://example.com/app.apk',
+        isMandatory: false,
+      );
+
+      expect(copied.latestVersion, '2.0.0-alpha.5');
+      expect(copied.downloadUrl, 'https://example.com/app.apk');
+      expect(copied.alertCallouts.length, 2);
+      expect(copied.alertCallouts[0].type, AlertCalloutType.note);
+      expect(copied.alertCallouts[0].markdown, 'Note content');
+      expect(copied.alertCallouts[1].type, AlertCalloutType.tip);
+      expect(copied.alertCallouts[1].markdown, 'Tip content');
+      expect(copied.releaseNotesMarkdown, original.releaseNotesMarkdown);
+    });
   });
 }

@@ -126,18 +126,9 @@ class AppUpdateNotifier extends StateNotifier<AppUpdateState> {
         isMandatoryFlag: release.isMandatory,
       );
 
-      final finalizedRelease = AppReleaseInfo(
-        latestVersion: release.latestVersion,
-        buildNumber: release.buildNumber,
-        minSupportedVersion: release.minSupportedVersion,
-        releaseDate: release.releaseDate,
-        releaseTitle: release.releaseTitle,
-        changelog: release.changelog,
+      final finalizedRelease = release.copyWith(
         downloadUrl: matchedDownloadUrl,
-        releasePageUrl: release.releasePageUrl,
         isMandatory: isMandatory,
-        warningMessage: release.warningMessage,
-        abiAssets: release.abiAssets,
       );
 
       if (updateAvailable) {

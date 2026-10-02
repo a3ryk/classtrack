@@ -1,25 +1,26 @@
 {
-  "latest_version": "2.0.0-alpha.4",
-  "build_number": 18,
+  "latest_version": "2.0.0-alpha.5",
+  "build_number": 19,
   "min_supported_version": "0.0.1",
   "release_date": "2026-10-02",
-  "release_title": "Attendly v2.0.0-alpha.4 (X / Instagram Constant Launch & 120 FPS Anti-Jitter Transition)",
+  "release_title": "Attendly v2.0.0-alpha.5 (Native Splash 192dp Alignment & Rich Alert Card Fix)",
   "changelog": [
-    "⚡ Constant Native Launch: Seamless transition matching X and Instagram; the native launcher icon remains perfectly centered while background hydration finishes with zero circular spinners.",
+    "📱 Native Splash 192dp Alignment: Scaled ConstantNativeSplash to 192x192 dp with 42dp squircle radius, matching Android 12+ native starting surface dimensions for seamless 1:1 continuity.",
+    "📢 In-App Updater Rich Alert Cards: Fixed AppUpdateNotifier to preserve alertCallouts and releaseNotesMarkdown, displaying rich GitHub Note and Tip cards in the main updater.",
+    "⚡ Constant Native Launch: Stationary launcher icon during background database hydration with zero circular spinners.",
     "🚀 60/120 FPS Smooth Zoom-Through: Hardware-accelerated 350ms zoom-through reveal (Curves.easeOutCubic) uncovering your timetable with zero frame drops or visual jitter.",
-    "🎨 RepaintBoundary Layer Isolation: Isolated GPU compositor layers for both splash and dashboard, preventing unnecessary layout and render invalidation passes.",
-    "📱 Prominent 124dp Native Icon: Perfectly scaled 124x124 dp launcher icon geometry with 28dp squircle radius matching Android 12+ adaptive display bounds.",
-    "📖 Updater Documentation: Expanded developer and release guides detailing mandatory triggers, GitHub callout transforms, and non-mandatory conventions."
+    "🎨 RepaintBoundary Layer Isolation: Isolated GPU compositor layers for both splash and dashboard, preventing unnecessary layout and render invalidation passes."
   ],
-  "download_url": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.4/Attendly-v2.0.0-alpha.4.apk",
+  "download_url": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.5/Attendly-v2.0.0-alpha.5.apk",
   "abi_assets": {
-    "arm64-v8a": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.4/app-arm64-v8a-release.apk",
-    "armeabi-v7a": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.4/app-armeabi-v7a-release.apk",
-    "x86_64": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.4/app-x86_64-release.apk",
-    "universal": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.4/Attendly-v2.0.0-alpha.4.apk"
+    "arm64-v8a": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.5/app-arm64-v8a-release.apk",
+    "armeabi-v7a": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.5/app-armeabi-v7a-release.apk",
+    "x86_64": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.5/app-x86_64-release.apk",
+    "universal": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.5/Attendly-v2.0.0-alpha.5.apk"
   },
-  "release_page_url": "https://github.com/a3ryk/classtrack/releases/tag/v2.0.0-alpha.4",
+  "release_page_url": "https://github.com/a3ryk/classtrack/releases/tag/v2.0.0-alpha.5",
   "is_mandatory": false,
   "warning_message": null
 }
+
 
