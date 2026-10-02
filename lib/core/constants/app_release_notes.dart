@@ -4,9 +4,39 @@ import '../services/app_update_service.dart';
 class AppReleaseNotes {
   AppReleaseNotes._();
 
-  static const String currentVersion = '2.0.0-alpha.6';
+  static const String currentVersion = '2.0.0-alpha.8';
 
   static final Map<String, AppReleaseInfo> _releases = {
+    '2.0.0-alpha.8': const AppReleaseInfo(
+      latestVersion: '2.0.0-alpha.8',
+      buildNumber: 22,
+      minSupportedVersion: '0.0.1',
+      releaseDate: 'October 2026',
+      releaseTitle: 'Attendly v2.0.0-alpha.8 (Refined Splash Icon & Circular Mask Alignment)',
+      changelog: [
+        '🎨 Refined Splash Icon Dimensions: Rescaled centered splash icon to a balanced 96dp × 96dp (down from oversized 160dp default) via dedicated @drawable/splash_screen_icon.',
+        '⭕ Circular Mask Alignment: Generated 4x supersampled anti-aliased circular assets matching Android 12+ splash viewport geometry 1:1, completely eliminating octagonal cuts and chamfers.',
+        '🛡️ Launcher Asset Isolation: OS home-screen launcher icon (@mipmap/launcher_icon) remains 100% untouched.',
+        '📱 Modern Edge-to-Edge Windowing: Transparent status/navigation bars, shortEdges display cutout mode, and contrast overlay removal preventing camera notch letterboxing.',
+      ],
+      isMandatory: false,
+      warningMessage: null,
+    ),
+    '2.0.0-alpha.7': const AppReleaseInfo(
+      latestVersion: '2.0.0-alpha.7',
+      buildNumber: 21,
+      minSupportedVersion: '0.0.1',
+      releaseDate: 'October 2026',
+      releaseTitle: 'Attendly v2.0.0-alpha.7 (Edge-to-Edge System Bars & Camera Cutout Display Mode)',
+      changelog: [
+        '📱 Modern Material Base Themes: Migrated Android window NormalTheme to Theme.Material.Light.NoActionBar with pure transparent system bars.',
+        '📸 Display Cutout ShortEdges Mode: Configured shortEdges mode eliminating top camera cutout letterboxing on modern Android devices.',
+        '🚫 Contrast Scrim Removal: Explicitly disabled Android 10+ contrast overlays on status and navigation bars.',
+        '⚡ WindowCompat Architecture: Implemented WindowCompat.setDecorFitsSystemWindows on MainActivity with synchronized Flutter SystemUiOverlayStyle.',
+      ],
+      isMandatory: false,
+      warningMessage: null,
+    ),
     '2.0.0-alpha.6': const AppReleaseInfo(
       latestVersion: '2.0.0-alpha.6',
       buildNumber: 20,

@@ -5,6 +5,26 @@ All notable changes to **ClassTrack** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0-alpha.8] - 2026-10-02
+
+### Refined Splash Icon & Circular Mask Alignment
+- **Refined Splash Icon Dimensions (96dp × 96dp)**: Rescaled the centered native Android splash icon from the default oversized 160dp down to a balanced 96dp using a dedicated `@drawable/splash_screen_icon`, matching modern app splash presentation.
+- **Circular Mask Alignment (Zero Octagonal Cuts)**: Generated 4x supersampled, anti-aliased circular splash drawables with alpha transparency matching Android 12+'s internal splash circular viewport mask geometry 1:1, permanently eliminating all diagonal chops, harsh chamfers, and polygon/octagonal edges.
+- **Home Screen Launcher Asset Isolation**: Kept `@mipmap/launcher_icon`, `@mipmap/ic_launcher`, and all OS home-screen launcher icon assets 100% untouched.
+
+---
+
+## [2.0.0-alpha.7] - 2026-10-02
+
+### Edge-to-Edge System Bars & Camera Cutout Display Mode
+- **Edge-to-Edge Material Base Themes**: Upgraded Android `NormalTheme` base from legacy `@android:style/Theme.Light.NoTitleBar` to `@android:style/Theme.Material.Light.NoActionBar` (and `@android:style/Theme.Material.NoActionBar` for night mode), enabling full modern system bar drawing capabilities.
+- **Display Cutout ShortEdges Mode**: Configured `android:windowLayoutInDisplayCutoutMode = shortEdges` in `styles.xml` and applied `layoutInDisplayCutoutMode` on the window at runtime. Content now renders seamlessly into the punch hole / notch area, permanently resolving top status bar letterboxing and black bars.
+- **Zero Contrast Scrims**: Disabled Android 10+ (API 29+) contrast overlays via `android:enforceNavigationBarContrast = false` and `android:enforceStatusBarContrast = false` in XML and runtime, eliminating dark navigation bar scrims.
+- **WindowCompat Architecture**: Implemented `WindowCompat.setDecorFitsSystemWindows(window, false)` on `MainActivity`, providing clean, robust edge-to-edge drawing compatible across all Android versions.
+- **Flutter Overlay Style Consistency**: Synchronized Flutter's `SystemUiOverlayStyle` within `AnnotatedRegion` to enforce transparent system bars and dynamic contrast-free icon brightness in both light and dark modes.
+
+---
+
 ## [2.0.0-alpha.6] - 2026-10-02
 
 ### Pure AndroidX Native SplashScreen & 120 FPS Exit

@@ -13,36 +13,39 @@ import subprocess
 import time
 
 REPO = "a3ryk/classtrack"
-TAG = "v2.0.0-alpha.6"
-TITLE = "Attendly v2.0.0-alpha.6 (Pure AndroidX Native SplashScreen & 120 FPS Exit)"
+TAG = "v2.0.0-alpha.8"
+TITLE = "Attendly v2.0.0-alpha.8 (Refined Splash Icon & Circular Mask Alignment)"
 
-RELEASE_NOTES_TEMPLATE = """# Attendly v2.0.0-alpha.6 (Pure AndroidX Native SplashScreen & 120 FPS Exit)
+RELEASE_NOTES_TEMPLATE = """# Attendly v2.0.0-alpha.8 (Refined Splash Icon & Circular Mask Alignment)
 
 > [!NOTE]
-> **Optional Update**: This release replaces duplicate Flutter splash widgets with the official AndroidX SplashScreen architecture (the same system used by Mihon), providing seamless 120 FPS launch continuity with zero scaling or framing discrepancies. It is an optional update (`is_mandatory: false`). Your existing installation will continue functioning normally without interruption.
+> **Optional Update**: This release refines the native Android splash screen icon presentation by scaling it down to a balanced 96dp and aligning with Android 12+'s circular viewport mask to completely eliminate hexagonal/octagonal cut artifacts. It is an optional update (`is_mandatory: false`). Your existing installation will continue functioning normally without interruption.
 
 > [!TIP]
 > **Migration Guide for Users on Older Packages (`com.classtrack.app`)**:
 > If you are upgrading from an older version released before `v2.0.0-alpha.1` (when the app used the `com.classtrack.app` package identity):
 > 1. In your existing app, navigate to **Settings > Backup & Restore > Export Backup** and save your `.attendly` backup file safely.
 > 2. Uninstall the old `com.classtrack.app` build.
-> 3. Install **Attendly `v2.0.0-alpha.6`** (`com.attendly`).
+> 3. Install **Attendly `v2.0.0-alpha.8`** (`com.attendly`).
 > 4. Go to **Settings > Backup & Restore > Restore Backup** and select your backup file.
 > 
-> *If you are already on `v2.0.0-alpha.1` through `v2.0.0-alpha.5` (`com.attendly`), you can install this update directly over your existing app without uninstalling.*
+> *If you are already on `v2.0.0-alpha.1` through `v2.0.0-alpha.7` (`com.attendly`), you can install this update directly over your existing app without uninstalling.*
 
 ---
 
-### What's New in v2.0.0-alpha.6
+### What's New in v2.0.0-alpha.8
 
-#### 🚀 Pure AndroidX Native SplashScreen
-- **Unified Launch Surface**: Replaced duplicate in-app splash widgets with Android's official `androidx.core:core-splashscreen` API (matching Mihon architecture). Completely eliminated dual-layer handoffs, sizing discrepancies, and squircle curvature differences.
-- **Theme-Aware Background**: Splash background automatically switches between Pure White (`#FFFFFF`) and Dark Slate (`#121316`) respecting system dark mode from millisecond 0.
+#### 🎨 Refined Splash Icon Dimensions (96dp × 96dp)
+- **Balanced Proportions**: Rescaled the centered native Android splash icon from the default oversized 160dp down to 96dp using a dedicated `@drawable/splash_screen_icon`, matching modern clean splash aesthetics without overwhelming the display.
 
-#### ⚡ Hardware-Accelerated 120 FPS Exit
-- **Compositor-Layer Animation**: Native `ObjectAnimator` scales the launcher icon ($1.0 \to 1.25$) and fades out the surface ($1.0 \to 0.0$) using a smooth `PathInterpolator(0.2f, 0f, 0f, 1f)` (cubic ease-out) over 320ms with 0 jitter or dropped frames.
-- **Post-Frame Layout Synchronization**: Flutter signals dismissal via MethodChannel (`com.attendly/splash`) strictly inside `addPostFrameCallback`, guaranteeing the timetable dashboard is already rasterized into the window buffer before the splash dismisses.
-- **5000ms Safety Watchdog**: Integrated a 5-second automatic timeout in `setKeepOnScreenCondition` to ensure the splash never hangs under unexpected startup errors.
+#### ⭕ Circular Mask Alignment (Zero Octagonal Cuts)
+- **Geometry Synchronization**: Generated 4x supersampled, anti-aliased circular splash drawables with alpha transparency across all display densities (`mdpi`, `hdpi`, `xhdpi`, `xxhdpi`, `xxxhdpi`). The circular geometry matches Android 12+'s internal splash viewport mask 1:1, permanently eliminating diagonal chops, harsh chamfers, and octagonal cuts.
+
+#### 🛡️ Launcher Asset Isolation
+- **100% Unmodified OS Launcher**: Kept `@mipmap/launcher_icon`, `@mipmap/ic_launcher`, and all OS home-screen launcher icon assets completely untouched.
+
+#### 📱 Modern Edge-to-Edge Windowing & Material Themes
+- **Transparent System Bars & Cutout Mode**: Full edge-to-edge windowing, display cutout `shortEdges` mode preventing notch letterboxing, and Android 10+ contrast overlay disabling.
 
 ---
 
@@ -50,7 +53,7 @@ RELEASE_NOTES_TEMPLATE = """# Attendly v2.0.0-alpha.6 (Pure AndroidX Native Spla
 
 {ASSET_TABLE}
 
-*Recommended: Use `app-arm64-v8a-release.apk` for modern 64-bit Android smartphones for the fastest download and smallest footprint, or `Attendly-v2.0.0-alpha.6.apk` for universal compatibility.*
+*Recommended: Use `app-arm64-v8a-release.apk` for modern 64-bit Android smartphones for the fastest download and smallest footprint, or `Attendly-v2.0.0-alpha.8.apk` for universal compatibility.*
 """
 
 def compute_sha256(filepath):
@@ -75,7 +78,7 @@ def main():
 
     apk_dir = os.path.join('build', 'app', 'outputs', 'flutter-apk')
     assets_to_upload = [
-        ('Attendly-v2.0.0-alpha.6.apk', 'Attendly-v2.0.0-alpha.6.apk', 'All Devices', 'Universal Fat APK'),
+        ('Attendly-v2.0.0-alpha.8.apk', 'Attendly-v2.0.0-alpha.8.apk', 'All Devices', 'Universal Fat APK'),
         ('app-arm64-v8a-release.apk', 'app-arm64-v8a-release.apk', 'ARM64', 'Split-per-ABI APK'),
         ('app-armeabi-v7a-release.apk', 'app-armeabi-v7a-release.apk', 'ARMv7', 'Split-per-ABI APK'),
         ('app-x86_64-release.apk', 'app-x86_64-release.apk', 'x86_64', 'Split-per-ABI APK')
