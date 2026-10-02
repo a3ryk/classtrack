@@ -10,6 +10,7 @@ import hashlib
 import urllib.request
 import urllib.error
 import subprocess
+import time
 
 REPO = "a3ryk/classtrack"
 TAG = "v2.0.0-alpha.5"
@@ -138,7 +139,7 @@ def main():
     upload_base = upload_url_tmpl.split('{')[0]
 
     # Existing assets
-    existing_assets = {a['name']: a['id'] for a in release_data.get('assets', [])}
+    existing_assets = {a['name']: a for a in release_data.get('assets', [])}
 
     # 2. Upload assets
     for item in assets_to_upload:
@@ -148,15 +149,21 @@ def main():
             print(f"Error: File not found: {filepath}")
             sys.exit(1)
 
-        # Delete existing if present
-        if asset_name in existing_assets:
-            print(f"Deleting existing asset {asset_name} (ID: {existing_assets[asset_name]})...")
-            del_url = f"https://api.github.com/repos/{REPO}/releases/assets/{existing_assets[asset_name]}"
-            del_req = urllib.request.Request(del_url, headers=headers, method='DELETE')
-            urllib.request.urlopen(del_req)
-
         file_size = os.path.getsize(filepath)
         size_mb = file_size / (1024 * 1024)
+
+        # Check existing if present
+        if asset_name in existing_assets:
+            existing = existing_assets[asset_name]
+            if existing.get('size') == file_size:
+                print(f"Asset {asset_name} already uploaded ({size_mb:.2f} MB). Skipping upload.")
+                continue
+            else:
+                print(f"Deleting existing asset {asset_name} (ID: {existing['id']}) due to size mismatch...")
+                del_url = f"https://api.github.com/repos/{REPO}/releases/assets/{existing['id']}"
+                del_req = urllib.request.Request(del_url, headers=headers, method='DELETE')
+                urllib.request.urlopen(del_req)
+
         print(f">> Uploading {asset_name} ({size_mb:.2f} MB)...")
 
         with open(filepath, 'rb') as f:
@@ -170,9 +177,18 @@ def main():
             'Content-Length': str(file_size)
         }
 
-        up_req = urllib.request.Request(upload_url, data=file_data, headers=upload_headers, method='POST')
-        with urllib.request.urlopen(up_req) as up_resp:
-            print(f"   Upload complete! (HTTP {up_resp.status})")
+        max_retries = 3
+        for attempt in range(1, max_retries + 1):
+            try:
+                up_req = urllib.request.Request(upload_url, data=file_data, headers=upload_headers, method='POST')
+                with urllib.request.urlopen(up_req) as up_resp:
+                    print(f"   Upload complete! (HTTP {up_resp.status})")
+                    break
+            except Exception as ex:
+                print(f"   [Attempt {attempt}/{max_retries}] Upload error: {ex}")
+                if attempt == max_retries:
+                    raise
+                time.sleep(3)
 
     print("\n============================================================")
     print("  All 4 APK Assets Successfully Published to GitHub Release!")
