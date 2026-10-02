@@ -8,6 +8,7 @@ import 'presentation/providers/app_state_provider.dart';
 import 'presentation/providers/theme_provider.dart';
 import 'presentation/providers/app_theme_style_provider.dart';
 import 'presentation/screens/main_shell.dart';
+import 'presentation/widgets/constant_native_splash.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -67,14 +68,54 @@ class AttendlyApp extends ConsumerWidget {
         builder: (context, child) => ThemeTransitionWrapper(
           child: child ?? const SizedBox.shrink(),
         ),
-        home: initAsync.when(
-          data: (_) => const MainShell(),
-          loading: () => const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          ),
-          error: (_, __) => const MainShell(),
+        home: _AppLaunchGate(
+          initAsync: initAsync,
+          child: const MainShell(),
         ),
       ),
+    );
+  }
+}
+
+class _AppLaunchGate extends StatefulWidget {
+  final AsyncValue<bool> initAsync;
+  final Widget child;
+
+  const _AppLaunchGate({
+    required this.initAsync,
+    required this.child,
+  });
+
+  @override
+  State<_AppLaunchGate> createState() => _AppLaunchGateState();
+}
+
+class _AppLaunchGateState extends State<_AppLaunchGate> {
+  bool _showSplash = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final isReady = widget.initAsync.hasValue || widget.initAsync.hasError;
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (isReady)
+          RepaintBoundary(
+            child: widget.child,
+          ),
+        if (_showSplash)
+          ConstantNativeSplash(
+            isReady: isReady,
+            onFinished: () {
+              if (mounted) {
+                setState(() {
+                  _showSplash = false;
+                });
+              }
+            },
+          ),
+      ],
     );
   }
 }

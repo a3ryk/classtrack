@@ -6,69 +6,69 @@ Publishes Attendly GitHub Release and uploads APK assets.
 import os
 import sys
 import json
+import hashlib
 import urllib.request
 import urllib.error
 import subprocess
 
 REPO = "a3ryk/classtrack"
-TAG = "v2.0.0-alpha.3"
-TITLE = "Attendly v2.0.0-alpha.3 (Attendance Notification Redesign, In-App Share & Rich Markdown Updater)"
+TAG = "v2.0.0-alpha.4"
+TITLE = "Attendly v2.0.0-alpha.4 (X / Instagram Constant Launch & 120 FPS Anti-Jitter Transition)"
 
-RELEASE_NOTES = """# Attendly v2.0.0-alpha.3 (Attendance Notification Redesign, In-App Share & Rich Markdown Updater)
+RELEASE_NOTES_TEMPLATE = """# Attendly v2.0.0-alpha.4 (X / Instagram Constant Launch & 120 FPS Anti-Jitter Transition)
 
 > [!NOTE]
-> **Optional Update (Non-Mandatory)**: This release contains feature enhancements and UI refinements. It is **not mandatory** (`is_mandatory: false`). Your existing installation will continue functioning normally without interruption.
+> **Optional Update**: This release introduces a seamless launcher-to-app splash transition similar to modern apps like X and Instagram, alongside launch stability optimizations. It is an optional update (`is_mandatory: false`). Your existing installation will continue functioning normally without interruption.
 
-> [!IMPORTANT]
-> **Notice for Users Migrating from Earlier Packages (`com.classtrack.app`)**:
-> If you are upgrading from an older version released before `v2.0.0-alpha.1` (when the app used the `com.classtrack.app` package identity), Android's security architecture does not permit different application IDs to overwrite each other directly:
+> [!TIP]
+> **Migration Guide for Users on Older Packages (`com.classtrack.app`)**:
+> If you are upgrading from an older version released before `v2.0.0-alpha.1` (when the app used the `com.classtrack.app` package identity):
 > 1. In your existing app, navigate to **Settings > Backup & Restore > Export Backup** and save your `.attendly` backup file safely.
 > 2. Uninstall the old `com.classtrack.app` build.
-> 3. Install **Attendly `v2.0.0-alpha.3`** (`com.attendly`).
-> 4. Go to **Settings > Backup & Restore > Restore Backup** and select your backup file. All your attendance, schedules, subjects, notes, and records will be fully restored!
+> 3. Install **Attendly `v2.0.0-alpha.4`** (`com.attendly`).
+> 4. Go to **Settings > Backup & Restore > Restore Backup** and select your backup file.
 > 
-> *If you are already on `v2.0.0-alpha.1` or `v2.0.0-alpha.2` (`com.attendly`), you can simply install this update directly over your existing app without uninstalling.*
+> *If you are already on `v2.0.0-alpha.1`, `v2.0.0-alpha.2`, or `v2.0.0-alpha.3` (`com.attendly`), you can install this update directly over your existing app without uninstalling.*
 
 ---
 
-### What's New in v2.0.0-alpha.3
+### What's New in v2.0.0-alpha.4
 
-#### 🔔 Notification Redesign: Option A Symbol Actions & Smart Completion
-- **Option A Visual Actions**: Notification quick actions now use crisp, universal symbols (`✓ Present`, `✕ Absent`, `⊘ Cancelled`), ensuring clean readability across both light and dark system notification shades.
-- **BigTextStyle Auto-Expansion**: Long subject names (e.g., *Advanced Principles of Operating Systems & Distributed Systems*) now expand cleanly without truncation in the notification shade.
-- **Stage 1 Auto-Dismissal**: Configured reminder notifications to auto-dismiss via timeout when the end-of-class prompt arrives, eliminating duplicate stacked notifications.
-- **Smart Early-Mark Completion Notice**: When attendance is recorded prior to class completion, Stage 2 notifies with a clean completion notice (*"Class has ended • You already marked your attendance as Present at the start of class"*) without prompt buttons.
-- **Notification Settings Toggle**: Control the completion notice via the new **Notify If Already Marked** switch in Notification Settings.
-- **Developer Notification Sandbox**: Test all 4 notification stages directly from **Settings > Developer Tools** with live customizable subject names and length presets.
+#### ⚡ X / Instagram Constant Launch Experience
+- **Eliminated the Circular Loader**: Removed the generic spinning circular progress indicator and blank loading canvas entirely during cold start.
+- **Unbroken Visual Continuity**: The native Android launch screen (the centered app launcher icon on a clean background) now stays 100% constant and stationary while database hydration completes in the background. To the user's eye, it never leaves the native splash screen.
+- **Zero Clutter**: Completely free of loading bars, percentage counters, and secondary subtitles.
 
-#### 🌿 Sprouts Header Share & Native Share Sheet
-- **Relocated Header Share Action**: Replaced redundant settings icons in the Sprout theme header with an elegant, direct Share action.
-- **Interactive Share Sheet**: Tapping Share opens a smooth bottom slider sheet with 1-tap link copying, native Android sharing (`share_plus`), and high-resolution QR preview.
+#### 🚀 60/120 FPS Hardware-Accelerated Zoom-Through Reveal
+- **Silky Easing**: The moment SQLite hydration finishes, the centered icon smoothly scales up (`1.0 → 1.45`) and dissolves over **350ms** (`Curves.easeOutCubic`) as your timetable dashboard smoothly reveals underneath.
+- **`RepaintBoundary` Isolation**: Both the splash overlay and the `MainShell` are isolated on dedicated GPU compositor render layers, preventing repaint cascades and layout passes on underlying timetable cards.
+- **Asset Precaching**: The launcher icon is precached in memory on mount (`precacheImage`), eliminating image decode hitches or initial frame blanking.
+- **Post-Frame Layout Coordination**: The zoom-through sequence starts on `WidgetsBinding.instance.addPostFrameCallback`, guaranteeing the transition only begins after the initial frame of `MainShell` has already laid out cleanly.
 
-#### 📢 Rich Markdown Alerts in Updater & What's New
-- **Sequential GitHub Alert Callouts**: The in-app updater and What's New screen now parse and render stacked GitHub alert banners (`[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`) with authentic border accents and custom icons.
-- **Zero Truncation**: Release notes and changelogs preserve complete markdown formatting, tables, lists, and bold text.
+#### 📱 Prominent 124dp Native Icon Geometry
+- **Scaled for High-Density Displays**: Sized the centered icon prominently at **124×124 dp** with a clean 28dp squircle radius, matching modern Android 12+ adaptive icon display bounds.
 
-#### 📝 Instant Cancellation & Session Notes
-- **Direct Cancellation Reason Dialog**: Quick-select standard reasons (Sick Leave, Extracurricular, Travel) or enter custom remarks when cancelling a session.
-- **Class Info Slider Sheet**: Complete metadata view with timing, classroom, teacher, notes, and cancellation records accessible from any screen.
+#### 📖 Expanded Documentation & Trigger Safety
+- **Mandatory Trigger Reference**: Thoroughly documented update parsing behavior across GitHub API and Atom fallback feeds in `UPDATER_GUIDE.md` and `docs/RELEASE_AND_UPDATES_GUIDE.md`.
 
 ---
 
 ### Downloads & Assets
 
-| Architecture | Package Type | File Name | Size | SHA-256 Checksum |
-| :--- | :--- | :--- | :--- | :--- |
-| **All Devices** | Universal Fat APK | `Attendly-v2.0.0-alpha.3.apk` | 121.77 MB | `7b7b10771e67906d604d085311b3aa271f31ea2a89323f88f7dd612f5362d9d4` |
-| **ARM64** | Split-per-ABI APK | `app-arm64-v8a-release.apk` | 47.57 MB | `0ccbb27e49e4822b5925d8eb286a0180880c5019ff990cbe3ed43fce9d070989` |
-| **ARMv7** | Split-per-ABI APK | `app-armeabi-v7a-release.apk` | 40.39 MB | `e693afcf0a030a26e3dc43873e643230a174dba433d190faa690d215fe1f41a4` |
-| **x86_64** | Split-per-ABI APK | `app-x86_64-release.apk` | 50.38 MB | `f1c2a5662870362626af17d4745124883a0459bfda0a8b016115f64a0f6ca674` |
+{ASSET_TABLE}
 
-*Recommended: Use `app-arm64-v8a-release.apk` for modern 64-bit Android smartphones for the fastest download and smallest footprint, or `Attendly-v2.0.0-alpha.3.apk` for universal compatibility.*
+*Recommended: Use `app-arm64-v8a-release.apk` for modern 64-bit Android smartphones for the fastest download and smallest footprint, or `Attendly-v2.0.0-alpha.4.apk` for universal compatibility.*
 """
 
+def compute_sha256(filepath):
+    h = hashlib.sha256()
+    with open(filepath, 'rb') as f:
+        while chunk := f.read(65536):
+            h.update(chunk)
+    return h.hexdigest()
+
 def get_github_token():
-    proc = subprocess.run(['git', 'credential', 'fill'], input='protocol=https\nhost=github.com\n', text=True, capture_output=True)
+    proc = subprocess.run(['git', 'credential', 'fill'], input='protocol=https\nhost=github.com\n\n', text=True, capture_output=True)
     for line in proc.stdout.splitlines():
         if line.startswith('password='):
             return line[len('password='):].strip()
@@ -79,6 +79,30 @@ def main():
     if not token:
         print("Error: Could not retrieve GitHub token from git credentials.")
         sys.exit(1)
+
+    apk_dir = os.path.join('build', 'app', 'outputs', 'flutter-apk')
+    assets_to_upload = [
+        ('Attendly-v2.0.0-alpha.4.apk', 'Attendly-v2.0.0-alpha.4.apk', 'All Devices', 'Universal Fat APK'),
+        ('app-arm64-v8a-release.apk', 'app-arm64-v8a-release.apk', 'ARM64', 'Split-per-ABI APK'),
+        ('app-armeabi-v7a-release.apk', 'app-armeabi-v7a-release.apk', 'ARMv7', 'Split-per-ABI APK'),
+        ('app-x86_64-release.apk', 'app-x86_64-release.apk', 'x86_64', 'Split-per-ABI APK')
+    ]
+
+    # Verify APKs exist and build asset table
+    table_rows = [
+        "| Architecture | Package Type | File Name | Size | SHA-256 Checksum |",
+        "| :--- | :--- | :--- | :--- | :--- |"
+    ]
+    for filename, asset_name, arch, pkg_type in assets_to_upload:
+        filepath = os.path.join(apk_dir, filename)
+        if not os.path.exists(filepath):
+            print(f"Error: File not found: {filepath}")
+            sys.exit(1)
+        size_mb = os.path.getsize(filepath) / (1024 * 1024)
+        checksum = compute_sha256(filepath)
+        table_rows.append(f"| **{arch}** | {pkg_type} | `{asset_name}` | {size_mb:.2f} MB | `{checksum}` |")
+
+    release_body = RELEASE_NOTES_TEMPLATE.replace('{ASSET_TABLE}', '\\n'.join(table_rows))
 
     headers = {
         'Authorization': f'Bearer {token}',
@@ -92,7 +116,7 @@ def main():
         'tag_name': TAG,
         'target_commitish': 'production',
         'name': TITLE,
-        'body': RELEASE_NOTES,
+        'body': release_body,
         'draft': False,
         'prerelease': True
     }
@@ -122,15 +146,8 @@ def main():
     existing_assets = {a['name']: a['id'] for a in release_data.get('assets', [])}
 
     # 2. Upload assets
-    apk_dir = os.path.join('build', 'app', 'outputs', 'flutter-apk')
-    assets_to_upload = [
-        ('Attendly-v2.0.0-alpha.3.apk', 'Attendly-v2.0.0-alpha.3.apk'),
-        ('app-arm64-v8a-release.apk', 'app-arm64-v8a-release.apk'),
-        ('app-armeabi-v7a-release.apk', 'app-armeabi-v7a-release.apk'),
-        ('app-x86_64-release.apk', 'app-x86_64-release.apk')
-    ]
-
-    for filename, asset_name in assets_to_upload:
+    for item in assets_to_upload:
+        filename, asset_name = item[0], item[1]
         filepath = os.path.join(apk_dir, filename)
         if not os.path.exists(filepath):
             print(f"Error: File not found: {filepath}")

@@ -1,26 +1,25 @@
 {
-  "latest_version": "2.0.0-alpha.3",
-  "build_number": 17,
+  "latest_version": "2.0.0-alpha.4",
+  "build_number": 18,
   "min_supported_version": "0.0.1",
-  "release_date": "2026-09-22",
-  "release_title": "Attendly v2.0.0-alpha.3 (Attendance Notification Redesign, In-App Share & Rich Markdown Updater)",
+  "release_date": "2026-10-02",
+  "release_title": "Attendly v2.0.0-alpha.4 (X / Instagram Constant Launch & 120 FPS Anti-Jitter Transition)",
   "changelog": [
-    "✨ Notification Redesign: Universal symbol actions (✓ Present, ✕ Absent, ⊘ Cancelled) with BigTextStyle auto-expansion for long subject names.",
-    "✨ Stage 1 Auto-Dismissal: Reminder notifications automatically dismiss when the class conclusion prompt arrives, preventing notification clutter.",
-    "✨ Smart Early-Mark Completion Notice: Clean confirmation alert when attendance was already recorded at the start of class, controllable via Notification Settings.",
-    "✨ Developer Tools Notification Sandbox: Live notification simulator in Developer Tools with customizable subject name input and length presets.",
-    "✨ Sprouts Header Share: Relocated share action to the Sprout theme header with interactive slider sheet, QR preview, and 1-tap link sharing.",
-    "✨ Stacked GitHub Alert Cards: Native parsing and rendering of sequential GitHub alerts ([!NOTE], [!TIP], [!IMPORTANT], [!WARNING], [!CAUTION]) in the in-app updater.",
-    "✨ Quick Cancellation & Session Notes: Instant cancellation reason dialog and slide-out metadata drawer across all screens."
+    "⚡ Constant Native Launch: Seamless transition matching X and Instagram; the native launcher icon remains perfectly centered while background hydration finishes with zero circular spinners.",
+    "🚀 60/120 FPS Smooth Zoom-Through: Hardware-accelerated 350ms zoom-through reveal (Curves.easeOutCubic) uncovering your timetable with zero frame drops or visual jitter.",
+    "🎨 RepaintBoundary Layer Isolation: Isolated GPU compositor layers for both splash and dashboard, preventing unnecessary layout and render invalidation passes.",
+    "📱 Prominent 124dp Native Icon: Perfectly scaled 124x124 dp launcher icon geometry with 28dp squircle radius matching Android 12+ adaptive display bounds.",
+    "📖 Updater Documentation: Expanded developer and release guides detailing mandatory triggers, GitHub callout transforms, and non-mandatory conventions."
   ],
-  "download_url": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.3/Attendly-v2.0.0-alpha.3.apk",
+  "download_url": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.4/Attendly-v2.0.0-alpha.4.apk",
   "abi_assets": {
-    "arm64-v8a": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.3/app-arm64-v8a-release.apk",
-    "armeabi-v7a": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.3/app-armeabi-v7a-release.apk",
-    "x86_64": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.3/app-x86_64-release.apk",
-    "universal": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.3/Attendly-v2.0.0-alpha.3.apk"
+    "arm64-v8a": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.4/app-arm64-v8a-release.apk",
+    "armeabi-v7a": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.4/app-armeabi-v7a-release.apk",
+    "x86_64": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.4/app-x86_64-release.apk",
+    "universal": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.4/Attendly-v2.0.0-alpha.4.apk"
   },
-  "release_page_url": "https://github.com/a3ryk/classtrack/releases/tag/v2.0.0-alpha.3",
+  "release_page_url": "https://github.com/a3ryk/classtrack/releases/tag/v2.0.0-alpha.4",
   "is_mandatory": false,
   "warning_message": null
 }
+

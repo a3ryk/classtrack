@@ -18,22 +18,37 @@ Attendly features an in-app updater and an offline release notes viewer:
 
 ---
 
-## 2. Release Note Keywords & Mandatory Updates
+## 2. Release Note Keywords, GitHub Alerts & Mandatory Update Triggers
 
-When drafting a release on GitHub, Attendly automatically inspects the release description (`body`) for warning tags and minimum version requirements.
+When checking for updates, Attendly inspects the release notes via two pathways:
+1. **GitHub Releases API** (direct JSON markdown parsing)
+2. **GitHub Atom RSS Feed Fallback** (HTML parsing when GitHub API is rate-limited)
 
-### Keyword Reference
+### Critical Trigger Rules
 
-| Keyword / Format | Effect on App | Use Case |
-| :--- | :--- | :--- |
-| `MIN_VERSION: 1.0.0-alpha.3` | Forces update **only** for users running a version below `1.0.0-alpha.3`. Users already on `alpha.3` or higher are not blocked. | Recommended for schema migrations or deprecations. |
-| `MANDATORY: <message>` | Locks the update screen for **all** users on older versions. Non-dismissible modal. | Critical security patches or breaking API changes. |
-| `REQUIRED: <message>` | Same as `MANDATORY:`. | Breaking changes. |
-| `BREAKING: <message>` | Same as `MANDATORY:`. | Breaking database changes. |
-| `CRITICAL: <message>` | Same as `MANDATORY:`. | Critical bug fix requiring immediate upgrade. |
-| `> [!WARNING] <message>` | Markdown alert block. Treated as mandatory update with red warning banner. | GitHub standard alert syntax. |
-| `⚠️ WARNING: <message>` | Emoji prefix. Treated as mandatory update. | Quick warning note. |
-| `ALERT:` / `NOTICE:` / `NOTE:` | Displays an informational notice card (blue/amber) without locking the app. | Non-breaking notices (e.g. "Backup recommended"). |
+> [!WARNING]
+> GitHub automatically transforms markdown callout syntax into HTML classes (e.g. `> [!IMPORTANT]` becomes `<div class="markdown-alert markdown-alert-important">`). The Atom feed parser scans for these rendered class names.
+
+| Syntax / Trigger | Parser Evaluated | Result | When to Use |
+| :--- | :--- | :--- | :--- |
+| `> [!IMPORTANT]` | **Atom Feed HTML** (`markdown-alert-important`) | **MANDATORY** | Critical security advisory or immediate breaking change |
+| `> [!WARNING]` | **JSON Parser** (`AlertCalloutType.warning`) & **Atom Feed** (`markdown-alert-warning`) | **MANDATORY** (in Atom fallback) | High-severity alerts or breaking deprecations |
+| `> [!CAUTION]` | **JSON Parser** (`isMandatory = true`) & **Atom Feed** (`markdown-alert-caution`) | **MANDATORY** | High-risk breaking changes or urgent database migration required |
+| `"Mandatory Update"` | **Atom Feed HTML** | **MANDATORY** | Exact phrase in release notes |
+| `🚨`, `🛑` | **JSON Parser** (Line start) | **MANDATORY** | Emergency hotfix |
+| `MANDATORY:`, `CRITICAL:`, `BREAKING:` | **JSON Parser** (Line start) | **MANDATORY** | Explicit lock for all older versions |
+| `MIN_VERSION: <semver>` | **JSON Parser** / `min_supported_version` | **MANDATORY** for versions below `<semver>` | Schema migrations where recent versions are unaffected |
+| `> [!NOTE]` | **JSON Parser** & **Atom Feed** | **OPTIONAL (Flexible)** | Informational notices, version highlights |
+| `> [!TIP]` | **JSON Parser** & **Atom Feed** | **OPTIONAL (Flexible)** | Helpful tips, download hints |
+| `ALERT:` / `NOTICE:` / `NOTE:` | **JSON Parser** | **OPTIONAL (Flexible)** | Informational banners without forcing updates |
+
+### Golden Rule for Non-Mandatory Releases
+To ensure an update is **strictly optional (flexible)**:
+- **ONLY use** `> [!NOTE]` and `> [!TIP]` markdown callout blocks.
+- **NEVER use** `> [!IMPORTANT]`, `> [!WARNING]`, or `> [!CAUTION]`.
+- **NEVER use** the words `Mandatory Update`, `CRITICAL:`, `BREAKING:`, or `MANDATORY:`.
+- Ensure `min_supported_version` in `version.json` is set to an older baseline (e.g. `"0.0.1"` or the true minimum compatible version).
+
 
 ---
 

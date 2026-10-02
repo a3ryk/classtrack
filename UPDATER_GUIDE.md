@@ -113,14 +113,19 @@ Here is the complete JSON structure:
 ---
 
 ## 4. Mandatory vs. Flexible Updates
-
+ 
 - **Flexible (Optional) Update**:
   - `is_mandatory: false` and `min_supported_version <= current_version`.
   - User can tap **Update Now** or tap **Later** to dismiss the dialog.
+  - Release notes use only `> [!NOTE]` or `> [!TIP]` GitHub callouts.
 - **Mandatory (Forced) Update**:
   - `is_mandatory: true` OR `min_supported_version > current_version`.
   - Used when critical database migrations or breaking API changes are released.
   - Dialog cannot be dismissed via back button or clicking outside (`PopScope(canPop: false)`).
+  - Automatically triggered if GitHub release notes contain:
+    - `> [!IMPORTANT]`, `> [!WARNING]`, or `> [!CAUTION]` (GitHub renders these as `markdown-alert-*` in the Atom feed).
+    - `🚨`, `🛑`, `MANDATORY:`, `CRITICAL:`, `BREAKING:`, or `"Mandatory Update"`.
+
 
 ---
 

@@ -4,9 +4,25 @@ import '../services/app_update_service.dart';
 class AppReleaseNotes {
   AppReleaseNotes._();
 
-  static const String currentVersion = '2.0.0-alpha.3';
+  static const String currentVersion = '2.0.0-alpha.4';
 
   static final Map<String, AppReleaseInfo> _releases = {
+    '2.0.0-alpha.4': const AppReleaseInfo(
+      latestVersion: '2.0.0-alpha.4',
+      buildNumber: 18,
+      minSupportedVersion: '0.0.1',
+      releaseDate: 'October 2026',
+      releaseTitle: 'Attendly v2.0.0-alpha.4 (X / Instagram Constant Launch & 120 FPS Anti-Jitter Transition)',
+      changelog: [
+        '⚡ Constant Native Launch: Seamless transition matching X and Instagram; the native launcher icon remains perfectly centered while background hydration finishes with zero circular spinners.',
+        '🚀 60/120 FPS Smooth Zoom-Through: Hardware-accelerated 350ms zoom-through reveal (Curves.easeOutCubic) uncovering your timetable with zero frame drops or visual jitter.',
+        '🎨 RepaintBoundary Layer Isolation: Isolated GPU compositor layers for both splash and dashboard, preventing unnecessary layout and render invalidation passes.',
+        '📱 Prominent 124dp Native Icon: Perfectly scaled 124x124 dp launcher icon geometry with 28dp squircle radius matching Android 12+ adaptive display bounds.',
+        '📖 Updater Documentation: Expanded developer and release guides detailing mandatory triggers, GitHub callout transforms, and non-mandatory conventions.',
+      ],
+      isMandatory: false,
+      warningMessage: null,
+    ),
     '2.0.0-alpha.3': const AppReleaseInfo(
       latestVersion: '2.0.0-alpha.3',
       buildNumber: 17,

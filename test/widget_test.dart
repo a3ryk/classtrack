@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -823,8 +823,8 @@ void main() {
       await tester.scrollUntilVisible(find.text('UI & Feedback Diagnostics'), 200);
       expect(find.text('UI & Feedback Diagnostics'), findsOneWidget);
 
-      await tester.scrollUntilVisible(find.text('Send Test Notification'), 200);
-      expect(find.text('Send Test Notification'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('Subject Name for Notification Tests'), 200);
+      expect(find.text('Subject Name for Notification Tests'), findsOneWidget);
 
       await db.close();
     });

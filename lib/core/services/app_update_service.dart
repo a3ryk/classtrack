@@ -442,6 +442,11 @@ class AppReleaseInfo {
       if (currentBlockType != null && currentBlockLines.isNotEmpty) {
         final content = currentBlockLines.join('\n').trim();
         if (content.isNotEmpty) {
+          if (content.toUpperCase().contains('MANDATORY UPDATE') ||
+              content.toUpperCase().contains('MANDATORY:') ||
+              content.toUpperCase().contains('CRITICAL:')) {
+            isMandatory = true;
+          }
           alertCallouts.add(ReleaseAlertCallout(
             type: currentBlockType!,
             markdown: content,
@@ -465,7 +470,13 @@ class AppReleaseInfo {
         continue;
       } else if (upper.startsWith('> [!WARNING]')) {
         flushCurrentAlertBlock();
+        isMandatory = true;
         currentBlockType = AlertCalloutType.warning;
+        continue;
+      } else if (upper.startsWith('> [!IMPORTANT]')) {
+        flushCurrentAlertBlock();
+        isMandatory = true;
+        currentBlockType = AlertCalloutType.important;
         continue;
       } else if (upper.startsWith('> [!NOTE]')) {
         flushCurrentAlertBlock();
@@ -474,10 +485,6 @@ class AppReleaseInfo {
       } else if (upper.startsWith('> [!TIP]')) {
         flushCurrentAlertBlock();
         currentBlockType = AlertCalloutType.tip;
-        continue;
-      } else if (upper.startsWith('> [!IMPORTANT]')) {
-        flushCurrentAlertBlock();
-        currentBlockType = AlertCalloutType.important;
         continue;
       }
 
@@ -566,9 +573,8 @@ class AppReleaseInfo {
 
     flushCurrentAlertBlock();
 
-    if (isMandatory && !alertCallouts.any((c) => c.type == AlertCalloutType.caution)) {
-      alertCallouts.insert(
-        0,
+    if (isMandatory && alertCallouts.isEmpty) {
+      alertCallouts.add(
         const ReleaseAlertCallout(
           type: AlertCalloutType.caution,
           markdown: 'Mandatory update required for app stability and features.',
@@ -577,10 +583,16 @@ class AppReleaseInfo {
     }
 
     final firstWarningOrCaution = alertCallouts.cast<ReleaseAlertCallout?>().firstWhere(
-      (c) => c?.type == AlertCalloutType.caution || c?.type == AlertCalloutType.warning,
+      (c) => c?.type == AlertCalloutType.caution || c?.type == AlertCalloutType.warning || c?.type == AlertCalloutType.important,
       orElse: () => null,
     );
-    final String? warningMessage = firstWarningOrCaution?.markdown;
+    String? warningMessage;
+    if (firstWarningOrCaution != null) {
+      final stripped = firstWarningOrCaution.markdown
+          .replaceAll(RegExp(r'^\s*(\*\*)?(Mandatory Update:?|Critical:|Warning:|Notice:|Alert:|Important:)(\*\*)?:?\s*', caseSensitive: false), '')
+          .trim();
+      warningMessage = stripped.isNotEmpty ? stripped : firstWarningOrCaution.markdown;
+    }
     final String cleanMarkdown = _extractCleanMarkdown(body);
 
     return AppReleaseInfo(

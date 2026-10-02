@@ -5,6 +5,22 @@ All notable changes to **ClassTrack** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0-alpha.4] - 2026-10-02
+
+### X / Instagram Constant Launch & 120 FPS Anti-Jitter Transition
+- **Eliminated Loading Spinners**: Removed circular progress indicators and loading subtitles during cold start.
+- **Constant Native Launch Continuity**: Centered launcher icon remains stationary and perfectly visible while database hydration occurs underneath, matching X and Instagram launch flows.
+- **Hardware-Accelerated Zoom-Through Reveal**: Smooth 350ms zoom-through reveal (`ScaleTransition` 1.0 -> 1.45, `FadeTransition` 1.0 -> 0.0 with `Curves.easeOutCubic`) revealing the dashboard cleanly.
+- **`RepaintBoundary` Isolation**: Wrapped splash gate and main shell in dedicated GPU compositor layers to prevent unnecessary repainting or layout passes.
+- **In-Memory Asset Precaching**: Pre-cached the launcher icon on mount (`precacheImage`) to eliminate frame stutter or asset decoding delay.
+- **Prominent 124dp Native Icon Geometry**: 124x124 dp display size with 28dp squircle radius tailored for high-DPI Android 12+ screens.
+
+### Documentation & Mandatory Update Safeguards
+- **Mandatory Trigger Reference**: Thoroughly documented update parsing behavior across GitHub API and Atom fallback feeds in `UPDATER_GUIDE.md` and `docs/RELEASE_AND_UPDATES_GUIDE.md`.
+- **Non-Mandatory Release Callout Standard**: Standardized on `> [!NOTE]` and `> [!TIP]` syntax to avoid inadvertently triggering mandatory update dialogs.
+
+---
+
 ## [2.0.0-alpha.3] - 2026-09-22
 
 ### Attendance Notification Redesign & Smart Flow
