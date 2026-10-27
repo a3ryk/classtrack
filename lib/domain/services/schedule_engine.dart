@@ -2,10 +2,19 @@ import '../entities/class_session_entity.dart';
 import '../../core/utils/date_formatter.dart';
 
 class HolidayItem {
+  final String? id;
   final String title;
   final String startDate; // YYYY-MM-DD
   final String endDate;   // YYYY-MM-DD
-  HolidayItem({required this.title, required this.startDate, required this.endDate});
+  final String category;  // HOLIDAY, EXAM, SEMESTER_BREAK, EVENT
+
+  HolidayItem({
+    this.id,
+    required this.title,
+    required this.startDate,
+    required this.endDate,
+    this.category = 'HOLIDAY',
+  });
 }
 
 class AcademicDayConfigItem {
@@ -53,11 +62,12 @@ class TimetableSlotItem {
 class ScheduleExceptionItem {
   final String timetableSlotId;
   final String exceptionDate; // YYYY-MM-DD
-  final String actionType; // CANCELLED, MOVED, SUBSTITUTED
+  final String actionType; // CANCELLED, MOVED, SUBSTITUTED, EXAM
   final String? newStartTime;
   final String? newEndTime;
   final String? substituteComponentId;
   final String? newRoom;
+  final String? notes;
 
   ScheduleExceptionItem({
     required this.timetableSlotId,
@@ -67,6 +77,7 @@ class ScheduleExceptionItem {
     this.newEndTime,
     this.substituteComponentId,
     this.newRoom,
+    this.notes,
   });
 }
 
@@ -135,8 +146,14 @@ class ScheduleResolutionEngine {
     final String dateString = DateFormatter.toIsoDate(targetDate);
     final int dayOfWeek = DateFormatter.getDayOfWeek(targetDate);
 
-    // LEVEL 1: Holiday Check
-    final isHoliday = holidays.any((h) => _isDateInRange(dateString, h.startDate, h.endDate));
+    // LEVEL 1: Holiday Check (only HOLIDAY and SEMESTER_BREAK suspend classes)
+    final isHoliday = holidays.any((h) =>
+        (h.category == 'HOLIDAY' || h.category == 'SEMESTER_BREAK') &&
+        _isDateInRange(dateString, h.startDate, h.endDate));
+
+    final activeExam = holidays.where((h) =>
+        h.category == 'EXAM' &&
+        _isDateInRange(dateString, h.startDate, h.endDate)).firstOrNull;
 
     // LEVEL 2 & 3: Process Timetable Slots & Apply Exceptions
     final List<ClassSessionEntity> resolved = [];
@@ -158,7 +175,7 @@ class ScheduleResolutionEngine {
     }).toList();
 
     for (final slot in matchingSlots) {
-      if (isHoliday) {
+      if (isHoliday || activeExam != null) {
         final sessionId = 'session_${slot.id}_$dateString';
         resolved.add(ClassSessionEntity(
           id: sessionId,
@@ -180,6 +197,9 @@ class ScheduleResolutionEngine {
           attendanceOutcome: 'HOLIDAY',
           effectiveFrom: slot.effectiveFrom,
           effectiveUntil: slot.effectiveUntil,
+          isExam: activeExam != null,
+          isPeriodExam: false,
+          examTitle: activeExam?.title,
         ));
         continue;
       }
@@ -209,6 +229,12 @@ class ScheduleResolutionEngine {
       final String? room = isRoomException && exception.newRoom != null
           ? (exception.newRoom!.trim().isNotEmpty ? exception.newRoom!.trim() : null)
           : slot.room;
+
+      final isPeriodExam = (exception.actionType == 'EXAM');
+      final isExam = isPeriodExam;
+      final examTitle = isPeriodExam
+          ? (exception.notes != null && exception.notes!.trim().isNotEmpty ? exception.notes!.trim() : 'Exam')
+          : null;
 
       final sessionId = 'session_${slot.id}_$dateString';
       final record = existingRecords[sessionId];
@@ -240,11 +266,21 @@ class ScheduleResolutionEngine {
         cancellationReason: cancellationReason,
         effectiveFrom: slot.effectiveFrom,
         effectiveUntil: slot.effectiveUntil,
+        isExam: isExam,
+        isPeriodExam: isPeriodExam,
+        examTitle: examTitle,
       ));
     }
 
     // LEVEL 5: Append Extra Classes
-    resolved.addAll(_resolveExtraClasses(extraClasses, dateString, semesterId, existingOutcomes, existingRecords));
+    resolved.addAll(_resolveExtraClasses(
+      extraClasses,
+      dateString,
+      semesterId,
+      existingOutcomes,
+      existingRecords,
+      activeExam: activeExam,
+    ));
 
     // Sort chronologically by start time
     resolved.sort((a, b) => a.startTime.compareTo(b.startTime));
@@ -256,8 +292,9 @@ class ScheduleResolutionEngine {
     String dateString,
     String semesterId,
     Map<String, String> existingOutcomes,
-    Map<String, AttendanceRecordItem> existingRecords,
-  ) {
+    Map<String, AttendanceRecordItem> existingRecords, {
+    HolidayItem? activeExam,
+  }) {
     final matchingExtra = extraClasses.where((e) => e.classDate == dateString).toList();
     return matchingExtra.map((extra) {
       final sessionId = 'extra_${extra.id}_$dateString';
@@ -288,11 +325,23 @@ class ScheduleResolutionEngine {
         markedAt: markedAt,
         notes: notes,
         cancellationReason: cancellationReason,
+        isExam: activeExam != null,
+        examTitle: activeExam?.title,
       );
     }).toList();
   }
 
   static bool _isDateInRange(String target, String start, String end) {
     return target.compareTo(start) >= 0 && target.compareTo(end) <= 0;
+  }
+
+  static HolidayItem? getActiveExamForDate(List<HolidayItem> holidays, DateTime targetDate) {
+    final dateString = DateFormatter.toIsoDate(targetDate);
+    return holidays.where((h) => h.category == 'EXAM' && _isDateInRange(dateString, h.startDate, h.endDate)).firstOrNull;
+  }
+
+  static HolidayItem? getActiveHolidayForDate(List<HolidayItem> holidays, DateTime targetDate) {
+    final dateString = DateFormatter.toIsoDate(targetDate);
+    return holidays.where((h) => (h.category == 'HOLIDAY' || h.category == 'SEMESTER_BREAK') && _isDateInRange(dateString, h.startDate, h.endDate)).firstOrNull;
   }
 }

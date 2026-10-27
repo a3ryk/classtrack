@@ -204,7 +204,13 @@ class HolidaysNotifier extends StateNotifier<List<HolidayItem>> {
   Future<void> loadFromDb() async {
     final rows = await db.getHolidays(semesterId);
     if (!mounted) return;
-    state = rows.map((r) => HolidayItem(title: r.title, startDate: r.startDate, endDate: r.endDate)).toList();
+    state = rows.map((r) => HolidayItem(
+      id: r.id,
+      title: r.title,
+      startDate: r.startDate,
+      endDate: r.endDate,
+      category: r.category,
+    )).toList();
   }
 
   Future<void> addHoliday(HolidayItem holiday) async {
@@ -212,17 +218,31 @@ class HolidaysNotifier extends StateNotifier<List<HolidayItem>> {
     final nowIso = DateTime.now().toIso8601String();
     await db.saveHoliday(
       HolidayData(
-        id: UuidGenerator.generate(),
+        id: holiday.id ?? UuidGenerator.generate(),
         semesterId: semesterId,
         title: holiday.title,
         startDate: holiday.startDate,
         endDate: holiday.endDate,
-        category: 'HOLIDAY',
+        category: holiday.category,
         createdAt: nowIso,
         updatedAt: nowIso,
       ),
     );
     ref?.read(notificationPreferencesProvider.notifier).triggerDebouncedResync();
+  }
+
+  Future<void> addExam({
+    required String title,
+    required String startDate,
+    required String endDate,
+  }) async {
+    final holidayItem = HolidayItem(
+      title: title,
+      startDate: startDate,
+      endDate: endDate,
+      category: 'EXAM',
+    );
+    await addHoliday(holidayItem);
   }
 
   Future<void> removeHoliday(String title) async {
@@ -238,6 +258,16 @@ class HolidaysNotifier extends StateNotifier<List<HolidayItem>> {
   Future<void> removeHolidayForDate(String dateIso) async {
     final rows = await db.getHolidays(semesterId);
     final matching = rows.where((r) => dateIso.compareTo(r.startDate) >= 0 && dateIso.compareTo(r.endDate) <= 0).toList();
+    for (final m in matching) {
+      await db.deleteHoliday(m.id);
+    }
+    await loadFromDb();
+    ref?.read(notificationPreferencesProvider.notifier).triggerDebouncedResync();
+  }
+
+  Future<void> removeExamForDate(String dateIso) async {
+    final rows = await db.getHolidays(semesterId);
+    final matching = rows.where((r) => r.category == 'EXAM' && dateIso.compareTo(r.startDate) >= 0 && dateIso.compareTo(r.endDate) <= 0).toList();
     for (final m in matching) {
       await db.deleteHoliday(m.id);
     }
@@ -892,6 +922,7 @@ class ScheduleExceptionsNotifier extends StateNotifier<List<ScheduleExceptionIte
       newEndTime: e.newEndTime,
       substituteComponentId: e.substituteComponentId,
       newRoom: e.newRoom,
+      notes: e.notes,
     )).toList();
   }
 
@@ -927,6 +958,23 @@ class ScheduleExceptionsNotifier extends StateNotifier<List<ScheduleExceptionIte
     await db.deleteScheduleExceptionForSlotAndDate(timetableSlotId, exceptionDate);
     await loadFromDb();
     ref?.read(notificationPreferencesProvider.notifier).triggerDebouncedResync();
+  }
+
+  Future<void> setExamForSlot({
+    required String timetableSlotId,
+    required String exceptionDate,
+    required String examTitle,
+  }) async {
+    await addOrUpdateException(
+      timetableSlotId: timetableSlotId,
+      exceptionDate: exceptionDate,
+      actionType: 'EXAM',
+      notes: examTitle,
+    );
+  }
+
+  Future<void> removeExamForSlot(String timetableSlotId, String exceptionDate) async {
+    await removeException(timetableSlotId, exceptionDate);
   }
 }
 

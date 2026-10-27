@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:attendly/core/constants/app_theme.dart';
+import 'package:attendly/core/utils/date_formatter.dart';
 import 'package:attendly/data/database/app_database.dart';
 import 'package:attendly/domain/entities/class_session_entity.dart';
 import 'package:attendly/domain/entities/semester_entity.dart';
@@ -10,6 +11,7 @@ import 'package:attendly/domain/entities/subject_entity.dart';
 import 'package:attendly/domain/services/schedule_engine.dart';
 import 'package:attendly/presentation/providers/app_state_provider.dart';
 import 'package:attendly/presentation/widgets/declare_holiday_dialog.dart';
+import 'package:attendly/presentation/widgets/declare_special_day_sheet.dart';
 import 'package:attendly/presentation/widgets/add_extra_class_sheet.dart';
 import 'package:attendly/presentation/screens/schedule/reschedule_session_screen.dart';
 import 'package:attendly/presentation/screens/schedule/subject_room_manager_screen.dart';
@@ -302,7 +304,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Calendar'), findsOneWidget);
-      expect(find.text('+ Holiday'), findsOneWidget);
+      expect(find.text('Special Day'), findsOneWidget);
       expect(find.text('+ Extra Class'), findsOneWidget);
 
       expect(find.text('Machine Learning'), findsOneWidget);
@@ -338,6 +340,91 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Calendar'), findsOneWidget);
+    });
+
+    testWidgets('8. DeclareSpecialDaySheet renders in Sprout theme with Holiday & Exam tabs and Save button', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(400, 900));
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            activeSemesterProvider.overrideWith((ref) => FakeActiveSemesterNotifier(sampleSem)),
+            holidaysProvider.overrideWith((ref) => FakeHolidaysNotifier([])),
+            resolvedDayScheduleProvider.overrideWith((ref, date) => [sampleSession]),
+          ],
+          child: MaterialApp(
+            theme: getCuteTheme(),
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => ElevatedButton(
+                  onPressed: () => DeclareSpecialDaySheet.show(
+                    context,
+                    initialDate: DateTime(2026, 3, 20),
+                    todaySessions: [sampleSession],
+                  ),
+                  child: const Text('Open Special Day Sheet'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Open Special Day Sheet'));
+      await tester.pumpAndSettle();
+
+      // Top tab switcher
+      expect(find.text('Holiday'), findsOneWidget);
+      expect(find.text('Exam / Test'), findsOneWidget);
+
+      // Single word Save button
+      expect(find.text('Save'), findsOneWidget);
+
+      // Switch to Exam / Test tab
+      await tester.tap(find.text('Exam / Test'));
+      await tester.pumpAndSettle();
+
+      // In Exam tab, scope options and periods are available
+      expect(find.text('Period'), findsOneWidget);
+      expect(find.text('Save'), findsOneWidget);
+    });
+
+    testWidgets('9. Sprout Calendar displays Remove Exam button when active exam is present', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(400, 900));
+
+      final todayIso = DateFormatter.toIsoDate(DateTime.now());
+      final activeExamItem = HolidayItem(
+        title: 'Midterm Examination',
+        startDate: todayIso,
+        endDate: todayIso,
+        category: 'EXAM',
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            activeSemesterProvider.overrideWith((ref) => FakeActiveSemesterNotifier(sampleSem)),
+            holidaysProvider.overrideWith((ref) => FakeHolidaysNotifier([activeExamItem])),
+            resolvedDayScheduleProvider.overrideWith((ref, date) => [sampleSession]),
+          ],
+          child: MaterialApp(
+            theme: getCuteTheme(),
+            home: const CalendarScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Header should show Remove Exam and exam title
+      expect(find.text('Remove Exam'), findsOneWidget);
+      expect(find.text('Midterm Examination'), findsOneWidget);
+
+      // Tap session to view exam action in session details
+      await tester.tap(find.text('Machine Learning'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Mark as Exam / Quiz'), findsOneWidget);
     });
   });
 }

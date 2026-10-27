@@ -13,7 +13,7 @@ import '../../../domain/entities/subject_entity.dart';
 import '../../../domain/services/schedule_engine.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/edit_semester_dialog.dart';
-import '../../widgets/declare_holiday_dialog.dart';
+import '../../widgets/declare_special_day_sheet.dart';
 import '../../widgets/add_extra_class_sheet.dart';
 import '../../widgets/cancellation_reason_dialog.dart';
 import '../../widgets/class_info_slider_sheet.dart';
@@ -249,8 +249,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
     List<ClassSessionEntity> getSessionsForDay(DateTime date) => ref.watch(resolvedDayScheduleProvider(date));
     final daySessions = getSessionsForDay(_selectedDate);
     final holidays = ref.watch(holidaysProvider);
-    final isSelectedDateHoliday = holidays.any((h) => selectedDateIso.compareTo(h.startDate) >= 0 && selectedDateIso.compareTo(h.endDate) <= 0);
-    final HolidayItem? currentHoliday = holidays.where((h) => selectedDateIso.compareTo(h.startDate) >= 0 && selectedDateIso.compareTo(h.endDate) <= 0).firstOrNull;
+    final isSelectedDateHoliday = holidays.any((h) => (h.category == 'HOLIDAY' || h.category == 'SEMESTER_BREAK') && selectedDateIso.compareTo(h.startDate) >= 0 && selectedDateIso.compareTo(h.endDate) <= 0);
+    final HolidayItem? currentHoliday = holidays.where((h) => (h.category == 'HOLIDAY' || h.category == 'SEMESTER_BREAK') && selectedDateIso.compareTo(h.startDate) >= 0 && selectedDateIso.compareTo(h.endDate) <= 0).firstOrNull;
+    final HolidayItem? currentExam = holidays.where((h) => h.category == 'EXAM' && selectedDateIso.compareTo(h.startDate) >= 0 && selectedDateIso.compareTo(h.endDate) <= 0).firstOrNull;
+    final bool isSelectedDateExam = currentExam != null || daySessions.any((s) => s.isExam);
 
     final int presentCount = daySessions.where((s) => s.attendanceOutcome == 'PRESENT').length;
     final int totalHeld = daySessions.where((s) => s.attendanceOutcome != 'CANCELLED' && s.attendanceOutcome != 'HOLIDAY').length;
@@ -271,6 +273,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
         holidays: holidays,
         isSelectedDateHoliday: isSelectedDateHoliday,
         currentHoliday: currentHoliday,
+        isSelectedDateExam: isSelectedDateExam,
+        currentExam: currentExam,
         presentCount: presentCount,
         totalHeld: totalHeld,
         monthYearTitle: monthYearTitle,
@@ -484,13 +488,17 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                         Text(
                           isSelectedDateHoliday
                               ? 'Holiday'
-                              : (totalHeld > 0 ? 'Attended $presentCount of $totalHeld' : 'No classes'),
+                              : (isSelectedDateExam
+                                  ? (currentExam?.title ?? 'Exam Day')
+                                  : (totalHeld > 0 ? 'Attended $presentCount of $totalHeld' : 'No classes')),
                           style: TextStyle(
                             fontSize: 11.5,
                             fontWeight: FontWeight.w500,
                             color: isSelectedDateHoliday
                                 ? const Color(0xFFD97706)
-                                : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                                : (isSelectedDateExam
+                                    ? (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight)
+                                    : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight)),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -504,77 +512,143 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (isSelectedDateHoliday)
-                          InkWell(
-                            onTap: () async {
-                              await ref.read(holidaysProvider.notifier).removeHolidayForDate(selectedDateIso);
-                              if (context.mounted) {
-                                AppToast.info(context, 'Holiday removed for $selectedDateIso');
-                              }
-                            },
-                            borderRadius: BorderRadius.circular(8),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4.5),
-                              margin: const EdgeInsets.only(right: 5),
-                              decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF78350F).withValues(alpha: 0.3) : const Color(0xFFFEF3C7),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: isDark ? const Color(0xFFB45309).withValues(alpha: 0.4) : const Color(0xFFFDE68A),
-                                  width: 0.8,
+                          Padding(
+                            padding: const EdgeInsets.only(right: 5),
+                            child: InkWell(
+                              onTap: () async {
+                                await ref.read(holidaysProvider.notifier).removeHolidayForDate(selectedDateIso);
+                                if (context.mounted) {
+                                  AppToast.info(context, 'Holiday removed for $selectedDateIso');
+                                }
+                              },
+                              borderRadius: BorderRadius.circular(8),
+                              splashColor: Colors.transparent,
+                              highlightColor: Colors.transparent,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4.5),
+                                decoration: BoxDecoration(
+                                  color: isDark ? const Color(0xFF78350F).withValues(alpha: 0.3) : const Color(0xFFFEF3C7),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: isDark ? const Color(0xFFB45309).withValues(alpha: 0.4) : const Color(0xFFFDE68A),
+                                    width: 0.8,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.close_rounded, size: 12, color: Color(0xFFD97706)),
+                                    const SizedBox(width: 2.5),
+                                    Text(
+                                      'Remove',
+                                      style: TextStyle(
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.bold,
+                                        color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.close_rounded, size: 12, color: Color(0xFFD97706)),
-                                  const SizedBox(width: 2.5),
-                                  Text(
-                                    'Remove',
-                                    style: TextStyle(
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.bold,
-                                      color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
-                                    ),
+                            ),
+                          )
+                        else if (isSelectedDateExam)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 5),
+                            child: InkWell(
+                              onTap: () async {
+                                if (currentExam != null) {
+                                  await ref.read(holidaysProvider.notifier).removeExamForDate(selectedDateIso);
+                                }
+                                for (final s in daySessions.where((s) => s.isExam)) {
+                                  final slotId = s.sourceRefId ?? s.id;
+                                  await ref.read(scheduleExceptionsProvider.notifier).removeExamForSlot(slotId, selectedDateIso);
+                                }
+                                if (context.mounted) {
+                                  AppToast.info(context, 'Exam removed for $selectedDateIso');
+                                }
+                              },
+                              borderRadius: BorderRadius.circular(8),
+                              splashColor: Colors.transparent,
+                              highlightColor: Colors.transparent,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4.5),
+                                decoration: BoxDecoration(
+                                  color: isDark ? const Color(0xFF27282F) : const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: isDark ? const Color(0xFF3E404D) : const Color(0xFFCBD5E1),
+                                    width: 0.8,
                                   ),
-                                ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.close_rounded,
+                                      size: 12,
+                                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                    ),
+                                    const SizedBox(width: 2.5),
+                                    Text(
+                                      'Remove Exam',
+                                      style: TextStyle(
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.bold,
+                                        color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           )
                         else
-                          InkWell(
-                            onTap: () => _showDeclareHolidayDialog(context, _selectedDate),
-                            borderRadius: BorderRadius.circular(8),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4.5),
-                              margin: const EdgeInsets.only(right: 5),
-                              decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF78350F).withValues(alpha: 0.2) : const Color(0xFFFEF3C7),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: isDark ? const Color(0xFFB45309).withValues(alpha: 0.35) : const Color(0xFFFDE68A),
-                                  width: 0.8,
-                                ),
+                          Padding(
+                            padding: const EdgeInsets.only(right: 5),
+                            child: InkWell(
+                              onTap: () => DeclareSpecialDaySheet.show(
+                                context,
+                                initialDate: _selectedDate,
+                                todaySessions: daySessions,
+                                initialTab: isSelectedDateExam ? SpecialDayTab.exam : SpecialDayTab.holiday,
                               ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.beach_access_rounded, size: 12, color: Color(0xFFD97706)),
-                                  const SizedBox(width: 2.5),
-                                  Text(
-                                    '+ Holiday',
-                                    style: TextStyle(
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.bold,
-                                      color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
-                                    ),
+                              borderRadius: BorderRadius.circular(8),
+                              splashColor: Colors.transparent,
+                              highlightColor: Colors.transparent,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4.5),
+                                decoration: BoxDecoration(
+                                  color: isDark ? AppColors.surfaceDark : const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
+                                    width: 0.8,
                                   ),
-                                ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.edit_calendar_rounded, size: 12, color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
+                                    const SizedBox(width: 3.5),
+                                    Text(
+                                      'Special Day',
+                                      style: TextStyle(
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
                         InkWell(
                           onTap: () => _showAddExtraClassDialog(context, selectedDateIso),
                           borderRadius: BorderRadius.circular(8),
+                          splashColor: Colors.transparent,
+                          highlightColor: Colors.transparent,
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4.5),
                             decoration: BoxDecoration(
@@ -653,6 +727,62 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                                     fontSize: 11.5,
                                     fontWeight: FontWeight.w700,
                                     color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+
+            // Smooth & Soothing Exam Banner in Calendar Screen
+            AnimatedSize(
+              duration: const Duration(milliseconds: 320),
+              curve: Curves.easeOutCubic,
+              child: currentExam != null
+                  ? Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+                      child: TweenAnimationBuilder<double>(
+                        tween: Tween<double>(begin: 0.0, end: 1.0),
+                        duration: const Duration(milliseconds: 280),
+                        curve: Curves.easeOutCubic,
+                        builder: (context, opacity, child) {
+                          return Opacity(
+                            opacity: opacity,
+                            child: Transform.translate(
+                              offset: Offset(0, 4 * (1 - opacity)),
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.cardDark : const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
+                              width: 0.8,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.assignment_rounded,
+                                size: 16,
+                                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  '${currentExam.title.isNotEmpty == true ? currentExam.title : "Examination"} · Active exam period',
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                                   ),
                                 ),
                               ),
@@ -862,6 +992,28 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                                             _buildClassInfoBadge(context, session, isDark),
                                             const SizedBox(width: 8),
                                           ],
+                                          if (session.isExam && badgeLabel != 'Exam') ...[
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
+                                              decoration: BoxDecoration(
+                                                color: isDark ? const Color(0xFF27282F) : const Color(0xFFF1F5F9),
+                                                borderRadius: BorderRadius.circular(8),
+                                                border: Border.all(
+                                                  color: isDark ? const Color(0xFF3E404D) : const Color(0xFFCBD5E1),
+                                                  width: 0.7,
+                                                ),
+                                              ),
+                                              child: Text(
+                                                'EXAM',
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.w800,
+                                                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 6),
+                                          ],
                                           Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                                             decoration: BoxDecoration(
@@ -915,6 +1067,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
               dotColor = AppColors.absentRed;
             } else if (sessionsForDate.any((s) => s.attendanceOutcome == 'PRESENT')) {
               dotColor = AppColors.presentGreen;
+            } else if (sessionsForDate.any((s) => s.isExam)) {
+              dotColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569);
             } else if (sessionsForDate.any((s) => s.attendanceOutcome == 'HOLIDAY' || s.status == 'HOLIDAY')) {
               dotColor = const Color(0xFFF59E0B);
             } else if (sessionsForDate.any((s) => s.attendanceOutcome == 'CANCELLED')) {
@@ -1047,6 +1201,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                   dotColor = AppColors.absentRed;
                 } else if (sessionsForDate.any((s) => s.attendanceOutcome == 'PRESENT')) {
                   dotColor = AppColors.presentGreen;
+                } else if (sessionsForDate.any((s) => s.isExam)) {
+                  dotColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569);
                 } else if (sessionsForDate.any((s) => s.attendanceOutcome == 'HOLIDAY' || s.status == 'HOLIDAY')) {
                   dotColor = const Color(0xFFF59E0B);
                 } else if (sessionsForDate.any((s) => s.attendanceOutcome == 'CANCELLED')) {
@@ -1382,6 +1538,78 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                     },
                   ),
 
+                  ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.pillDark : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        session.isExam ? Icons.assignment_rounded : Icons.assignment_outlined,
+                        size: 16,
+                        color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                      ),
+                    ),
+                    title: Text(
+                      session.isExam ? 'Exam Details' : 'Mark as Exam / Quiz',
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Text(
+                      session.isExam
+                          ? (session.examTitle != null && session.examTitle!.isNotEmpty
+                              ? session.examTitle!
+                              : 'Scheduled as an exam for this period')
+                          : 'Tag this class period as an exam or class test',
+                      style: const TextStyle(fontSize: 11),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: const Icon(Icons.chevron_right_rounded, size: 18),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      final slotId = session.sourceRefId ?? session.id;
+                      if (session.isExam) {
+                        final action = await showDialog<String>(
+                          context: context,
+                          builder: (dCtx) => AlertDialog(
+                            backgroundColor: isDark ? AppColors.cardDark : Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            title: const Text('Period Exam', style: TextStyle(fontWeight: FontWeight.w700)),
+                            content: Text('This period is marked as "${session.examTitle ?? "Exam"}".'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(dCtx, 'REMOVE'),
+                                style: TextButton.styleFrom(foregroundColor: AppColors.absentRed),
+                                child: const Text('Remove Exam Tag'),
+                              ),
+                              FilledButton(
+                                onPressed: () => Navigator.pop(dCtx, 'EDIT'),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: isDark ? AppColors.textPrimaryDark : AppColors.primaryLight,
+                                  foregroundColor: isDark ? AppColors.bgDark : Colors.white,
+                                ),
+                                child: const Text('Edit Title'),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (action == 'REMOVE') {
+                          await ref.read(scheduleExceptionsProvider.notifier).removeExamForSlot(slotId, dateIso);
+                          if (context.mounted) AppToast.info(context, 'Exam tag removed');
+                        } else if (action == 'EDIT') {
+                          if (context.mounted) {
+                            _promptSetExamDialog(context, slotId, dateIso, initialTitle: session.examTitle);
+                          }
+                        }
+                      } else {
+                        _promptSetExamDialog(context, slotId, dateIso);
+                      }
+                    },
+                  ),
+
                   if (isExtra) ...[
                     ListTile(
                       dense: true,
@@ -1671,8 +1899,70 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
     );
   }
 
-  void _showDeclareHolidayDialog(BuildContext context, DateTime date) {
-    DeclareHolidaySheet.show(context, initialDate: date);
+  Future<void> _promptSetExamDialog(BuildContext context, String slotId, String dateIso, {String? initialTitle}) async {
+    final controller = TextEditingController(text: initialTitle ?? '');
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final title = await showDialog<String>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: isDark ? AppColors.cardDark : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Mark as Exam / Quiz', style: TextStyle(fontWeight: FontWeight.w700)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Enter the exam or quiz title for this class period:', style: TextStyle(fontSize: 13)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              style: TextStyle(fontSize: 14, color: isDark ? Colors.white : Colors.black87),
+              decoration: InputDecoration(
+                hintText: 'e.g., Midterm 1, Quiz 2, Lab Practical',
+                hintStyle: TextStyle(fontSize: 12, color: isDark ? AppColors.textSecondaryDark : const Color(0xFF94A3B8)),
+                filled: true,
+                fillColor: isDark ? AppColors.surfaceDark : const Color(0xFFF8FAFC),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogCtx, controller.text.trim()),
+            style: FilledButton.styleFrom(
+              backgroundColor: isDark ? AppColors.textPrimaryDark : AppColors.primaryLight,
+              foregroundColor: isDark ? AppColors.bgDark : Colors.white,
+            ),
+            child: const Text('Save Exam'),
+          ),
+        ],
+      ),
+    );
+    if (title != null && title.isNotEmpty) {
+      await ref.read(scheduleExceptionsProvider.notifier).setExamForSlot(
+        timetableSlotId: slotId,
+        exceptionDate: dateIso,
+        examTitle: title,
+      );
+      if (context.mounted) {
+        AppToast.success(context, 'Exam "$title" set for period');
+      }
+    }
+  }
+
+  void _showDeclareHolidayDialog(BuildContext context, DateTime date, [List<ClassSessionEntity>? sessions, bool isExam = false]) {
+    DeclareSpecialDaySheet.show(
+      context,
+      initialDate: date,
+      todaySessions: sessions,
+      initialTab: isExam ? SpecialDayTab.exam : SpecialDayTab.holiday,
+    );
   }
 
   // --- SPROUT THEME CALENDAR SCREEN ---
@@ -1686,6 +1976,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
     required List<HolidayItem> holidays,
     required bool isSelectedDateHoliday,
     required HolidayItem? currentHoliday,
+    required bool isSelectedDateExam,
+    required HolidayItem? currentExam,
     required int presentCount,
     required int totalHeld,
     required String monthYearTitle,
@@ -1922,13 +2214,17 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                         Text(
                           isSelectedDateHoliday
                               ? 'Holiday'
-                              : (totalHeld > 0 ? 'Attended $presentCount of $totalHeld' : 'No classes'),
+                              : (isSelectedDateExam
+                                  ? (currentExam?.title ?? 'Exam Day')
+                                  : (totalHeld > 0 ? 'Attended $presentCount of $totalHeld' : 'No classes')),
                           style: GoogleFonts.quicksand(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: isSelectedDateHoliday
                                 ? const Color(0xFFD97706)
-                                : textSecondary,
+                                : (isSelectedDateExam
+                                    ? textPrimary
+                                    : textSecondary),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -1942,77 +2238,138 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (isSelectedDateHoliday)
-                          InkWell(
-                            onTap: () async {
-                              await ref.read(holidaysProvider.notifier).removeHolidayForDate(selectedDateIso);
-                              if (context.mounted) {
-                                AppToast.info(context, 'Holiday removed for $selectedDateIso');
-                              }
-                            },
-                            borderRadius: BorderRadius.circular(10),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                              margin: const EdgeInsets.only(right: 6),
-                              decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF3D2A10) : const Color(0xFFFEF3C7),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: isDark ? const Color(0xFF6B4515) : const Color(0xFFFDE68A),
-                                  width: 1,
+                          Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: InkWell(
+                              onTap: () async {
+                                await ref.read(holidaysProvider.notifier).removeHolidayForDate(selectedDateIso);
+                                if (context.mounted) {
+                                  AppToast.info(context, 'Holiday removed for $selectedDateIso');
+                                }
+                              },
+                              borderRadius: BorderRadius.circular(10),
+                              splashColor: Colors.transparent,
+                              highlightColor: Colors.transparent,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: isDark ? const Color(0xFF3D2A10) : const Color(0xFFFEF3C7),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: isDark ? const Color(0xFF6B4515) : const Color(0xFFFDE68A),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.close_rounded, size: 13, color: Color(0xFFD97706)),
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      'Remove',
+                                      style: GoogleFonts.quicksand(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.close_rounded, size: 13, color: Color(0xFFD97706)),
-                                  const SizedBox(width: 3),
-                                  Text(
-                                    'Remove',
-                                    style: GoogleFonts.quicksand(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
-                                    ),
+                            ),
+                          )
+                        else if (isSelectedDateExam)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: InkWell(
+                              onTap: () async {
+                                if (currentExam != null) {
+                                  await ref.read(holidaysProvider.notifier).removeExamForDate(selectedDateIso);
+                                }
+                                for (final s in daySessions.where((s) => s.isExam)) {
+                                  final slotId = s.sourceRefId ?? s.id;
+                                  await ref.read(scheduleExceptionsProvider.notifier).removeExamForSlot(slotId, selectedDateIso);
+                                }
+                                if (context.mounted) {
+                                  AppToast.info(context, 'Exam removed for $selectedDateIso');
+                                }
+                              },
+                              borderRadius: BorderRadius.circular(10),
+                              splashColor: Colors.transparent,
+                              highlightColor: Colors.transparent,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: isDark ? const Color(0xFF263328) : const Color(0xFFF1F5F2),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: isDark ? const Color(0xFF384D3C) : const Color(0xFFCFDCD2),
+                                    width: 1,
                                   ),
-                                ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.close_rounded,
+                                      size: 13,
+                                      color: textPrimary,
+                                    ),
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      'Remove Exam',
+                                      style: GoogleFonts.quicksand(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: textPrimary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           )
                         else
-                          InkWell(
-                            onTap: () => _showDeclareHolidayDialog(context, _selectedDate),
-                            borderRadius: BorderRadius.circular(10),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                              margin: const EdgeInsets.only(right: 6),
-                              decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF3D2A10) : const Color(0xFFFEF3C7),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: isDark ? const Color(0xFF6B4515) : const Color(0xFFFDE68A),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.beach_access_rounded, size: 13, color: Color(0xFFD97706)),
-                                  const SizedBox(width: 3),
-                                  Text(
-                                    '+ Holiday',
-                                    style: GoogleFonts.quicksand(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
-                                    ),
+                          Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: InkWell(
+                              onTap: () => _showDeclareHolidayDialog(context, _selectedDate, daySessions, isSelectedDateExam),
+                              borderRadius: BorderRadius.circular(10),
+                              splashColor: Colors.transparent,
+                              highlightColor: Colors.transparent,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: isDark ? const Color(0xFF3D2A10) : const Color(0xFFFEF3C7),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: isDark ? const Color(0xFF6B4515) : const Color(0xFFFDE68A),
+                                    width: 1,
                                   ),
-                                ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.beach_access_rounded, size: 13, color: Color(0xFFD97706)),
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      'Special Day',
+                                      style: GoogleFonts.quicksand(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
                         InkWell(
                           onTap: () => _showAddExtraClassDialog(context, selectedDateIso),
                           borderRadius: BorderRadius.circular(10),
+                          splashColor: Colors.transparent,
+                          highlightColor: Colors.transparent,
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                             decoration: BoxDecoration(
@@ -2947,6 +3304,87 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> with SingleTick
                     onTap: () {
                       Navigator.pop(context);
                       ClassNoteDialog.show(context, session: session);
+                    },
+                  ),
+
+                  ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: pillBg,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        session.isExam ? Icons.assignment_rounded : Icons.assignment_outlined,
+                        size: 16,
+                        color: accentPrimary,
+                      ),
+                    ),
+                    title: Text(
+                      session.isExam ? 'Exam Details' : 'Mark as Exam / Quiz',
+                      style: GoogleFonts.quicksand(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: textPrimary,
+                      ),
+                    ),
+                    subtitle: Text(
+                      session.isExam
+                          ? (session.examTitle != null && session.examTitle!.isNotEmpty
+                              ? session.examTitle!
+                              : 'Scheduled as an exam for this period')
+                          : 'Tag this class period as an exam or class test',
+                      style: GoogleFonts.quicksand(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        color: textSecondary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: Icon(Icons.chevron_right_rounded, size: 18, color: textSecondary),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      final slotId = session.sourceRefId ?? session.id;
+                      if (session.isExam) {
+                        final action = await showDialog<String>(
+                          context: context,
+                          builder: (dCtx) => AlertDialog(
+                            backgroundColor: cardBg,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                            title: Text('Period Exam', style: GoogleFonts.quicksand(fontWeight: FontWeight.w800, color: textPrimary)),
+                            content: Text('This period is marked as "${session.examTitle ?? "Exam"}".', style: GoogleFonts.quicksand(fontSize: 13, color: textSecondary)),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(dCtx, 'REMOVE'),
+                                style: TextButton.styleFrom(foregroundColor: AppColors.absentRed),
+                                child: Text('Remove Exam Tag', style: GoogleFonts.quicksand(fontWeight: FontWeight.w700)),
+                              ),
+                              FilledButton(
+                                onPressed: () => Navigator.pop(dCtx, 'EDIT'),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: isDark ? const Color(0xFF6FA769) : const Color(0xFF558A50),
+                                  foregroundColor: isDark ? const Color(0xFF112318) : Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                                child: Text('Edit Title', style: GoogleFonts.quicksand(fontWeight: FontWeight.w700)),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (action == 'REMOVE') {
+                          await ref.read(scheduleExceptionsProvider.notifier).removeExamForSlot(slotId, dateIso);
+                          if (context.mounted) AppToast.info(context, 'Exam tag removed');
+                        } else if (action == 'EDIT') {
+                          if (context.mounted) {
+                            _promptSetExamDialog(context, slotId, dateIso, initialTitle: session.examTitle);
+                          }
+                        }
+                      } else {
+                        _promptSetExamDialog(context, slotId, dateIso);
+                      }
                     },
                   ),
 

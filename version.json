@@ -1,23 +1,25 @@
 {
-  "latest_version": "2.0.0-alpha.8",
-  "build_number": 22,
+  "latest_version": "2.0.0-alpha.9",
+  "build_number": 23,
   "min_supported_version": "0.0.1",
-  "release_date": "2026-10-02",
-  "release_title": "Attendly v2.0.0-alpha.8 (Refined Splash Icon & Circular Mask Alignment)",
+  "release_date": "2026-10-28",
+  "release_title": "Attendly v2.0.0-alpha.9 (Unified Special Day Exam Suite & Sprout Visual Polish)",
   "changelog": [
-    "🎨 Refined Splash Icon Dimensions: Rescaled centered splash icon to a balanced 96dp × 96dp (down from oversized 160dp default) via dedicated @drawable/splash_screen_icon.",
-    "⭕ Circular Mask Alignment: Generated 4x supersampled anti-aliased circular assets matching Android 12+ splash viewport geometry 1:1, completely eliminating octagonal cuts and chamfers.",
-    "🛡️ Launcher Asset Isolation: OS home-screen launcher icon (@mipmap/launcher_icon) remains 100% untouched.",
-    "📱 Modern Edge-to-Edge Windowing: Transparent status/navigation bars, shortEdges display cutout mode, and contrast overlay removal preventing camera notch letterboxing."
+    "📝 Unified Special Day Suite: Consolidated holiday and exam declaration into a unified modal with smooth cross-fade transitions and zero slider resizing.",
+    "⏸️ Whole-Day Exam Suspension: Single-day and multi-day exams cleanly suspend scheduled classes without penalizing student attendance records.",
+    "🎯 Period Exam Precision: Granular class-period exam tagging with custom exam titles, keeping remaining daily classes active and markable.",
+    "🌱 Sprout Exam Mascot Banner: Supportive exam mascot banner and badges integrated natively into Sprout theme Today and Calendar views.",
+    "✨ Tactile Button Polish: Removed click shadow artifacts and highlight bleed from Calendar action pills across both Sprout and Classic themes.",
+    "🛡️ Duplicate Banner Elimination: Separated slot-level period exams from whole-day exams, eliminating extraneous active banners."
   ],
-  "download_url": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.8/Attendly-v2.0.0-alpha.8.apk",
+  "download_url": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.9/Attendly-v2.0.0-alpha.9.apk",
   "abi_assets": {
-    "arm64-v8a": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.8/app-arm64-v8a-release.apk",
-    "armeabi-v7a": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.8/app-armeabi-v7a-release.apk",
-    "x86_64": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.8/app-x86_64-release.apk",
-    "universal": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.8/Attendly-v2.0.0-alpha.8.apk"
+    "arm64-v8a": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.9/app-arm64-v8a-release.apk",
+    "armeabi-v7a": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.9/app-armeabi-v7a-release.apk",
+    "x86_64": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.9/app-x86_64-release.apk",
+    "universal": "https://github.com/a3ryk/classtrack/releases/download/v2.0.0-alpha.9/Attendly-v2.0.0-alpha.9.apk"
   },
-  "release_page_url": "https://github.com/a3ryk/classtrack/releases/tag/v2.0.0-alpha.8",
+  "release_page_url": "https://github.com/a3ryk/classtrack/releases/tag/v2.0.0-alpha.9",
   "is_mandatory": false,
   "warning_message": null
 }

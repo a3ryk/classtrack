@@ -108,7 +108,9 @@ class TodayClassCard extends ConsumerWidget {
               child: Container(
                 width: isCute ? 4.5 : 3.5,
                 decoration: BoxDecoration(
-                  color: isHoliday ? const Color(0xFFD97706) : stripeColor,
+                  color: isHoliday
+                      ? const Color(0xFFD97706)
+                      : (session.isExam ? (isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)) : stripeColor),
                   borderRadius: BorderRadius.horizontal(right: Radius.circular(isCute ? 999 : 4)),
                 ),
               ),
@@ -119,7 +121,7 @@ class TodayClassCard extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header: Subject Name & Live Status Badge / Holiday Badge / Info Badge
+                  // Header: Subject Name & Live Status Badge / Holiday Badge / Exam Badge / Info Badge
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -159,6 +161,40 @@ class TodayClassCard extends ConsumerWidget {
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
                                   color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else if (session.isExam)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                          margin: const EdgeInsets.only(left: 6),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF27282F) : const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(isCute ? 999 : 5),
+                            border: Border.all(
+                              color: isDark ? const Color(0xFF3E404D) : const Color(0xFFCBD5E1),
+                              width: 0.7,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.assignment_rounded,
+                                size: 11,
+                                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                              ),
+                              const SizedBox(width: 3),
+                              Text(
+                                session.examTitle != null && session.examTitle!.trim().isNotEmpty
+                                    ? session.examTitle!
+                                    : 'Exam',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                                 ),
                               ),
                             ],

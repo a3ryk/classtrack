@@ -2222,5 +2222,170 @@ void main() {
 
       await db.close();
     });
+
+    testWidgets('SproutTodayView renders exam banner and memo icon when date has an active exam', (tester) async {
+      final db = AppDatabase.inMemory();
+      final targetDate = DateTime(2026, 9, 15);
+      final targetDateIso = DateFormatter.toIsoDate(targetDate);
+
+      final cuteTheme = AppTheme.buildTheme(
+        brightness: Brightness.light,
+        styleId: 'cute_sprout',
+      );
+
+      final exams = [
+        HolidayItem(
+          title: 'Final Examinations',
+          startDate: targetDateIso,
+          endDate: targetDateIso,
+          category: 'EXAM',
+        ),
+      ];
+
+      final examSession = ClassSessionEntity(
+        id: 'session-cs-exam',
+        semesterId: 'sem_1',
+        subjectComponentId: 'sub-comp-1',
+        subjectName: 'Compiler Design',
+        subjectCode: 'CS502',
+        componentType: 'LECTURE',
+        category: 'MAJOR',
+        sessionDate: targetDateIso,
+        startTime: '10:00',
+        endTime: '11:00',
+        room: 'Lab 2',
+        colorHex: '#558A50',
+        status: 'SCHEDULED',
+        sessionSource: 'TIMETABLE_RECURRING',
+        attendanceOutcome: 'PENDING',
+        isExam: true,
+        examTitle: 'Midterm',
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+            holidaysProvider.overrideWith((ref) => FakeHolidaysNotifier(exams)),
+            resolvedDayScheduleProvider(targetDate).overrideWithValue([examSession]),
+            realtimeClockProvider.overrideWith((ref) => Stream.value(targetDate)),
+          ],
+          child: MaterialApp(
+            theme: cuteTheme,
+            home: SproutTodayView(
+              selectedDate: targetDate,
+              onDateChanged: (_) {},
+              onGoToToday: () {},
+              onPickDate: () {},
+              onSessionTap: (_, __) {},
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Top action strip and exam banner both display 📝 icon
+      expect(find.text('📝'), findsNWidgets(2));
+
+      // Exam banner should display title and suspended message
+      expect(find.text('Final Examinations'), findsOneWidget);
+      expect(find.text('Classes are suspended for exams today. Best of luck with your exams! 🌟'), findsOneWidget);
+
+      await db.close();
+    });
+
+    testWidgets('SproutTodayView renders period exam tag while other classes remain active and scheduled', (tester) async {
+      final db = AppDatabase.inMemory();
+      final targetDate = DateTime(2026, 9, 15);
+      final targetDateIso = DateFormatter.toIsoDate(targetDate);
+
+      final cuteTheme = AppTheme.buildTheme(
+        brightness: Brightness.light,
+        styleId: 'cute_sprout',
+      );
+
+      final examSession = ClassSessionEntity(
+        id: 'session-cs-exam',
+        semesterId: 'sem_1',
+        subjectComponentId: 'sub-comp-1',
+        subjectName: 'Compiler Design',
+        subjectCode: 'CS502',
+        componentType: 'LECTURE',
+        category: 'MAJOR',
+        sessionDate: targetDateIso,
+        startTime: '10:00',
+        endTime: '11:00',
+        room: 'Lab 2',
+        colorHex: '#558A50',
+        status: 'SCHEDULED',
+        sessionSource: 'TIMETABLE_RECURRING',
+        attendanceOutcome: 'PENDING',
+        isExam: true,
+        isPeriodExam: true,
+        examTitle: 'Midterm',
+      );
+
+      final normalSession = ClassSessionEntity(
+        id: 'session-ds-normal',
+        semesterId: 'sem_1',
+        subjectComponentId: 'sub-comp-2',
+        subjectName: 'Data Structures',
+        subjectCode: 'CS301',
+        componentType: 'LECTURE',
+        category: 'MAJOR',
+        sessionDate: targetDateIso,
+        startTime: '11:30',
+        endTime: '12:30',
+        room: 'Hall B',
+        colorHex: '#3B82F6',
+        status: 'SCHEDULED',
+        sessionSource: 'TIMETABLE_RECURRING',
+        attendanceOutcome: 'PENDING',
+        isExam: false,
+        isPeriodExam: false,
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+            holidaysProvider.overrideWith((ref) => FakeHolidaysNotifier([])),
+            resolvedDayScheduleProvider(targetDate).overrideWithValue([examSession, normalSession]),
+            realtimeClockProvider.overrideWith((ref) => Stream.value(targetDate)),
+          ],
+          child: MaterialApp(
+            theme: cuteTheme,
+            home: SproutTodayView(
+              selectedDate: targetDate,
+              onDateChanged: (_) {},
+              onGoToToday: () {},
+              onPickDate: () {},
+              onSessionTap: (_, __) {},
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Top action strip shows memo icon 📝 because an exam is scheduled today
+      expect(find.text('📝'), findsOneWidget);
+
+      // Whole-day exam banner is NOT shown because this is a period exam
+      expect(find.text('Classes are suspended for exams today. Best of luck with your exams! 🌟'), findsNothing);
+
+      // Schedule header displays Today's Exam Schedule
+      expect(find.text("Today's Exam Schedule"), findsOneWidget);
+
+      // Both classes are shown
+      expect(find.text('Compiler Design'), findsWidgets);
+      expect(find.text('Data Structures'), findsOneWidget);
+
+      // Exam period shows the Midterm badge
+      expect(find.text('Midterm'), findsWidgets);
+
+      await db.close();
+    });
   });
 }

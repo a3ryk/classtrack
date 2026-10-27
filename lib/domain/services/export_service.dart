@@ -31,7 +31,7 @@ class ExportService {
     ProgressCallback? onProgress,
   }) async {
     final holidays = (await db.getHolidays(semester.id))
-        .map((h) => HolidayItem(title: h.title, startDate: h.startDate, endDate: h.endDate))
+        .map((h) => HolidayItem(id: h.id, title: h.title, startDate: h.startDate, endDate: h.endDate, category: h.category))
         .toList();
 
     final dayConfigs = (await db.getAcademicDayConfigs(semester.id))
@@ -81,6 +81,7 @@ class ExportService {
       newEndTime: e.newEndTime,
       substituteComponentId: e.substituteComponentId,
       newRoom: e.newRoom,
+      notes: e.notes,
     )).toList();
 
     final extraClasses = (await db.getExtraClasses(semester.id)).map((e) {

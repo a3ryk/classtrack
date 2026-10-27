@@ -9,6 +9,7 @@ import '../../core/ui/app_toast.dart';
 import '../../core/utils/date_formatter.dart';
 import '../../domain/services/schedule_engine.dart';
 import '../providers/app_state_provider.dart';
+import 'declare_special_day_sheet.dart';
 
 /// Modern Modal Bottom Sheet for Declaring Single-day or Multi-day Holidays
 class DeclareHolidaySheet extends ConsumerStatefulWidget {
@@ -20,18 +21,27 @@ class DeclareHolidaySheet extends ConsumerStatefulWidget {
   });
 
   static Future<void> show(BuildContext context, {required DateTime initialDate}) {
-    return showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      sheetAnimationStyle: AnimationStyle(
-        curve: Curves.easeOutCubic,
-        reverseCurve: Curves.easeInCubic,
-        duration: const Duration(milliseconds: 280),
-      ),
-      builder: (context) => RepaintBoundary(
-        child: DeclareHolidaySheet(initialDate: initialDate),
-      ),
+    final tokens = Theme.of(context).extension<AppThemeTokens>();
+    final isCute = tokens?.isCute ?? false;
+    if (isCute) {
+      return showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        sheetAnimationStyle: AnimationStyle(
+          curve: Curves.easeOutCubic,
+          reverseCurve: Curves.easeInCubic,
+          duration: const Duration(milliseconds: 280),
+        ),
+        builder: (context) => RepaintBoundary(
+          child: DeclareHolidaySheet(initialDate: initialDate),
+        ),
+      );
+    }
+    return DeclareSpecialDaySheet.show(
+      context,
+      initialDate: initialDate,
+      initialTab: SpecialDayTab.holiday,
     );
   }
 

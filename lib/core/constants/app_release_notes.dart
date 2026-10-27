@@ -4,9 +4,26 @@ import '../services/app_update_service.dart';
 class AppReleaseNotes {
   AppReleaseNotes._();
 
-  static const String currentVersion = '2.0.0-alpha.8';
+  static const String currentVersion = '2.0.0-alpha.9';
 
   static final Map<String, AppReleaseInfo> _releases = {
+    '2.0.0-alpha.9': const AppReleaseInfo(
+      latestVersion: '2.0.0-alpha.9',
+      buildNumber: 23,
+      minSupportedVersion: '0.0.1',
+      releaseDate: 'October 2026',
+      releaseTitle: 'Attendly v2.0.0-alpha.9 (Unified Special Day Exam Suite & Sprout Visual Polish)',
+      changelog: [
+        '📝 Unified Special Day Suite: Consolidated holiday and exam declaration into a unified modal with smooth cross-fade transitions and zero slider resizing.',
+        '⏸️ Whole-Day Exam Suspension: Single-day and multi-day exams cleanly suspend scheduled classes without penalizing student attendance records.',
+        '🎯 Period Exam Precision: Granular class-period exam tagging with custom exam titles, keeping remaining daily classes active and markable.',
+        '🌱 Sprout Exam Mascot Banner: Supportive exam mascot banner and badges integrated natively into Sprout theme Today and Calendar views.',
+        '✨ Tactile Button Polish: Removed click shadow artifacts and highlight bleed from Calendar action pills across both Sprout and Classic themes.',
+        '🛡️ Duplicate Banner Elimination: Separated slot-level period exams from whole-day exams, eliminating extraneous active banners.',
+      ],
+      isMandatory: false,
+      warningMessage: null,
+    ),
     '2.0.0-alpha.8': const AppReleaseInfo(
       latestVersion: '2.0.0-alpha.8',
       buildNumber: 22,

@@ -5,6 +5,18 @@ All notable changes to **ClassTrack** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0-alpha.9] - 2026-10-28
+
+### Unified Special Day Exam Suite & Sprout Visual Polish
+- **Unified Special Day Sheet (`DeclareSpecialDaySheet`)**: Consolidated holiday and exam declaration into a unified modal with smooth cross-fade transitions, pinned single-word "Save" action, and zero slider resizing artifacts.
+- **Whole-Day Exam Class Suspension**: Single-day and multi-day exams cleanly suspend scheduled classes without penalizing student attendance records.
+- **Period Exam Precision & Isolation**: Granular class-period exam tagging with custom exam titles, keeping remaining daily classes active and markable.
+- **Sprout Exam Mascot Banner**: Supportive exam mascot banner and badges integrated natively into Sprout theme Today and Calendar views.
+- **Tactile Button Polish**: Removed click shadow artifacts and highlight bleed from Calendar action pills across both Sprout and Classic themes.
+- **Duplicate Banner Elimination**: Separated slot-level period exams from whole-day exams, eliminating extraneous active banners.
+
+---
+
 ## [2.0.0-alpha.8] - 2026-10-02
 
 ### Refined Splash Icon & Circular Mask Alignment

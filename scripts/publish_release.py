@@ -13,39 +13,45 @@ import subprocess
 import time
 
 REPO = "a3ryk/classtrack"
-TAG = "v2.0.0-alpha.8"
-TITLE = "Attendly v2.0.0-alpha.8 (Refined Splash Icon & Circular Mask Alignment)"
+TAG = "v2.0.0-alpha.9"
+TITLE = "Attendly v2.0.0-alpha.9 (Unified Special Day Exam Suite & Sprout Visual Polish)"
 
-RELEASE_NOTES_TEMPLATE = """# Attendly v2.0.0-alpha.8 (Refined Splash Icon & Circular Mask Alignment)
+RELEASE_NOTES_TEMPLATE = """# Attendly v2.0.0-alpha.9 (Unified Special Day Exam Suite & Sprout Visual Polish)
 
 > [!NOTE]
-> **Optional Update**: This release refines the native Android splash screen icon presentation by scaling it down to a balanced 96dp and aligning with Android 12+'s circular viewport mask to completely eliminate hexagonal/octagonal cut artifacts. It is an optional update (`is_mandatory: false`). Your existing installation will continue functioning normally without interruption.
+> **Optional Update**: This release consolidates holiday and exam declarations into a unified Special Day sheet, introduces automatic class suspension on whole-day exam periods, adds granular period-level exam tagging, and refines tactile button feedback across both Sprout and Classic themes. It is an optional update (`is_mandatory: false`). Your existing timetable and attendance records will continue functioning smoothly without interruption.
 
 > [!TIP]
 > **Migration Guide for Users on Older Packages (`com.classtrack.app`)**:
 > If you are upgrading from an older version released before `v2.0.0-alpha.1` (when the app used the `com.classtrack.app` package identity):
 > 1. In your existing app, navigate to **Settings > Backup & Restore > Export Backup** and save your `.attendly` backup file safely.
 > 2. Uninstall the old `com.classtrack.app` build.
-> 3. Install **Attendly `v2.0.0-alpha.8`** (`com.attendly`).
+> 3. Install **Attendly `v2.0.0-alpha.9`** (`com.attendly`).
 > 4. Go to **Settings > Backup & Restore > Restore Backup** and select your backup file.
 > 
-> *If you are already on `v2.0.0-alpha.1` through `v2.0.0-alpha.7` (`com.attendly`), you can install this update directly over your existing app without uninstalling.*
+> *If you are already on `v2.0.0-alpha.1` through `v2.0.0-alpha.8` (`com.attendly`), you can install this update directly over your existing app without uninstalling.*
 
 ---
 
-### What's New in v2.0.0-alpha.8
+### What's New in v2.0.0-alpha.9
 
-#### 🎨 Refined Splash Icon Dimensions (96dp × 96dp)
-- **Balanced Proportions**: Rescaled the centered native Android splash icon from the default oversized 160dp down to 96dp using a dedicated `@drawable/splash_screen_icon`, matching modern clean splash aesthetics without overwhelming the display.
+#### 📝 Unified Special Day Suite
+- **Combined Modal**: Consolidated holiday and exam declarations into a single, cohesive Special Day modal (`[ Holiday | Exam / Test ]`), eliminating navigation friction.
+- **Fluid Cross-Fade**: Integrated smooth crossfade animations between holiday and exam states with zero slider menu height jumping or flickering.
+- **Pinned Action Bar**: Pinned a unified, single-word "Save" action button across all tab states and scopes.
 
-#### ⭕ Circular Mask Alignment (Zero Octagonal Cuts)
-- **Geometry Synchronization**: Generated 4x supersampled, anti-aliased circular splash drawables with alpha transparency across all display densities (`mdpi`, `hdpi`, `xhdpi`, `xxhdpi`, `xxxhdpi`). The circular geometry matches Android 12+'s internal splash viewport mask 1:1, permanently eliminating diagonal chops, harsh chamfers, and octagonal cuts.
+#### ⏸️ Whole-Day Exam Class Suspension
+- **Non-Penalizing Suspension**: Declaring a single-day or multi-day exam cleanly suspends regular scheduled classes (`HOLIDAY` status) without penalizing student attendance percentages.
+- **Sprout Exam Mascot Banner**: Shows a motivational exam mascot banner (*"Classes are suspended for exams today. Best of luck with your exams! 🌟"*) while hiding regular class lists.
+- **Classic Header Clarity**: Updates scheduled classes header to `Scheduled Classes (Exam Day - Suspended)`.
 
-#### 🛡️ Launcher Asset Isolation
-- **100% Unmodified OS Launcher**: Kept `@mipmap/launcher_icon`, `@mipmap/ic_launcher`, and all OS home-screen launcher icon assets completely untouched.
+#### 🎯 Granular Period Exam Tagging
+- **Slot-Level Precision**: Easily tag an individual class period as an exam or quiz with custom title, while other classes on that day remain normal, active, and markable.
+- **Duplicate Banner Elimination**: Differentiated slot-level period exams from whole-day exams, eliminating extraneous duplicate active banners.
 
-#### 📱 Modern Edge-to-Edge Windowing & Material Themes
-- **Transparent System Bars & Cutout Mode**: Full edge-to-edge windowing, display cutout `shortEdges` mode preventing notch letterboxing, and Android 10+ contrast overlay disabling.
+#### ✨ Tactile UI Polish & Zero-Bleed Action Pills
+- **Shadow Bleed Removal**: Fixed InkWell click highlight and grey shadow artifacts on Calendar action pills by moving spacing outside the tap target and clearing splash/highlight overlays.
+- **Contextual Calendar Actions**: Clean contextual action buttons (`Special Day`, `Remove`, `Remove Exam`, `+ Extra Class`) across Sprout and Classic themes.
 
 ---
 
@@ -53,7 +59,7 @@ RELEASE_NOTES_TEMPLATE = """# Attendly v2.0.0-alpha.8 (Refined Splash Icon & Cir
 
 {ASSET_TABLE}
 
-*Recommended: Use `app-arm64-v8a-release.apk` for modern 64-bit Android smartphones for the fastest download and smallest footprint, or `Attendly-v2.0.0-alpha.8.apk` for universal compatibility.*
+*Recommended: Use `app-arm64-v8a-release.apk` for modern 64-bit Android smartphones for the fastest download and smallest footprint, or `Attendly-v2.0.0-alpha.9.apk` for universal compatibility.*
 """
 
 def compute_sha256(filepath):
@@ -78,7 +84,7 @@ def main():
 
     apk_dir = os.path.join('build', 'app', 'outputs', 'flutter-apk')
     assets_to_upload = [
-        ('Attendly-v2.0.0-alpha.8.apk', 'Attendly-v2.0.0-alpha.8.apk', 'All Devices', 'Universal Fat APK'),
+        ('Attendly-v2.0.0-alpha.9.apk', 'Attendly-v2.0.0-alpha.9.apk', 'All Devices', 'Universal Fat APK'),
         ('app-arm64-v8a-release.apk', 'app-arm64-v8a-release.apk', 'ARM64', 'Split-per-ABI APK'),
         ('app-armeabi-v7a-release.apk', 'app-armeabi-v7a-release.apk', 'ARMv7', 'Split-per-ABI APK'),
         ('app-x86_64-release.apk', 'app-x86_64-release.apk', 'x86_64', 'Split-per-ABI APK')

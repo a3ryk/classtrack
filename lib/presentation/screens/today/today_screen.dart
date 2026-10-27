@@ -16,7 +16,6 @@ import '../../widgets/attendance_ring_widget.dart';
 import '../../widgets/today_class_card.dart';
 import '../../widgets/edit_semester_dialog.dart';
 import '../../widgets/semester_transition_wizard.dart';
-import '../../widgets/declare_holiday_dialog.dart';
 import '../../widgets/add_extra_class_sheet.dart';
 import '../../widgets/class_note_dialog.dart';
 import '../../widgets/cancellation_reason_dialog.dart';
@@ -26,6 +25,7 @@ import '../schedule/manage_subject_slots_screen.dart';
 import '../schedule/reschedule_session_screen.dart';
 import '../schedule/subject_room_manager_screen.dart';
 import 'sprout_today_view.dart';
+import '../../widgets/declare_special_day_sheet.dart';
 
 class TodayScreen extends ConsumerStatefulWidget {
   const TodayScreen({super.key});
@@ -120,6 +120,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
 
   String _getCountTitle({
     required bool isHoliday,
+    bool isExam = false,
     required DateTime date,
     required int classCount,
   }) {
@@ -132,6 +133,13 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
       if (diffDays == 1) return 'Holiday Tomorrow';
       if (diffDays == -1) return 'Holiday Yesterday';
       return 'College Holiday';
+    }
+
+    if (isExam) {
+      if (diffDays == 0) return 'Exam Day Today';
+      if (diffDays == 1) return 'Exam Day Tomorrow';
+      if (diffDays == -1) return 'Exam Day Yesterday';
+      return 'Examination Day';
     }
 
     final String plural = classCount == 1 ? '' : 'es';
@@ -168,10 +176,13 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
     final sessions = ref.watch(resolvedDayScheduleProvider(_selectedDate));
     final holidays = ref.watch(holidaysProvider);
     final isToday = DateUtils.dateOnly(_selectedDate) == DateUtils.dateOnly(DateTime.now());
-    final isSelectedDateHoliday = holidays.any((h) => selectedDateIso.compareTo(h.startDate) >= 0 && selectedDateIso.compareTo(h.endDate) <= 0);
+    final isSelectedDateHoliday = holidays.any((h) => (h.category == 'HOLIDAY' || h.category == 'SEMESTER_BREAK') && selectedDateIso.compareTo(h.startDate) >= 0 && selectedDateIso.compareTo(h.endDate) <= 0);
+    final activeExam = holidays.where((h) => h.category == 'EXAM' && selectedDateIso.compareTo(h.startDate) >= 0 && selectedDateIso.compareTo(h.endDate) <= 0).firstOrNull;
+    final isSelectedDateExam = activeExam != null || sessions.any((s) => s.isExam);
 
     final countTitle = _getCountTitle(
       isHoliday: isSelectedDateHoliday,
+      isExam: isSelectedDateExam,
       date: _selectedDate,
       classCount: sessions.length,
     );
@@ -240,7 +251,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                         ),
                       ),
 
-                      // Actions: [Today Pill] [Holiday] [Settings]
+                      // Actions: [Today Pill] [Special Day (Holiday / Exam)]
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -288,25 +299,25 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                                 : const SizedBox.shrink(),
                           ),
                           TactileIconButton(
-                            icon: isSelectedDateHoliday ? Icons.beach_access_rounded : Icons.beach_access_outlined,
+                            icon: isSelectedDateHoliday
+                                ? Icons.beach_access_rounded
+                                : (isSelectedDateExam ? Icons.assignment_rounded : Icons.edit_calendar_rounded),
                             iconSize: 18,
                             size: 38,
-                            backgroundColor: isSelectedDateHoliday
-                                ? (isDark ? const Color(0xFF78350F).withValues(alpha: 0.4) : const Color(0xFFFEF3C7))
+                            backgroundColor: (isSelectedDateHoliday || isSelectedDateExam)
+                                ? (isDark ? const Color(0xFF27282F) : const Color(0xFFF1F5F9))
                                 : (isDark ? AppColors.cardDark : Colors.white),
-                            borderColor: isSelectedDateHoliday
-                                ? (isDark ? const Color(0xFFB45309).withValues(alpha: 0.5) : const Color(0xFFFDE68A))
+                            borderColor: (isSelectedDateHoliday || isSelectedDateExam)
+                                ? (isDark ? const Color(0xFF3E404D) : const Color(0xFFCBD5E1))
                                 : (isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
-                            iconColor: isSelectedDateHoliday
-                                ? const Color(0xFFD97706)
-                                : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
+                            iconColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                             onTap: () {
-                              if (isSelectedDateHoliday) {
-                                ref.read(holidaysProvider.notifier).removeHolidayForDate(selectedDateIso);
-                                AppToast.info(context, 'Holiday removed for $selectedDateIso');
-                              } else {
-                                DeclareHolidaySheet.show(context, initialDate: _selectedDate);
-                              }
+                              DeclareSpecialDaySheet.show(
+                                context,
+                                initialDate: _selectedDate,
+                                initialTab: isSelectedDateExam ? SpecialDayTab.exam : SpecialDayTab.holiday,
+                                todaySessions: sessions,
+                              );
                             },
                           ),
                         ],
@@ -393,6 +404,63 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
       _showSproutSessionActionSheet(context, session, dateIso, tokens, isDark);
     } else {
       _showClassicSessionActionSheet(context, session, dateIso, isDark);
+    }
+  }
+
+  Future<void> _promptSetExamDialog(BuildContext context, String slotId, String dateIso, {String? initialTitle}) async {
+    final controller = TextEditingController(text: initialTitle ?? '');
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final title = await showDialog<String>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: isDark ? AppColors.cardDark : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Mark as Exam / Quiz', style: TextStyle(fontWeight: FontWeight.w700)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Enter the exam or quiz title for this class period:', style: TextStyle(fontSize: 13)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              style: TextStyle(fontSize: 14, color: isDark ? Colors.white : Colors.black87),
+              decoration: InputDecoration(
+                hintText: 'e.g., Midterm 1, Quiz 2, Lab Practical',
+                hintStyle: TextStyle(fontSize: 12, color: isDark ? AppColors.textSecondaryDark : const Color(0xFF94A3B8)),
+                filled: true,
+                fillColor: isDark ? AppColors.surfaceDark : const Color(0xFFF8FAFC),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogCtx, controller.text.trim()),
+            style: FilledButton.styleFrom(
+              backgroundColor: isDark ? AppColors.textPrimaryDark : AppColors.primaryLight,
+              foregroundColor: isDark ? AppColors.bgDark : Colors.white,
+            ),
+            child: const Text('Save Exam'),
+          ),
+        ],
+      ),
+    );
+    if (title != null && title.isNotEmpty) {
+      await ref.read(scheduleExceptionsProvider.notifier).setExamForSlot(
+        timetableSlotId: slotId,
+        exceptionDate: dateIso,
+        examTitle: title,
+      );
+      if (context.mounted) {
+        AppToast.success(context, 'Exam "$title" set for period');
+      }
     }
   }
 
@@ -518,6 +586,80 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                     onTap: () {
                       Navigator.pop(ctx);
                       ClassNoteDialog.show(context, session: session);
+                    },
+                  ),
+                  const SizedBox(height: 4),
+
+                  // Mark as Exam / Quiz or View Exam Details
+                  ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF27282F) : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        session.isExam ? Icons.assignment_rounded : Icons.assignment_outlined,
+                        size: 16,
+                        color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                      ),
+                    ),
+                    title: Text(
+                      session.isExam ? 'Exam Details' : 'Mark as Exam / Quiz',
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Text(
+                      session.isExam
+                          ? (session.examTitle != null && session.examTitle!.isNotEmpty
+                              ? session.examTitle!
+                              : 'Scheduled as an exam for this period')
+                          : 'Tag this class period as an exam or class test',
+                      style: const TextStyle(fontSize: 11),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: const Icon(Icons.chevron_right_rounded, size: 18),
+                    onTap: () async {
+                      Navigator.pop(ctx);
+                      final slotId = session.sourceRefId ?? session.id;
+                      if (session.isExam) {
+                        final action = await showDialog<String>(
+                          context: context,
+                          builder: (dCtx) => AlertDialog(
+                            backgroundColor: isDark ? AppColors.cardDark : Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            title: const Text('Period Exam', style: TextStyle(fontWeight: FontWeight.w700)),
+                            content: Text('This period is marked as "${session.examTitle ?? "Exam"}".'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(dCtx, 'REMOVE'),
+                                style: TextButton.styleFrom(foregroundColor: AppColors.absentRed),
+                                child: const Text('Remove Exam Tag'),
+                              ),
+                              FilledButton(
+                                onPressed: () => Navigator.pop(dCtx, 'EDIT'),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: isDark ? AppColors.textPrimaryDark : AppColors.primaryLight,
+                                  foregroundColor: isDark ? AppColors.bgDark : Colors.white,
+                                ),
+                                child: const Text('Edit Title'),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (action == 'REMOVE') {
+                          await ref.read(scheduleExceptionsProvider.notifier).removeExamForSlot(slotId, dateIso);
+                          if (context.mounted) AppToast.info(context, 'Exam tag removed');
+                        } else if (action == 'EDIT') {
+                          if (context.mounted) {
+                            _promptSetExamDialog(context, slotId, dateIso, initialTitle: session.examTitle);
+                          }
+                        }
+                      } else {
+                        _promptSetExamDialog(context, slotId, dateIso);
+                      }
                     },
                   ),
                   const SizedBox(height: 4),
@@ -954,6 +1096,64 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                   ),
                   const SizedBox(height: 8),
 
+                  _buildSproutActionCard(
+                    context: context,
+                    tokens: tokens,
+                    isDark: isDark,
+                    icon: session.isExam ? Icons.assignment_rounded : Icons.assignment_outlined,
+                    iconBg: isDark ? const Color(0xFF27282F) : const Color(0xFFF1F5F9),
+                    iconColor: isDark ? AppColors.textPrimaryDark : AppColors.primaryLight,
+                    title: session.isExam ? 'Exam Details' : 'Mark as Exam / Quiz',
+                    subtitle: session.isExam
+                        ? (session.examTitle != null && session.examTitle!.isNotEmpty
+                            ? session.examTitle!
+                            : 'Scheduled as an exam for this period')
+                        : 'Tag this class period as an exam or class test',
+                    onTap: () async {
+                      HapticFeedback.lightImpact();
+                      Navigator.pop(ctx);
+                      final slotId = session.sourceRefId ?? session.id;
+                      if (session.isExam) {
+                        final action = await showDialog<String>(
+                          context: context,
+                          builder: (dCtx) => AlertDialog(
+                            backgroundColor: isDark ? const Color(0xFF1B3626) : Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            title: Text('Period Exam', style: GoogleFonts.quicksand(fontWeight: FontWeight.w800, color: tokens.textPrimary)),
+                            content: Text('This period is marked as "${session.examTitle ?? "Exam"}".', style: GoogleFonts.quicksand(fontSize: 13.5, color: tokens.textSecondary)),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(dCtx, 'REMOVE'),
+                                style: TextButton.styleFrom(foregroundColor: AppColors.absentRed),
+                                child: Text('Remove Exam Tag', style: GoogleFonts.quicksand(fontWeight: FontWeight.w700)),
+                              ),
+                              FilledButton(
+                                onPressed: () => Navigator.pop(dCtx, 'EDIT'),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: isDark ? AppColors.textPrimaryDark : AppColors.primaryLight,
+                                  foregroundColor: isDark ? AppColors.bgDark : Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                                child: Text('Edit Title', style: GoogleFonts.quicksand(fontWeight: FontWeight.w700)),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (action == 'REMOVE') {
+                          await ref.read(scheduleExceptionsProvider.notifier).removeExamForSlot(slotId, dateIso);
+                          if (context.mounted) AppToast.info(context, 'Exam tag removed');
+                        } else if (action == 'EDIT') {
+                          if (context.mounted) {
+                            _promptSetExamDialog(context, slotId, dateIso, initialTitle: session.examTitle);
+                          }
+                        }
+                      } else {
+                        _promptSetExamDialog(context, slotId, dateIso);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 8),
+
                   if (isExtra) ...[
                     _buildSproutActionCard(
                       context: context,
@@ -1323,9 +1523,13 @@ class _TodayDatePageContent extends ConsumerWidget {
 
   String _getClassesSectionTitle({
     required bool isHoliday,
+    bool isExam = false,
+    bool isWholeDayExam = false,
     required DateTime date,
   }) {
     if (isHoliday) return 'Scheduled Classes (Holiday)';
+    if (isWholeDayExam) return 'Scheduled Classes (Exam Day - Suspended)';
+    if (isExam) return "Today's Exam Schedule";
     final today = DateUtils.dateOnly(DateTime.now());
     final target = DateUtils.dateOnly(date);
     final diffDays = target.difference(today).inDays;
@@ -1370,9 +1574,11 @@ class _TodayDatePageContent extends ConsumerWidget {
     final holidays = ref.watch(holidaysProvider);
     final activeSem = ref.watch(activeSemesterProvider);
     final dismissedEndOfTerm = ref.watch(dismissedEndOfTermProvider);
-    final isToday = DateFormatter.toIsoDate(date) == DateFormatter.toIsoDate(DateTime.now());
-    final isSelectedDateHoliday = holidays.any((h) => dateIso.compareTo(h.startDate) >= 0 && dateIso.compareTo(h.endDate) <= 0);
-    final HolidayItem? currentHoliday = holidays.where((h) => dateIso.compareTo(h.startDate) >= 0 && dateIso.compareTo(h.endDate) <= 0).firstOrNull;
+    final isSelectedDateHoliday = holidays.any((h) => (h.category == 'HOLIDAY' || h.category == 'SEMESTER_BREAK') && dateIso.compareTo(h.startDate) >= 0 && dateIso.compareTo(h.endDate) <= 0);
+    final HolidayItem? currentHoliday = holidays.where((h) => (h.category == 'HOLIDAY' || h.category == 'SEMESTER_BREAK') && dateIso.compareTo(h.startDate) >= 0 && dateIso.compareTo(h.endDate) <= 0).firstOrNull;
+    final HolidayItem? currentExam = holidays.where((h) => h.category == 'EXAM' && dateIso.compareTo(h.startDate) >= 0 && dateIso.compareTo(h.endDate) <= 0).firstOrNull;
+    final bool isExamActive = currentExam != null || sessions.any((s) => s.isExam);
+    final bool isToday = DateFormatter.toIsoDate(date) == DateFormatter.toIsoDate(DateTime.now());
     final bool isEndOfTerm = isToday &&
         !activeSem.isUnset &&
         activeSem.endDate != null &&
@@ -1711,12 +1917,173 @@ class _TodayDatePageContent extends ConsumerWidget {
               : const SizedBox.shrink(),
         ),
 
+        // Smooth & Soothing Exam Banner Animation
+        AnimatedSize(
+          duration: const Duration(milliseconds: 320),
+          curve: Curves.easeOutCubic,
+          child: currentExam != null
+              ? Padding(
+                  padding: const EdgeInsets.only(top: 12, bottom: 4),
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween<double>(begin: 0.0, end: 1.0),
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeOutCubic,
+                    builder: (context, opacity, child) {
+                      return Opacity(
+                        opacity: opacity,
+                        child: Transform.translate(
+                          offset: Offset(0, 6 * (1 - opacity)),
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: Builder(
+                      builder: (context) {
+                        int dayNumber = 1;
+                        int totalDays = 1;
+                        try {
+                          final start = DateTime.parse(currentExam.startDate);
+                          final end = DateTime.parse(currentExam.endDate);
+                          final cur = DateTime.parse(dateIso);
+                          totalDays = end.difference(start).inDays + 1;
+                          dayNumber = cur.difference(start).inDays + 1;
+                          if (dayNumber < 1) dayNumber = 1;
+                          if (dayNumber > totalDays) dayNumber = totalDays;
+                        } catch (_) {}
+
+                        final isMultiDay = totalDays > 1;
+
+                        return Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.cardDark : const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
+                              width: 0.9,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: isDark ? const Color(0xFF27282F) : Colors.white,
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
+                                        width: 0.8,
+                                      ),
+                                    ),
+                                    child: Icon(
+                                      Icons.assignment_rounded,
+                                      size: 24,
+                                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: isDark ? const Color(0xFF27282F) : Colors.white,
+                                                borderRadius: BorderRadius.circular(4),
+                                                border: Border.all(
+                                                  color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
+                                                  width: 0.6,
+                                                ),
+                                              ),
+                                              child: Text(
+                                                isMultiDay ? 'EXAM WEEK • DAY $dayNumber OF $totalDays' : 'EXAM DAY',
+                                                style: TextStyle(
+                                                  fontSize: 9.5,
+                                                  fontWeight: FontWeight.w800,
+                                                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                                  letterSpacing: 0.3,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 3),
+                                        Text(
+                                          currentExam.title.isNotEmpty ? currentExam.title : 'Examinations',
+                                          style: TextStyle(
+                                            fontSize: 14.5,
+                                            fontWeight: FontWeight.w800,
+                                            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'Classes are suspended for exams today.',
+                                          style: TextStyle(
+                                            fontSize: 11.5,
+                                            height: 1.3,
+                                            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed: () async {
+                                      await ref.read(holidaysProvider.notifier).removeExamForDate(dateIso);
+                                      if (context.mounted) {
+                                        AppToast.info(context, 'Exam removed for $dateIso');
+                                      }
+                                    },
+                                    child: Text(
+                                      'Undo',
+                                      style: TextStyle(
+                                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (isMultiDay) ...[
+                                const SizedBox(height: 10),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(3),
+                                  child: LinearProgressIndicator(
+                                    value: dayNumber / totalDays,
+                                    minHeight: 5,
+                                    backgroundColor: isDark ? const Color(0xFF27282F) : const Color(0xFFE2E8F0),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      isDark ? AppColors.textPrimaryDark : AppColors.primaryLight,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                )
+              : const SizedBox.shrink(),
+        ),
+
         // Section Title: Contextual title
         Padding(
           padding: const EdgeInsets.only(left: 2, top: 18, bottom: 10),
           child: Text(
             _getClassesSectionTitle(
               isHoliday: isSelectedDateHoliday,
+              isExam: isExamActive,
+              isWholeDayExam: currentExam != null,
               date: date,
             ),
             style: TextStyle(

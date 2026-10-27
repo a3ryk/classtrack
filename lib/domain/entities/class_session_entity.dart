@@ -26,6 +26,11 @@ class ClassSessionEntity {
   final String? effectiveUntil; // YYYY-MM-DD (Optional)
   final List<String>? specificDates; // List of ISO YYYY-MM-DD date strings
 
+  // Exam Fields
+  final bool isExam;
+  final bool isPeriodExam;
+  final String? examTitle;
+
   ClassSessionEntity({
     required this.id,
     required this.semesterId,
@@ -51,6 +56,9 @@ class ClassSessionEntity {
     this.effectiveFrom,
     this.effectiveUntil,
     this.specificDates,
+    this.isExam = false,
+    this.isPeriodExam = false,
+    this.examTitle,
   });
 
   ClassSessionEntity copyWith({
@@ -63,6 +71,9 @@ class ClassSessionEntity {
     String? effectiveFrom,
     String? effectiveUntil,
     List<String>? specificDates,
+    bool? isExam,
+    bool? isPeriodExam,
+    String? examTitle,
   }) {
     return ClassSessionEntity(
       id: id,
@@ -89,6 +100,9 @@ class ClassSessionEntity {
       effectiveFrom: effectiveFrom ?? this.effectiveFrom,
       effectiveUntil: effectiveUntil ?? this.effectiveUntil,
       specificDates: specificDates ?? this.specificDates,
+      isExam: isExam ?? this.isExam,
+      isPeriodExam: isPeriodExam ?? this.isPeriodExam,
+      examTitle: examTitle ?? this.examTitle,
     );
   }
 }

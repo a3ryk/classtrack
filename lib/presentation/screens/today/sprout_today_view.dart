@@ -6,7 +6,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_theme_tokens.dart';
 import '../../../core/theme/app_theme_registry.dart';
-import '../../../core/ui/app_toast.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../domain/entities/attendance_stats.dart';
 import '../../../domain/entities/class_session_entity.dart';
@@ -14,7 +13,7 @@ import '../../../domain/services/schedule_engine.dart';
 import '../../providers/app_state_provider.dart';
 import '../../providers/app_theme_style_provider.dart';
 import '../../widgets/class_info_slider_sheet.dart';
-import '../../widgets/declare_holiday_dialog.dart';
+import '../../widgets/declare_special_day_sheet.dart';
 import '../../widgets/mascot_peek_overlay.dart';
 class _SproutHeroResult {
   final ClassSessionEntity session;
@@ -205,9 +204,13 @@ class _SproutTodayViewState extends ConsumerState<SproutTodayView> {
 
     final String selectedDateIso = DateFormatter.toIsoDate(widget.selectedDate);
     final holidays = ref.watch(holidaysProvider);
+    final sessions = ref.watch(resolvedDayScheduleProvider(widget.selectedDate));
 
     final isToday = DateUtils.dateOnly(widget.selectedDate) == DateUtils.dateOnly(DateTime.now());
-    final isHoliday = holidays.any((h) => selectedDateIso.compareTo(h.startDate) >= 0 && selectedDateIso.compareTo(h.endDate) <= 0);
+    final activeHoliday = ScheduleResolutionEngine.getActiveHolidayForDate(holidays, widget.selectedDate);
+    final activeExam = ScheduleResolutionEngine.getActiveExamForDate(holidays, widget.selectedDate);
+    final isHoliday = activeHoliday != null;
+    final isExam = activeExam != null || sessions.any((s) => s.isExam);
 
     return ColoredBox(
       color: tokens.scaffoldBg,
@@ -215,10 +218,20 @@ class _SproutTodayViewState extends ConsumerState<SproutTodayView> {
         bottom: false,
         child: Column(
           children: [
-            // Fixed Top Action Strip: [Date Chip] [Today Pill] ... [Holiday]
+            // Fixed Top Action Strip: [Date Chip] [Today Pill] ... [Holiday / Exam]
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 10, 20, 6),
-              child: _buildTopActionStrip(context, ref, isDark, isToday, isHoliday, selectedDateIso, tokens),
+              child: _buildTopActionStrip(
+                context,
+                ref,
+                isDark,
+                isToday,
+                isHoliday,
+                isExam,
+                sessions,
+                selectedDateIso,
+                tokens,
+              ),
             ),
             // Horizontal Swipeable Day Pager
             Expanded(
@@ -262,8 +275,12 @@ class _SproutTodayViewState extends ConsumerState<SproutTodayView> {
 
     final realtimeNow = ref.watch(realtimeClockProvider).value ?? DateTime.now();
     final isToday = DateUtils.dateOnly(pageDate) == DateUtils.dateOnly(realtimeNow);
-    final isHoliday = holidays.any((h) => pageDateIso.compareTo(h.startDate) >= 0 && pageDateIso.compareTo(h.endDate) <= 0);
-    final HolidayItem? currentHoliday = holidays.where((h) => pageDateIso.compareTo(h.startDate) >= 0 && pageDateIso.compareTo(h.endDate) <= 0).firstOrNull;
+    final activeHoliday = ScheduleResolutionEngine.getActiveHolidayForDate(holidays, pageDate);
+    final activeExam = ScheduleResolutionEngine.getActiveExamForDate(holidays, pageDate);
+    final isHoliday = activeHoliday != null;
+    final HolidayItem? currentHoliday = activeHoliday;
+    final HolidayItem? currentExam = activeExam;
+    final bool isExam = activeExam != null || sessions.any((s) => s.isExam);
 
     final studentName = profile.studentName.trim().isNotEmpty
         ? profile.studentName.trim().split(' ').first
@@ -291,9 +308,12 @@ class _SproutTodayViewState extends ConsumerState<SproutTodayView> {
           // Schedule Section: Next/Ongoing Class (Hero Card Only on Today)
           if (isHoliday)
             _buildHolidayBanner(context, currentHoliday, isDark, tokens, themeDef)
+          else if (currentExam != null)
+            _buildExamBanner(context, currentExam, isDark, tokens, themeDef)
           else if (sessions.isEmpty)
             _buildEmptyClassesCard(context, isDark, tokens, themeDef)
-          else if (isToday) ...[
+          else ...[
+            if (isToday) ...[
             // Ongoing or Next Class Hero Section (animated height & cross-fade)
             AnimatedSize(
               duration: const Duration(milliseconds: 350),
@@ -339,7 +359,7 @@ class _SproutTodayViewState extends ConsumerState<SproutTodayView> {
             ),
             // Full list of today's scheduled classes
             _buildSectionHeader(
-              "Today's Classes",
+              isExam ? "Today's Exam Schedule" : "Today's Classes",
               isDark,
               tokens,
               count: sessions.length,
@@ -360,7 +380,7 @@ class _SproutTodayViewState extends ConsumerState<SproutTodayView> {
           ] else ...[
             // All Sessions when viewing another Date
             _buildSectionHeader(
-              DateFormat('EEEE, MMM d').format(pageDate),
+              isExam ? "${DateFormat('EEEE, MMM d').format(pageDate)} (Exams)" : DateFormat('EEEE, MMM d').format(pageDate),
               isDark,
               tokens,
               count: sessions.length,
@@ -380,9 +400,10 @@ class _SproutTodayViewState extends ConsumerState<SproutTodayView> {
             ],
           ],
         ],
-      ),
-    );
-  }
+      ],
+    ),
+  );
+}
 
   Widget _buildTopActionStrip(
     BuildContext context,
@@ -390,6 +411,8 @@ class _SproutTodayViewState extends ConsumerState<SproutTodayView> {
     bool isDark,
     bool isToday,
     bool isHoliday,
+    bool isExam,
+    List<ClassSessionEntity> sessions,
     String selectedDateIso,
     AppThemeTokens tokens,
   ) {
@@ -477,34 +500,34 @@ class _SproutTodayViewState extends ConsumerState<SproutTodayView> {
               ),
             ],
 
-            // Declare / Remove Holiday Button
+            // Declare / Remove Holiday or Exam Button
             GestureDetector(
               onTap: () {
-                if (isHoliday) {
-                  ref.read(holidaysProvider.notifier).removeHolidayForDate(selectedDateIso);
-                  AppToast.info(context, 'Holiday removed for $selectedDateIso');
-                } else {
-                  DeclareHolidaySheet.show(context, initialDate: widget.selectedDate);
-                }
+                DeclareSpecialDaySheet.show(
+                  context,
+                  initialDate: widget.selectedDate,
+                  initialTab: isExam ? SpecialDayTab.exam : SpecialDayTab.holiday,
+                  todaySessions: sessions,
+                );
               },
               child: Container(
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: isHoliday
-                      ? (isDark ? const Color(0xFF78350F).withValues(alpha: 0.4) : const Color(0xFFFEF3C7))
+                  color: (isHoliday || isExam)
+                      ? (isDark ? const Color(0xFF234430) : const Color(0xFFEAF5E4))
                       : (isDark ? const Color(0xFF1B3626) : Colors.white),
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: isHoliday
-                        ? const Color(0xFFD97706)
+                    color: (isHoliday || isExam)
+                        ? tokens.primaryAccent
                         : (isDark ? const Color(0xFF2E593E) : const Color(0xFFE4ECE0)),
                     width: 1.2,
                   ),
                 ),
                 child: Center(
                   child: Text(
-                    isHoliday ? '🏖️' : '🌴',
+                    isHoliday ? '🏖️' : (isExam ? '📝' : '🌴'),
                     style: const TextStyle(fontSize: 17),
                   ),
                 ),
@@ -570,12 +593,16 @@ class _SproutTodayViewState extends ConsumerState<SproutTodayView> {
               // Subtitle encouragement
               Row(
                 children: [
-                  Text(
-                    "Show up. You're doing great!",
-                    style: GoogleFonts.quicksand(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
-                      color: tokens.textSecondary,
+                  Flexible(
+                    child: Text(
+                      "Show up. You're doing great!",
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.quicksand(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: tokens.textSecondary,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 4),
@@ -867,15 +894,43 @@ class _SproutTodayViewState extends ConsumerState<SproutTodayView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        session.subjectName,
-                        style: GoogleFonts.quicksand(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          color: tokens.textPrimary,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              session.subjectName,
+                              style: GoogleFonts.quicksand(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: tokens.textPrimary,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (session.isExam) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF2E593E).withValues(alpha: 0.6) : const Color(0xFFEAF5E4),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: tokens.primaryAccent.withValues(alpha: 0.5),
+                                  width: 0.8,
+                                ),
+                              ),
+                              child: Text(
+                                session.examTitle?.isNotEmpty == true ? session.examTitle! : 'Exam',
+                                style: GoogleFonts.quicksand(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: tokens.primaryAccent,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                       const SizedBox(height: 3),
                       Text(
@@ -1319,15 +1374,43 @@ class _SproutTodayViewState extends ConsumerState<SproutTodayView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        session.subjectName,
-                        style: GoogleFonts.quicksand(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          color: tokens.textPrimary,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              session.subjectName,
+                              style: GoogleFonts.quicksand(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: tokens.textPrimary,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (session.isExam) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF2E593E).withValues(alpha: 0.6) : const Color(0xFFEAF5E4),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: tokens.primaryAccent.withValues(alpha: 0.5),
+                                  width: 0.8,
+                                ),
+                              ),
+                              child: Text(
+                                session.examTitle?.isNotEmpty == true ? session.examTitle! : 'Exam',
+                                style: GoogleFonts.quicksand(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: tokens.primaryAccent,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                       const SizedBox(height: 3),
                       Text(
@@ -1530,12 +1613,16 @@ class _SproutTodayViewState extends ConsumerState<SproutTodayView> {
       key: key,
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          title,
-          style: GoogleFonts.quicksand(
-            fontSize: 17,
-            fontWeight: FontWeight.w800,
-            color: tokens.textPrimary,
+        Expanded(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.quicksand(
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              color: tokens.textPrimary,
+            ),
           ),
         ),
         if (count != null)
@@ -1609,6 +1696,65 @@ class _SproutTodayViewState extends ConsumerState<SproutTodayView> {
           const SizedBox(height: 6),
           Text(
             'Classes are suspended for today. Enjoy your break! 🌱',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.quicksand(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: tokens.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExamBanner(
+    BuildContext context,
+    HolidayItem? currentExam,
+    bool isDark,
+    AppThemeTokens tokens,
+    ThemeDefinition themeDef,
+  ) {
+    final title = currentExam?.title.trim().isNotEmpty == true ? currentExam!.title : 'Examinations';
+    final examMascot = themeDef.assets.emptyStateMascot ?? themeDef.assets.todayMascot;
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1B3626) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isDark ? const Color(0xFF2E593E) : const Color(0xFFEDE9DF),
+          width: 1.2,
+        ),
+      ),
+      child: Column(
+        children: [
+          if (examMascot.isNotEmpty)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(28),
+              child: Image.asset(
+                examMascot,
+                width: 64,
+                height: 64,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const Text('📝', style: TextStyle(fontSize: 48)),
+              ),
+            )
+          else
+            const Text('📝', style: TextStyle(fontSize: 48)),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: GoogleFonts.quicksand(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: tokens.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Classes are suspended for exams today. Best of luck with your exams! 🌟',
             textAlign: TextAlign.center,
             style: GoogleFonts.quicksand(
               fontSize: 13,
